@@ -12,13 +12,12 @@
 struct Taskref;
 struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 	char name[TaskSettings::NAME_LENGTH]{0};
-	char group[TaskSettings::GROUP_LENGTH]{0};
 	char notes[TaskSettings::NOTES_LENGTH]{0};
 
-	int valve_id  = -1;
-	long creation = 0;
-	long schedule = 0;
-	bool active	  = false;
+	int status		 = 0;
+	long creation	 = 0;
+	long schedule	 = 0;
+	long timeBetween = 0;
 
 	unsigned long flushTime		 = 0;
 	unsigned long flushVolume	 = 0;
@@ -56,28 +55,16 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 
 	void decodeJSON(const JsonObjectConst & source) override {
 		using namespace TaskSettings;
-		// -> name
-		strncpy(name, source["name"], NAME_LENGTH);
-		if (name[NAME_LENGTH - 1] != 0) {
-			println("Warning (Task): Name exceeds its buffer size and will be truncated");
-		}
 
-		// -> group
-		strncpy(group, source["group"], GROUP_LENGTH);
-		if (group[GROUP_LENGTH - 1] != 0) {
-			println("Warning (Task): Group name exceeds its buffer size and will be truncated");
-		}
+		if (source.containsKey("name"))
+			snprintf(name, NAME_LENGTH, "%s", source["name"].as<char *>());
 
-		// -> notes
-		strncpy(notes, source["notes"], NOTES_LENGTH);
-		if (notes[NOTES_LENGTH - 1] != 0) {
-			println("Warning (Task): Notes exceeds its buffer size and will be truncated");
-		}
+		if (source.containsKey("notes"))
+			snprintf(notes, NOTES_LENGTH, "%s", source["notes"].as<char *>());
 
-		valve_id	   = source["valve"];
 		creation	   = source["creation"];
 		schedule	   = source["schedule"];
-		active		   = source["schedule"];
+		status		   = source["status"];
 		flushTime	   = source["flushTime"];
 		flushVolume	   = source["flushVolume"];
 		sampleTime	   = source["sampleTime"];
@@ -85,37 +72,35 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 		sampleVolume   = source["sampleVolume"];
 		dryTime		   = source["dryTime"];
 		preserveTime   = source["preserveTime"];
+		timeBetween	   = source["timeBetween"];
 	}
 
-	bool encodeJSON(JsonObject & dest) const override {
-		return dest["name"].set(name)
-			   && dest["group"].set(group)
-			   && dest["notes"].set(notes)
-			   && dest["valve"].set(valve_id)
+	bool encodeJSON(JsonVariant & dest) const override {
+		return dest["name"].set((char *)name)
+			   && dest["notes"].set((char *)notes)
+			   && dest["status"].set(status)
 			   && dest["creation"].set(creation)
 			   && dest["schedule"].set(schedule)
-			   && dest["schedule"].set(active)
 			   && dest["flushTime"].set(flushTime)
 			   && dest["flushVolume"].set(flushVolume)
 			   && dest["sampleTime"].set(sampleTime)
 			   && dest["samplePressure"].set(samplePressure)
 			   && dest["sampleVolume"].set(sampleVolume)
 			   && dest["dryTime"].set(dryTime)
-			   && dest["preserveTime"].set(preserveTime);
+			   && dest["preserveTime"].set(preserveTime)
+			   && dest["timeBetween"].set(timeBetween);
 	}
 
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<ProgramSettings::TASK_JSON_BUFFER_SIZE> doc;
-		JsonObject object = doc.to<JsonObject>();
+		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
-		return serializeJsonPretty(object, Serial);
+		return serializeJsonPretty(doc, Serial);
 	}
 };
 
 struct Taskref : public JsonEncodable, public JsonDecodable, public Printable {
 	char name[TaskSettings::NAME_LENGTH]{0};
-	char group[TaskSettings::GROUP_LENGTH]{0};
-	int valve_id = -1;
 
 	Taskref()					   = default;
 	Taskref(const Taskref & other) = default;
@@ -123,8 +108,6 @@ struct Taskref : public JsonEncodable, public JsonDecodable, public Printable {
 
 	Taskref(const Task & task) {
 		strcpy(name, task.name);
-		strcpy(group, task.group);
-		valve_id = task.valve_id;
 	}
 
 	Taskref(const JsonObjectConst & data) {
@@ -155,26 +138,15 @@ struct Taskref : public JsonEncodable, public JsonDecodable, public Printable {
 		if (name[NAME_LENGTH - 1] != 0) {
 			println("Warning (Task): Name exceeds its buffer size and will be truncated");
 		}
-
-		// -> group
-		strncpy(group, source["group"], GROUP_LENGTH);
-		if (group[GROUP_LENGTH - 1] != 0) {
-			println("Warning (Task): Group name exceeds its buffer size and will be truncated");
-		}
-
-		// -> valve
-		valve_id = source["valve"];
 	}
 
-	bool encodeJSON(JsonObject & dest) const override {
-		return dest["name"].set(name)
-			   && dest["group"].set(group)
-			   && dest["valve"].set(valve_id);
+	bool encodeJSON(JsonVariant & dest) const override {
+		return dest["name"].set((char *)name);
 	}
 
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<ProgramSettings::TASKREF_JSON_BUFFER_SIZE> doc;
-		JsonObject object = doc.to<JsonObject>();
+		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, Serial);
 	}
