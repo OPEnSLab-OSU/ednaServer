@@ -69,7 +69,7 @@ public:
 		return "Status";
 	}
 
-	bool encodeJSON(JsonObject & dest) const override {
+	bool encodeJSON(JsonVariant & dest) const override {
 		using namespace JsonKeys;
 
 		JsonArray doc_valves = dest.createNestedArray(VALVES);
@@ -96,7 +96,7 @@ public:
 	//
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<ProgramSettings::STATUS_JSON_BUFFER_SIZE> doc;
-		JsonObject object = doc.to<JsonObject>();
+		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, printer);
 	}

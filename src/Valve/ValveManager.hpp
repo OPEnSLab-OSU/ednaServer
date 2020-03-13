@@ -78,7 +78,7 @@ public:
 
 		unsigned long start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
-			KPStringBuilder<32> filename("valve-", i < 10 ? "0" : "", i, ".js");
+			KPStringBuilder<32> filename("valve-", i, ".js");
 			KPStringBuilder<64> filepath(dir, "/", filename);
 			valves[i].load(filepath);
 			valves[i].id = i;
@@ -107,7 +107,7 @@ public:
 
 		unsigned long start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
-			KPStringBuilder<32> filename("valve-", i < 10 ? "0" : "", i, ".js");
+			KPStringBuilder<32> filename("valve-", i, ".js");
 			KPStringBuilder<64> filepath(dir, "/", filename);
 			valves[i].save(filepath);
 		}

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <KPFoundation.hpp>
@@ -8,8 +7,9 @@
 
 #include <ArduinoJson.h>
 
-//
+// ────────────────────────────────────────────────────────────────────────────────
 // ─── SECTION CONFIG ─────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────────
 //
 // NOTE This object is intended to be read-only and represents to actual data in the
 // config file in SD card

@@ -78,7 +78,7 @@ public:
 		preserveTime   = source[VALVE_PRESERVE_TIME];
 	}
 
-	bool encodeJSON(JsonObject & dest) const override {
+	bool encodeJSON(JsonVariant & dest) const override {
 		using namespace JsonKeys;
 		return dest[VALVE_ID].set(id)
 			   && dest[VALVE_GROUP].set((char *)group)
@@ -95,7 +95,7 @@ public:
 
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<ProgramSettings::VALVE_JSON_BUFFER_SIZE> doc;
-		JsonObject object = doc.to<JsonObject>();
+		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, Serial);
 	}
@@ -151,7 +151,7 @@ struct Valveref : public JsonEncodable, public JsonDecodable, public Printable {
 		id = source[VALVE_ID];
 	}
 
-	bool encodeJSON(JsonObject & dest) const override {
+	bool encodeJSON(JsonVariant & dest) const override {
 		using namespace JsonKeys;
 		println(group);
 		return dest[VALVE_ID].set(id)
@@ -160,8 +160,8 @@ struct Valveref : public JsonEncodable, public JsonDecodable, public Printable {
 
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<ProgramSettings::VALVE_JSON_BUFFER_SIZE> doc;
-		JsonObject object = doc.to<JsonObject>();
+		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
-		return serializeJsonPretty(object, Serial);
+		return serializeJsonPretty(doc, Serial);
 	}
 };

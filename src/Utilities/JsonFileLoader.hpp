@@ -13,7 +13,8 @@ public:
 		File file = SD.open(filepath, FILE_READ);
 		if (!file) {
 			KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
-			raise(Error(message));
+			println(Error(message));
+			return;
 		}
 
 		// skip empty file
@@ -51,7 +52,7 @@ public:
 	void save(const char * filepath, const JsonEncodable & encoder) const {
 		// call the encoder function
 		StaticJsonDocument<buffer_size> doc;
-		JsonObject dest = doc.template to<JsonObject>();
+		JsonVariant dest = doc.template to<JsonVariant>();
 		if (!encoder.encodeJSON(dest)) {
 			KPStringBuilder<120> message("Encoder (", encoder.encoderName(), "): JSON object size exceeds the buffer limit.");
 			raise(Error(message));
@@ -68,6 +69,6 @@ public:
 		// the status message
 		println();
 		println("Finished writing to ", filepath, " in ", millis() - start, " ms");
-		println("Json size: ", doc.memoryUsage(), " bytes");
+		println("Json size: ", dest.memoryUsage(), " bytes");
 	}
 };
