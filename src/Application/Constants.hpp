@@ -69,8 +69,9 @@ namespace JsonKeys {
 	consts VALVE_SAMPLE_VOLUME	 = "valveSampleVolume";
 	consts VALVE_DRY_TIME		 = "valveDryTime";
 	consts VALVE_PRESERVE_TIME	 = "valvePreserveTime";
-	consts TASK_CURRENT_NAME	 = "taskCurrentName";
+	consts TASK_CURRENT_NAME	 = "currentName";
 	consts TASK_NAME			 = "name";
+	consts TASK_NEW_NAME		 = "newName";
 	consts TIME_UTC				 = "timeUTC";
 	consts SENSOR_PRESSURE		 = "pressure";
 	consts SENSOR_TEMP			 = "temperature";

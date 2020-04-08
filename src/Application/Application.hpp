@@ -19,6 +19,9 @@
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
 
+#include <Task/Task.hpp>
+#include <Task/TaskManager.hpp>
+
 #include <Utilities/JsonEncodableDecodable.hpp>
 
 #define AirValveBitIndex	 2
@@ -29,102 +32,8 @@ extern void printDirectory(File dir, int numTabs);
 
 class Application : public KPController, KPSerialInputListener {
 private:
-	void setupServer() {
-		// web.serveStaticFile("/gzip", "/index.gz", card, "text/html");
-		// web.serveStaticFile("/", "/index.htm", fileLoader, "text/html");
-
-		web.get("/", [this](Request & req, Response & res) {
-			res.sendFile("combined.htm", fileLoader);
-			res.end();
-		});
-
-		web.get("/gzip", [this](Request & req, Response & res) {
-			res.setHeader("Content-Encoding", "gzip");
-			res.sendFile("index.gz", fileLoader);
-			res.end();
-		});
-
-		web.get("/api/status", [this](Request & req, Response & res) {
-			const int size = ProgramSettings::STATUS_JSON_BUFFER_SIZE;
-
-			StaticJsonDocument<size> doc;
-			JsonObject object = doc.to<JsonObject>();
-			status.encodeJSON(object);
-
-			KPStringBuilder<10> length(measureJson(doc));
-
-			res.setHeader("Content-Type", "application/json");
-			res.setHeader("Content-Length", length.c_str());
-			res.sendJSON(doc);
-			res.end();
-		});
-
-		web.get("/api/valverefs", [this](Request & req, Response & res) {
-			const size_t size = ProgramSettings::VALVEREF_JSON_BUFFER_SIZE * ProgramSettings::MAX_VALVES;
-			StaticJsonDocument<size> doc;
-			JsonArray valverefs = doc.to<JsonArray>();
-			for (const Valve & v : vm.valves) {
-				JsonObject obj = valverefs.createNestedObject();
-				Valveref ref(v);
-				ref.encodeJSON(obj);
-				serializeJsonPretty(obj, Serial);
-			}
-
-			res.setHeader("Content-Type", "application/json");
-			res.sendJSON(doc);
-			res.end();
-		});
-
-		web.get("/stop", [this](Request & req, Response & res) {
-			sm.transitionTo(StateName::FLUSH);
-		});
-
-		web.post("/submit", [this](Request & req, Response & res) {
-
-		});
-	}
-
-	void commandReceived(const String & line) override {
-		if (line == "load status") status.load(config.statusFile);
-		if (line == "save status") status.save(config.statusFile);
-		if (line == "print status") println(status);
-
-		if (line == "load config") config.load();
-		if (line == "print config") println(config);
-
-		if (line == "print sd") printDirectory(SD.open("/"), 0);
-
-		if (line == "load valves") vm.loadValvesFromDirectory(config.valveFolder);
-		if (line == "save valves") vm.saveValvesToDirectory(config.valveFolder);
-		if (line == "print valves") {
-			for (size_t i = 0; i < vm.valves.size(); i++) {
-				println(vm.valves[i]);
-			}
-		}
-
-		if (line == "reset valves") {
-			for (int i = 0; i < config.valveUpperBound; i++) {
-				vm.init(config);
-			}
-		}
-
-		if (line == "read test") {
-			char buffer[64];
-			while (fileLoader.loadContentOfFile("index.gz", buffer, 64)) {
-				println(buffer);
-			}
-		}
-
-		if (line == "test") {
-			KPArray<int, ProgramSettings::MAX_VALVES> task1 = vm.filter([](const Valve & v) {
-				return strcmp(v.group, "Task 1") == 0;
-			});
-
-			for (size_t i = 0; i < task1.size(); i++) {
-				println(task1[i], ",");
-			}
-		}
-	}
+	void setupServer();
+	void commandReceived(const String & line) override;
 
 public:
 	KPServer web{"web-server", "eDNA-test", "password"};
@@ -140,6 +49,7 @@ public:
 	Status status;
 
 	ValveManager vm;
+	TaskManager tm;
 
 private:
 	void setup() override {
@@ -170,24 +80,15 @@ private:
 		config.load();
 		status.init(config);
 
-		vm.init(config);
-		vm.addListener(&status);
-
-		// Setup web server
 		setupServer();
 		web.begin();
 
+		vm.init(config);
+		vm.addListener(&status);
 		vm.loadValvesFromDirectory(config.valveFolder);
-		// vm.saveValvesToDirectory(config().valveFolder);
 
-		// StaticJsonDocument<200> doc;
-		// JsonArray array = doc.to<JsonArray>();
-		// {
-		// 	JsonObject obj = array.createNestedObject();
-		// 	char text[]	   = "Panda Cubs";
-		// 	obj["text"].set((char *)text);
-		// }
-		// serializeJsonPretty(array, Serial);
+		tm.init(config);
+		tm.loadTasksFromDirectory(config.taskFolder);
 
 		// Transition to idle state
 		sm.transitionTo(StateName::IDLE);

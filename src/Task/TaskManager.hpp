@@ -10,14 +10,26 @@
 
 #include "SD.h"
 
-class TaskManager : public JsonEncodable {
+class TaskVerificationError {
+public:
+	byte bitmask;
+
+	// Allow for implicit conversion from ValveStatus::code -> ValveStatus(ValveStatus::code)
+	// Meaning that the client code can call function that accept ValveStatus with just ValveStatus::[enum]
+	void setTime() {
+		bitmask |= 1 << 1;
+	}
+};
+
+class TaskManager : public KPComponent, public JsonEncodable {
 public:
 	static constexpr int numberOfTasks = 10;
 	KPArray<Task, numberOfTasks> tasks;
 
 	char * taskFolder = nullptr;
 
-	TaskManager() {
+	TaskManager()
+		: KPComponent("TaskManager") {
 		tasks.resize(numberOfTasks);
 	}
 
@@ -73,13 +85,53 @@ public:
 		}
 	}
 
+	// Performe identity check and update the task
+	int updateTaskWithData(JsonDocument & data, JsonDocument & response) {
+		using namespace JsonKeys;
+		int index = findTaskWithName(data[TASK_NAME]);
+		if (index == -1) {
+			response["error"] = "No task with such name";
+			return -1;
+		}
+
+		if (data.containsKey(TASK_NEW_NAME)) {
+			// check there is a task with newName then
+			// replaces the name with new name if none is found
+			if (findTaskWithName(data[TASK_NEW_NAME]) == -1) {
+				data[TASK_NAME] = data[TASK_NEW_NAME];
+				goto save;
+			}
+
+			KPStringBuilder<100> error("Task with name ", data[TASK_NEW_NAME].as<char *>(), " already exist");
+			response["error"] = (char *)error.c_str();
+			return -1;
+		}
+
+	save:
+		JsonVariant payload = response.createNestedObject("payload");
+		tasks[index]		= Task(data.as<JsonObjectConst>());
+		tasks[index].encodeJSON(payload);
+
+		KPStringBuilder<100> success("Saved", data[TASK_NAME].as<char *>());
+		response["success"] = (char *)success.c_str();
+		return index;
+	}
+
+	// NOTE: Validate
+	int validateTask(Task & task) {
+		// Application & app = *static_cast<Application *>(controller);
+		// task.schedule > now
+		if (task.schedule < now() && task.schedule != -1) {
+		}
+	}
+
 	void createTask(const JsonObjectConst & object) {
 		Task task(object);
 		tasks.append(task);
-		saveTasksToDirectory();
+		writeTaskArrayToDirectory();
 	}
 
-	void updateIndex(const char * _dir = nullptr) {
+	void updateIndexFile(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
 		FileLoader loader;
@@ -94,7 +146,7 @@ public:
 		indexFile.close();
 	}
 
-	void saveTasksToDirectory(const char * _dir = nullptr) {
+	void writeTaskArrayToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
 		FileLoader loader;
@@ -105,7 +157,7 @@ public:
 			tasks[i].save(filepath);
 		}
 
-		updateIndex(dir);
+		updateIndexFile(dir);
 	}
 
 	//
