@@ -22,16 +22,18 @@ public:
 //
 // NOTE: This object provide APIs for keeping track of the valve system
 // ────────────────────────────────────────────────────────────────────────────────
-class ValveManager {
+class ValveManager : public JsonEncodable {
 private:
 	std::vector<ValveManagerEventListner *> listeners;
 
 public:
 	constexpr static size_t MAX_VALVES = ProgramSettings::MAX_VALVES;
-	KPArray<Valve, MAX_VALVES> valves;
+	std::array<Valve, MAX_VALVES> valves;
+
+	const char * valveFolder = nullptr;
 
 	void init(Config & config) {
-		valves.resize(config.valveUpperBound + 1);
+		valveFolder = config.valveFolder;
 		for (size_t i = 0; i < valves.size(); i++) {
 			valves[i].id = i;
 			valves[i].setStatus(ValveStatus::Code(config.valves[i]));
@@ -61,18 +63,19 @@ public:
 		updateListeners();
 	}
 
-	KPArray<int, MAX_VALVES> filter(std::function<bool(const Valve &)> filter_func) {
-		KPArray<int, MAX_VALVES> ids;
-		for (const Valve & v : valves) {
-			if (filter_func(v)) {
-				ids.append(v.id);
+	std::vector<int> filter(std::function<bool(const Valve &)> pred) {
+		std::vector<int> list;
+		for (size_t i = 0; i < valves.size(); i++) {
+			if (pred(valves[i])) {
+				list.push_back(i);
 			}
 		}
-
-		return ids;
+		return list;
 	}
 
-	void loadValvesFromDirectory(const char * dir) {
+	void loadValvesFromDirectory(const char * _dir = nullptr) {
+		const char * dir = _dir ? _dir : valveFolder;
+
 		FileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
@@ -84,12 +87,12 @@ public:
 			valves[i].id = i;
 		}
 
-		println("ValveManager: finished loading in ", millis() - start, " ms");
+		println("\033[1;32mValveManager\033[0m: finished loading in ", millis() - start, " ms");
 		updateListeners();
 	}
 
-	void updateValves(const JsonArrayConst & task_array) {
-		for (const JsonObjectConst & object : task_array) {
+	void updateValves(const JsonArray & task_array) {
+		for (const JsonObject & object : task_array) {
 			int id = object[JsonKeys::VALVE_ID];
 			if (valves[id].status) {
 				valves[id].decodeJSON(object);
@@ -114,5 +117,23 @@ public:
 
 		println("ValveManager: finished saving in ", millis() - start, " ms");
 		updateListeners();
+	}
+
+	static const char * encoderName() {
+		return "ValveManager";
+	}
+
+	static constexpr size_t encoderSize() {
+		return Valve::encoderSize() * MAX_VALVES;
+	}
+
+	bool encodeJSON(const JsonVariant & dst) const {
+		for (const auto & v : valves) {
+			if (!v.encodeJSON(dst.createNestedObject())) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 };

@@ -8,11 +8,12 @@
 // ────────────────────────────────────────────────────────────────────────────────
 class JsonDecodable {
 public:
-	virtual const char * decoderName() const {
+	static const char * decoderName() {
 		return "Unnamed";
 	}
 
-	virtual void decodeJSON(const JsonObjectConst & source) = 0;
+	static constexpr size_t decoderSize();
+	virtual void decodeJSON(const JsonVariant & source) = 0;
 	virtual void load(const char * filepath) {
 		raise(Error("JsonDecodable load needs override"));
 	}
@@ -23,11 +24,12 @@ public:
 // ────────────────────────────────────────────────────────────────────────────────
 class JsonEncodable {
 public:
-	virtual const char * encoderName() const {
+	static const char * encoderName() {
 		return "Unnamed";
 	}
 
-	virtual bool encodeJSON(JsonVariant & dest) const = 0;
+	static const size_t encoderSize();
+	virtual bool encodeJSON(const JsonVariant & dest) const = 0;
 	virtual void save(const char * filepath) const {
 		raise(Error("JsonEncodable save needs override"));
 	}

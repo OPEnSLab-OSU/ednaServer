@@ -1,5 +1,7 @@
 #include <Application/Application.hpp>
 
+#include <array>
+
 //
 // ──────────────────────────────────────────────────────────────── I ──────────
 //   :::::: S E R V E R   S E T U P : :  :   :    :     :        :          :
@@ -12,6 +14,8 @@ void Application::setupServer() {
 	// 	res.end();
 	// });
 
+	web.handlers.reserve(10);
+
 	web.get("/", [this](Request & req, Response & res) {
 		res.setHeader("Content-Encoding", "gzip");
 		res.sendFile("index.gz", fileLoader);
@@ -19,57 +23,78 @@ void Application::setupServer() {
 	});
 
 	web.get("/api/status", [this](Request & req, Response & res) {
-		const int size = ProgramSettings::STATUS_JSON_BUFFER_SIZE;
-		StaticJsonDocument<size> doc;
-		JsonVariant object = doc.to<JsonObject>();
-		status.encodeJSON(object);
+		StaticJsonDocument<Status::encoderSize()> response;
+		status.encodeJSON(response.to<JsonObject>());
+		response["utc"] = now();
+
+		serializeJsonPretty(response, Serial);
+
+		KPStringBuilder<10> length(measureJson(response));
+		res.setHeader("Content-Length", length.c_str());
+		res.json(response);
+		res.end();
+	});
+
+	web.post("/api/rtc/update", [this](Request & req, Response & res) {
+		StaticJsonDocument<100> body;
+		deserializeJson(body, req.body);
+		const time_t utc		 = body["utc"];
+		const int timezoneOffset = body["timezoneOffset"];
+
+		println("utc=", utc);
+		println("compileTime=", power.compileTime(timezoneOffset));
+
+		StaticJsonDocument<100> response;
+		if (utc >= power.compileTime(timezoneOffset) + (millis() / 1000)) {
+			response["success"] = "RTC updated.";
+			power.set(utc);
+		} else {
+			response["error"] = "Time seems sketchy. You sure about this?";
+		}
+
+		res.json(response);
+		res.end();
+	});
+
+	web.get("/api/valves", [this](Request & req, Response & res) {
+		StaticJsonDocument<ValveManager::encoderSize()> doc;
+		vm.encodeJSON(doc.to<JsonArray>());
 
 		KPStringBuilder<10> length(measureJson(doc));
-
-		res.setHeader("Content-Type", "application/json");
 		res.setHeader("Content-Length", length.c_str());
 		res.json(doc);
 		res.end();
 	});
 
-	web.get("/api/valverefs", [this](Request & req, Response & res) {
-		const size_t size = ProgramSettings::VALVEREF_JSON_BUFFER_SIZE * ProgramSettings::MAX_VALVES;
-		StaticJsonDocument<size> doc;
-		JsonArray valverefs = doc.to<JsonArray>();
-		for (const Valve & v : vm.valves) {
-			JsonVariant obj = valverefs.createNestedObject();
-			Valveref ref(v);
-			ref.encodeJSON(obj);
-			serializeJsonPretty(obj, Serial);
-		}
+	// web.get("/api/taskrefs", [this](Request & req, Response & res) {
+	// 	const size_t size = ProgramSettings::TASKREF_JSON_BUFFER_SIZE * 10;
+	// 	StaticJsonDocument<size> doc;
+	// 	JsonArray taskrefs = doc.to<JsonArray>();
+	// 	for (const Task & task : tm.tasks) {
+	// 		JsonVariant obj = taskrefs.createNestedObject();
+	// 		Taskref ref(task);
+	// 		ref.encodeJSON(obj);
+	// 		serializeJsonPretty(obj, Serial);
+	// 	}
 
-		res.setHeader("Content-Type", "application/json");
-		res.json(doc);
-		res.end();
-	});
+	// 	res.setHeader("Content-Type", "application/json");
+	// 	res.json(doc);
+	// 	res.end();
+	// });
 
-	web.get("/api/taskrefs", [this](Request & req, Response & res) {
-		const size_t size = ProgramSettings::TASKREF_JSON_BUFFER_SIZE * 10;
-		StaticJsonDocument<size> doc;
-		JsonArray taskrefs = doc.to<JsonArray>();
-		for (const Task & task : tm.tasks) {
-			JsonVariant obj = taskrefs.createNestedObject();
-			Taskref ref(task);
-			ref.encodeJSON(obj);
-			serializeJsonPretty(obj, Serial);
-		}
-
-		res.setHeader("Content-Type", "application/json");
+	web.get("/api/tasks", [this](Request & req, Response & res) {
+		StaticJsonDocument<TaskManager::encoderSize()> doc;
+		tm.encodeJSON(doc.to<JsonArray>());
 		res.json(doc);
 		res.end();
 	});
 
 	web.post("/api/task/get", [this](Request & req, Response & res) {
 		using namespace JsonKeys;
-		const size_t size = ProgramSettings::TASK_JSON_BUFFER_SIZE;
-		StaticJsonDocument<size> doc;
+		StaticJsonDocument<Task::encoderSize()> doc;
 		deserializeJson(doc, req.body);
 		serializeJsonPretty(doc, Serial);
+		println();
 
 		// Find task with name
 		int index = tm.findTaskWithName(doc[TASK_NAME]);
@@ -79,43 +104,35 @@ void Application::setupServer() {
 			return;
 		}
 
-		StaticJsonDocument<size> task_doc;
+		StaticJsonDocument<Task::encoderSize()> task_doc;
 		JsonVariant task_object = task_doc.to<JsonObject>();
 		tm.tasks[index].encodeJSON(task_object);
-		res.setHeader("Content-Type", "application/json");
 		res.json(task_doc);
 		res.end();
 	});
 
 	web.post("/api/task/create", [this](Request & req, Response & res) {
 		using namespace JsonKeys;
-		const size_t size = ProgramSettings::TASK_JSON_BUFFER_SIZE;
-		StaticJsonDocument<size> body;
+		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		const char * taskname = body["name"].as<char *>();
-		const auto found	  = std::find_if(tm.tasks.begin(), tm.tasks.end(),
-			 [&](Task t) {
-				 return strcmp(t.name, taskname) == 0;
-			 });
+		StaticJsonDocument<Task::encoderSize() + 500> response;
+		const char * name = body["name"];
+		const int index	  = tm.findTaskWithName(name);
+		if (index == -1) {
+			tm.createTask(body.as<JsonObject>());
+			tm.writeTaskArrayToDirectory();
 
-		// Not found. Can create new task.
-		StaticJsonDocument<ProgramSettings::TASK_JSON_BUFFER_SIZE * 10 + 500> response;
-		if (found == tm.tasks.end()) {
-			JsonVariant task_array = response.createNestedArray("payload");
+			JsonVariant task = response.createNestedObject("payload");
+			tm.tasks.back().encodeJSON(task);
 
-			tm.createTask(body.as<JsonObjectConst>());
-			tm.encodeJSON(task_array);
-			// tm.saveTasksToDirectory();
-
-			KPStringBuilder<100> successMessage("Successfully created ", taskname);
-			response["success"] = successMessage.c_str();
+			KPStringBuilder<100> successMessage("Successfully created ", name);
+			response["success"] = (char *) successMessage.c_str();
 		} else {
 			response["error"] = "Found task with the same name. Task name must be unique";
 		}
 
-		res.setHeader("Content-Type", "application/json");
 		res.json(response);
 		res.end();
 	});
@@ -127,9 +144,8 @@ void Application::setupServer() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<ProgramSettings::TASK_JSON_BUFFER_SIZE + 500> response;
+		StaticJsonDocument<Task::encoderSize() + 500> response;
 		tm.updateTaskWithData(body, response);
-		res.setHeader("Content-Type", "application/json");
 		res.json(response);
 		res.end();
 	});
@@ -142,34 +158,14 @@ void Application::setupServer() {
 		serializeJsonPretty(body, Serial);
 
 		Task task;
-		task.decodeJSON(body.as<JsonObjectConst>());
+		task.decodeJSON(body.as<JsonObject>());
 
-		int code = tm.validateTask(task);
+		// tm.validateTask();
 
-		println(task);
+		StaticJsonDocument<Task::encoderSize() + 500> response;
+		tm.updateTaskWithData(body, response);
+		res.json(response);
 		res.end();
-
-		// StaticJsonDocument<ProgramSettings::TASK_JSON_BUFFER_SIZE + 500> response;
-		// tm.updateTaskWithData(body, response);
-		// res.setHeader("Content-Type", "application/json");
-		// res.json(response);
-		// res.end();
-
-		// int index = tm.findTaskWithName(body[TASK_NAME]);
-		// if (index == -1) {
-		// 	res.send("{}");
-		// 	res.end();
-		// 	return;
-		// }
-
-		// tm.tasks[index] = Task(body.as<JsonObjectConst>());
-		// StaticJsonDocument<ProgramSettings::TASK_JSON_BUFFER_SIZE * 10> doc;
-		// JsonVariant task_array = doc.to<JsonArray>();
-		// tm.encodeJSON(task_array);
-		// res.setHeader("Content-Type", "application/json");
-		// res.json(doc);
-		// res.end();
-		// tm.saveTasksToDirectory();
 	});
 
 	web.post("/api/task/schedule/forced", [this](Request & req, Response & res) {
@@ -180,12 +176,42 @@ void Application::setupServer() {
 		serializeJsonPretty(body, Serial);
 	});
 
-	web.get("/stop", [this](Request & req, Response & res) {
-		sm.transitionTo(StateName::FLUSH);
+	web.post("/api/task/delete", [this](Request & req, Response & res) {
+		StaticJsonDocument<100> body;
+		deserializeJson(body, req.body);
+		serializeJsonPretty(body, Serial);
+
+		const char * name = body["name"];
+
+		StaticJsonDocument<500> response;
+		int index = tm.findTaskWithName(name);
+
+		// Task not found
+		if (index == -1) {
+			response["error"] = "No task with this name";
+			goto send;
+		}
+
+		// Found task but status is active
+		if (tm.tasks[index].status) {
+			response["error"] = "Task currently have active status. Please deactivate before continue.";
+			goto send;
+		}
+
+		// If no error
+		if (!response.containsKey("error")) {
+			tm.deleteTask(index);
+			tm.writeTaskArrayToDirectory();
+			response["success"] = "Task deleted";
+		}
+
+	send:
+		res.json(response);
+		res.end();
 	});
 
-	web.post("/submit", [this](Request & req, Response & res) {
-
+	web.get("/stop", [this](Request & req, Response & res) {
+		sm.transitionTo(StateName::STOP);
 	});
 }
 
@@ -220,21 +246,51 @@ void Application::commandReceived(const String & line) {
 		}
 	}
 
+	match("print tasks") {
+		println(tm);
+	}
+
+	match("save tasks") {
+		tm.writeTaskArrayToDirectory();
+		tm.loadTasksFromDirectory();
+		println(tm);
+	}
+
 	match("read test") {
 		char buffer[64];
-		while (fileLoader.loadContentOfFile("index.gz", buffer, 64)) {
+		while (fileLoader.loadContentOfFile("index.gz", buffer)) {
 			println(buffer);
 		}
 	}
 
+	match("mem") {
+		println(free_ram());
+	}
+
 	match("test") {
-		KPArray<int, ProgramSettings::MAX_VALVES> task1 = vm.filter([](const Valve & v) {
+		auto valves_in_task1 = vm.filter([](const Valve & v) {
 			return strcmp(v.group, "Task 1") == 0;
 		});
 
-		for (size_t i = 0; i < task1.size(); i++) {
-			println(task1[i], ",");
+		for (const auto & v : valves_in_task1) {
+			println(v);
 		}
 	}
+
+	match("index") {
+		char buffer[64];
+		fileLoader.loadContentOfFile("tasks/index.js", buffer);
+		println(buffer);
+	}
+
+	if (line.startsWith("time")) {
+		const char * str = line.c_str() + line.indexOf('e') + 1;
+		int time		 = std::atoi(str);
+		println(time);
+		power.setTimeout(time, true);
+	}
 }
-#undef match
+
+#ifdef match
+#	undef match
+#endif

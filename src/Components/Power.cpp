@@ -1,14 +1,13 @@
-#include <Components/Power.hpp>
+#include "Components/Power.hpp"
 
 volatile unsigned long rtcInterruptStart = 0;
-volatile bool alarmTriggered             = true;
+volatile bool alarmTriggered			 = false;
 
 void isr() {
-    if ((unsigned long) (millis() - rtcInterruptStart) < 1000) {
-        return;
-    }
+	if ((unsigned long) (millis() - rtcInterruptStart) < 1000) {
+		return;
+	}
 
-    // detachInterrupt(digitalPinToInterrupt(RTC_Interrupt_Pin));
-    alarmTriggered    = true;
-    rtcInterruptStart = millis();
+	alarmTriggered	  = true;
+	rtcInterruptStart = millis();
 }

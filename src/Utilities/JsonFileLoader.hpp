@@ -5,8 +5,8 @@
 
 class JsonFileLoader : public FileLoader {
 public:
-	template <size_t buffer_size>
-	void load(const char * filepath, JsonDecodable & decoder) const {
+	template <typename Decoder>
+	void load(const char * filepath, Decoder & decoder) const {
 		unsigned long start = millis();
 
 		// raise error if file doesn't exist to notify the user
@@ -24,7 +24,7 @@ public:
 		}
 
 		// deserialize file to JSON document
-		StaticJsonDocument<buffer_size> doc;
+		StaticJsonDocument<Decoder::decoderSize()> doc;
 		const DeserializationError error = deserializeJson(doc, file);
 		file.close();
 
@@ -34,41 +34,46 @@ public:
 			break;
 		case DeserializationError::NoMemory: {
 			KPStringBuilder<120> message("Decoder (", decoder.decoderName(), "): ", filepath, " size exeecds the buffer limit.");
-			raise(Error(message));
+			raise(message);
 		} break;
 		default:
 			KPStringBuilder<200> message("Decoder (", decoder.decoderName(), "): ", filepath, " deserialization failed -> ", error.c_str());
-			raise(Error(message));
+			raise(message);
 		}
 
 		// the status message
 		println();
 		println("Finished loading from ", filepath, " in ", millis() - start, " ms");
 		println("Json size: ", doc.memoryUsage(), " bytes");
-		decoder.decodeJSON(doc.template as<JsonObjectConst>());
+		decoder.decodeJSON(doc.template as<JsonVariant>());
 	}
 
-	template <size_t buffer_size>
-	void save(const char * filepath, const JsonEncodable & encoder) const {
+	template <typename Encoder>
+	void save(const char * filepath, const Encoder & encoder) const {
 		// call the encoder function
-		StaticJsonDocument<buffer_size> doc;
+		StaticJsonDocument<Encoder::encoderSize()> doc;
 		JsonVariant dest = doc.template to<JsonVariant>();
 		if (!encoder.encodeJSON(dest)) {
 			KPStringBuilder<120> message("Encoder (", encoder.encoderName(), "): JSON object size exceeds the buffer limit.");
 			raise(Error(message));
 		}
 
+		save(filepath, doc);
+	}
+
+	template <size_t size>
+	void save(const char * filepath, StaticJsonDocument<size> & src) const {
 		// timestamp
 		unsigned long start = millis();
 
 		// serialize JSON document to file
 		File file = SD.open(filepath, FILE_WRITE | O_TRUNC);
-		serializeJson(dest, file);
+		serializeJson(src, file);
 		file.close();
 
 		// the status message
 		println();
 		println("Finished writing to ", filepath, " in ", millis() - start, " ms");
-		println("Json size: ", dest.memoryUsage(), " bytes");
+		println("Json size: ", src.memoryUsage(), " bytes");
 	}
 };

@@ -14,7 +14,7 @@
 // NOTE This object is intended to be read-only and represents to actual data in the
 // config file in SD card
 // ────────────────────────────────────────────────────────────────────────────────
-class Config : public JsonDecodable, public Printable {
+class Config : public JsonDecodable, public JsonEncodable, public Printable {
 public:
 	int valveUpperBound;
 	int valves[ProgramSettings::MAX_VALVES]{0};
@@ -35,11 +35,15 @@ public:
 		: configFilepath(configFilepath) {
 	}
 
-	const char * decoderName() const override {
+	static const char * decoderName() {
 		return "Config";
 	}
 
-	void decodeJSON(const JsonObjectConst & source) override {
+	static constexpr size_t decoderSize() {
+		return ProgramSettings::CONFIG_JSON_BUFFER_SIZE;
+	}
+
+	void decodeJSON(const JsonVariant & source) override {
 		using namespace ProgramSettings;
 		using namespace ConfigKeys;
 
@@ -69,22 +73,35 @@ public:
 
 	void load(const char * filepath = nullptr) override {
 		JsonFileLoader loader;
-		loader.load<ProgramSettings::CONFIG_JSON_BUFFER_SIZE>(configFilepath, *this);
+		loader.load(configFilepath, *this);
+	}
+
+	static const char * encoderName() {
+		return "config";
+	}
+
+	static constexpr size_t encoderSize() {
+		return ProgramSettings::CONFIG_JSON_BUFFER_SIZE;
+	}
+
+	bool encodeJSON(const JsonVariant & dest) const override {
+		using namespace ConfigKeys;
+
+		// -> valves
+		JsonArray array_array = dest.createNestedArray(VALVES_FREE);
+		copyArray(valves, array_array);
+
+		return dest[VALVE_UPPER_BOUND].set(valveUpperBound)
+			   && dest[FILE_LOG].set((char *) logFile)
+			   && dest[FILE_STATUS].set((char *) statusFile)
+			   && dest[FOLDER_TASK].set((char *) taskFolder)
+			   && dest[FOLDER_VALVE].set((char *) valveFolder);
 	}
 
 	size_t printTo(Print & p) const override {
 		using namespace ConfigKeys;
-		StaticJsonDocument<ProgramSettings::CONFIG_JSON_BUFFER_SIZE> doc;
-		doc[VALVE_UPPER_BOUND].set(valveUpperBound);
-
-		// -> valves
-		JsonArray doc_valves = doc.createNestedArray(VALVES_FREE);
-		copyArray(valves, doc_valves);
-
-		doc[FILE_LOG]	  = logFile;
-		doc[FILE_STATUS]  = statusFile;
-		doc[FOLDER_TASK]  = taskFolder;
-		doc[FOLDER_VALVE] = valveFolder;
+		StaticJsonDocument<encoderSize()> doc;
+		encodeJSON(doc.to<JsonVariant>());
 
 		return serializeJsonPretty(doc, Serial);
 	}

@@ -13,6 +13,7 @@
 class Status : public JsonDecodable,
 			   public JsonEncodable,
 			   public Printable,
+			   public KPStateMachineListener,
 			   public ValveManagerEventListner {
 public:
 	KPArray<int, ProgramSettings::MAX_VALVES> valves;
@@ -44,13 +45,17 @@ public:
 	//
 	// ─── SECTION JSONDECODABLE COMPLIANCE ───────────────────────────────────────────
 	//
-	const char * decoderName() const override {
+	static const char * decoderName() {
 		return "Status";
+	}
+
+	static constexpr size_t decoderSize() {
+		return ProgramSettings::STATUS_JSON_BUFFER_SIZE;
 	}
 
 	// May be used to resume operation in future versions.
 	// For now, status file is used to save valves status for next start up.
-	void decodeJSON(const JsonObjectConst & source) override {
+	void decodeJSON(const JsonVariant & source) override {
 		const JsonArrayConst & source_valves = source[JsonKeys::VALVES].as<JsonArrayConst>();
 		copyArray(source_valves, valves.getBuffer().data(), valves.size());
 		valves.resize(source_valves.size());
@@ -59,17 +64,21 @@ public:
 	// Update the content of status file
 	void save(const char * filepath) const override {
 		JsonFileLoader loader;
-		loader.save<ProgramSettings::STATUS_JSON_BUFFER_SIZE>(filepath, *this);
+		loader.save(filepath, *this);
 	}
 
 	//
 	// ─── SECTION JSONENCODABLE COMPLIANCE ───────────────────────────────────────────
 	//
-	const char * encoderName() const override {
+	static const char * encoderName() {
 		return "Status";
 	}
 
-	bool encodeJSON(JsonVariant & dest) const override {
+	static constexpr size_t encoderSize() {
+		return ProgramSettings::STATUS_JSON_BUFFER_SIZE;
+	}
+
+	bool encodeJSON(const JsonVariant & dest) const override {
 		using namespace JsonKeys;
 
 		JsonArray doc_valves = dest.createNestedArray(VALVES);
@@ -88,14 +97,14 @@ public:
 
 	void load(const char * filepath) override {
 		JsonFileLoader loader;
-		loader.load<ProgramSettings::STATUS_JSON_BUFFER_SIZE>(filepath, *this);
+		loader.load(filepath, *this);
 	}
 
 	//
 	// ─── SECTION PRINTABLE COMPLIANCE ───────────────────────────────────────────────
 	//
 	size_t printTo(Print & printer) const override {
-		StaticJsonDocument<ProgramSettings::STATUS_JSON_BUFFER_SIZE> doc;
+		StaticJsonDocument<encoderSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, printer);
@@ -109,6 +118,10 @@ private:
 		for (const Valve & v : vm.valves) {
 			valves[v.id] = v.status;
 		}
+	}
+
+	void stateTransitioned(const KPStateMachine & sm) override {
+		currentStateName = sm.getCurrentState()->getName();
 	}
 
 public:

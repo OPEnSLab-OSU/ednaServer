@@ -1,226 +1,236 @@
 #pragma once
-#include <KPFoundation.hpp>
-#include <Application/Constants.hpp>
-#include <DS3232RTC.h>
-#include <LowPower.h>
-#include <Wire.h>
+#include "KPFoundation.hpp"
+#include "DS3232RTC.h"
+#include "LowPower.h"
+#include "Wire.h"
+#include <SPI.h>
+#include <Functional>
+
+#include "Application/Constants.hpp"
 
 #define RTC_ADDR 0x68  // Library already has the address but this is needed for checking
 
 //===========================================================
 // [+_+]
 //===========================================================
-volatile extern unsigned long rtcInterruptStart;
-volatile extern bool alarmTriggered;
+using ulong = unsigned long;
+
+extern volatile ulong rtcInterruptStart;
+extern volatile bool alarmTriggered;
 extern void isr();
 
 class Power : public KPComponent {
 public:
-    DS3232RTC rtc;
+	DS3232RTC timeKeeper;
+	std::function<void()> interruptCallback;
 
-    Power(const char * name)
-        : KPComponent(name), rtc(false) {
-        pinMode(Power_Module_Pin, OUTPUT);
-    }
+	Power(const char * name)
+		: KPComponent(name), timeKeeper(false) {
+		pinMode(Power_Module_Pin, OUTPUT);
+	}
 
-    void setup() override {
-        // Check if RTC is connected
-        waitForConnection();
+	void onInterrupt(std::function<void()> callbcak) {
+		interruptCallback = callbcak;
+	}
 
-        // Initilize RTC I2C Bus
-        rtc.begin();
+	void setup() override {
+		// Check if RTC is connected
+		waitForConnection();
 
-        // Reset RTC to a known state, clearing alarms, clear interrupts
-        resetAlarms();
-        rtc.squareWave(SQWAVE_NONE);
+		// Initilize RTC I2C Bus
+		timeKeeper.begin();
 
-        // Register RTC as the external time provider for Time library
-        setSyncProvider(rtc.get);
-        setTime(rtc.get());
+		// Reset RTC to a known state, clearing alarms, clear interrupts
+		resetAlarms();
+		timeKeeper.squareWave(SQWAVE_NONE);
 
-        // Print out the current time
-        Serial.println("Initial Startup: ");
-        printCurrentTime();
+		// Register RTC as the external time provider for Time library
+		setSyncProvider(timeKeeper.get);
+		setTime(timeKeeper.get());
 
-        // Register interrupt pin as active low
-        pinMode(RTC_Interrupt_Pin, INPUT_PULLUP);
-    }
+		// Print out the current time
+		println("Initial Startup: ");
+		printCurrentTime();
 
-    void update() override {
-        // if (timeKeeper.alarm(ALARM_1) || timeKeeper.alarm(ALARM_2)) {
-        //     alarmTriggered = true;
-        // }
-    }
+		// Register interrupt pin as active low
+		pinMode(RTC_Interrupt_Pin, INPUT_PULLUP);
+	}
 
-    //===========================================================
-    // [+_+] Wait for RTC connection
-    // This is done by asking the RTC to return
-    //===========================================================
-    void waitForConnection() {
-        while (true) {
-            Wire.begin();
-            // Wire.beginTransmission(RTC_ADDR);
-            // Wire.write(1);
-            // Wire.endTransmission();
-            Wire.requestFrom(RTC_ADDR, 1);
+	void update() override {
+		if (alarmTriggered && interruptCallback) {
+			alarmTriggered = false;
+			disarmAlarms();
+			interruptCallback();
+		}
+	}
 
-            // This means that all bits are high. I2C for DS3231 is active low.
-            if (Wire.read() != -1) {
-                println(F("\n-= RTC Connected =-"));
-                // enabled = true;
-                break;
-            } else {
-                println(F("\n-= RTC Not Connected =-"));
-                // enabled = false;
-                delay(2000);
-            }
-        }
-    }
+	//===========================================================
+	// [+_+] Wait for RTC connection
+	// This is done by asking the RTC to return
+	//===========================================================
+	void waitForConnection() {
+		Wire.begin();
+		while (true) {
+			Wire.requestFrom(RTC_ADDR, 1);
 
-    void shutdown() {
-        digitalWrite(Power_Module_Pin, HIGH);
-        delay(20);
-        digitalWrite(Power_Module_Pin, LOW);
-    }
+			// This means that all bits are high. I2C for DS3231 is active low.
+			if (Wire.read() != -1) {
+				println("\n\033[32;1m[^_^] RTC Connected\033[0m");
+				break;
+			} else {
+				println("\n\033[32;1m[-_-] RTC Not Connected\033[0m");
+				delay(2000);
+			}
+		}
+	}
 
-    //===========================================================
-    // [+_+] Set alarms registers to a known value and clear any prev alarms
-    //===========================================================
-    void resetAlarms() {
-        rtc.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
-        rtc.setAlarm(ALM2_MATCH_DATE, 0, 0, 0, 1);
-        disarmAlarms();
-    }
+	void shutdown() {
+		digitalWrite(Power_Module_Pin, HIGH);
+		delay(20);
+		digitalWrite(Power_Module_Pin, LOW);
+	}
 
-    //===========================================================
-    // [+_+] Clear previous alarms and disable interrupts
-    //===========================================================
-    void disarmAlarms() {
-        rtc.alarm(ALARM_1);
-        rtc.alarm(ALARM_2);
-        rtc.alarmInterrupt(ALARM_1, false);
-        rtc.alarmInterrupt(ALARM_2, false);
-    }
+	//===========================================================
+	// [+_+] Set alarms registers to a known value and clear any prev alarms
+	//===========================================================
+	void resetAlarms() {
+		timeKeeper.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
+		timeKeeper.setAlarm(ALM2_MATCH_DATE, 0, 0, 0, 1);
+		disarmAlarms();
+	}
 
-    //===========================================================
-    // [+_+] Bring the chip to the low power mode.
-    // External interrupt is required to awake the device and resume operation
-    //===========================================================
-    void sleepForever() {
-        println();
-        println(F("Going to sleep..."));
-        for (int i = 3; i > 0; i--) {
-            Serial.print(F("-> "));
-            Serial.println(i);
-            delay(333);
-        }
+	//===========================================================
+	// [+_+] Clear previous alarms and disable interrupts
+	//===========================================================
+	void disarmAlarms() {
+		timeKeeper.alarm(ALARM_1);
+		timeKeeper.alarm(ALARM_2);
+		timeKeeper.alarmInterrupt(ALARM_1, false);
+		timeKeeper.alarmInterrupt(ALARM_2, false);
+	}
 
-        LowPower.standby();
-        println();
-        println(F("Just woke up due to interrupt!"));
-        printCurrentTime();
-    }
+	//===========================================================
+	// [+_+] Bring the chip to the low power mode.
+	// External interrupt is required to awake the device and resume operation
+	//===========================================================
+	void sleepForever() {
+		println();
+		println(F("Going to sleep..."));
+		for (int i = 3; i > 0; i--) {
+			print(F("-> "));
+			println(i);
+			delay(333);
+		}
 
-    //===========================================================
-    // [+_+] Put the chip into the low power state for specified number of seconds
-    //===========================================================
-    void sleepFor(unsigned long seconds) {
-        setTimeout(seconds, true);
-        sleepForever();
-    }
+		LowPower.standby();
+		println();
+		println(F("Just woke up due to interrupt!"));
+		printCurrentTime();
+	}
 
-    //===========================================================
-    // [+_+] Schedule alarm for specified number of seconds from now.
-    // @param bool usingInterrupt: A flag controlling whether to trigger the interrupt service routine
-    //===========================================================
-    void setTimeout(time_t seconds, bool usingInterrupt) {
-        TimeElements future;
-        breakTime(rtc.get() + seconds, future);
-        disarmAlarms();
-        rtc.setAlarm(ALM1_MATCH_MINUTES, future.Second, future.Minute, future.Hour, 0);
-        if (usingInterrupt) {
-            attachInterrupt(digitalPinToInterrupt(RTC_Interrupt_Pin), isr, FALLING);
-            rtc.alarmInterrupt(1, true);
-        }
-    }
+	//===========================================================
+	// [+_+] Put the chip into the low power state for specified number of seconds
+	//===========================================================
+	void sleepFor(ulong seconds) {
+		setTimeout(seconds, true);
+		sleepForever();
+	}
 
-    //===========================================================
-    // [+_+] Schedule RTC alarm given TimeElements
-    // @param TimeElements future: must be in the future, otherwise this method does nothing
-    //===========================================================
-    void scheduleNextAlarm(TimeElements future) {
-        unsigned long seconds   = makeTime(future);
-        unsigned long timestamp = now();
-        if (seconds < timestamp) {
-            return;
-        }
+	//===========================================================
+	// [+_+] Schedule alarm for specified number of seconds from now.
+	// @param bool usingInterrupt: A flag controlling whether to trigger the interrupt service routine
+	//===========================================================
+	void setTimeout(ulong seconds, bool usingInterrupt) {
+		TimeElements future;
+		breakTime(timeKeeper.get() + seconds, future);
+		disarmAlarms();
+		timeKeeper.setAlarm(ALM1_MATCH_MINUTES, future.Second, future.Minute, future.Hour, 0);
+		if (usingInterrupt) {
+			attachInterrupt(digitalPinToInterrupt(RTC_Interrupt_Pin), isr, FALLING);
+			timeKeeper.alarmInterrupt(1, true);
+		}
+	}
 
-        setTimeout(seconds - timestamp, true);
-        println("Alarm triggering in: ", seconds - timestamp);
-    }
+	//===========================================================
+	// [+_+] Schedule RTC alarm given TimeElements
+	// @param TimeElements future: must be in the future, otherwise this method does nothing
+	//===========================================================
+	void scheduleNextAlarm(TimeElements future) {
+		ulong utc = makeTime(future);
+		scheduleNextAlarm(utc);
+	}
 
-    void scheduleNextAlarm(time_t utc) {
-        time_t timestamp = now();
-        if (utc >= timestamp) {
-            println(utc - timestamp);
-            setTimeout(utc - timestamp, true);
-        }
-    }
+	void scheduleNextAlarm(ulong utc) {
+		ulong timestamp = now();
+		if (utc < timestamp) {
+			return;
+		}
 
-    //===========================================================
-    // [+_+] Set RTC time and internal timer of the Time library
-    //===========================================================
-    void set(time_t seconds) {
-        print("Setting RTC Time...");
-        printTime(seconds);
+		println("Alarm triggering in: ", utc - timestamp, " seconds");
+		setTimeout(utc - timestamp, true);
+	}
 
-        setTime(seconds);
-        rtc.set(seconds);
-    }
+	//===========================================================
+	// [+_+] Set RTC time and internal timer of the Time library
+	//===========================================================
+	void set(ulong seconds) {
+		print("Setting RTC Time...");
+		printTime(seconds);
 
-    //===========================================================
-    // [+_+] Print time to console formatted as YYYY.MM.DD : hh.mm.ss
-    //===========================================================
-    void printTime(time_t seconds) {
-        const char * format = "%d.%d.%d : %d.%d.%d";
-        Serial.printf(format, year(seconds), month(seconds), day(seconds),
-                      hour(seconds), minute(seconds), second(seconds));
-    }
+		setTime(seconds);
+		timeKeeper.set(seconds);
+	}
 
-    void printTime(time_t seconds, int offset_hours) {
-        printTime(seconds + (offset_hours * 60 * 60));
-    }
+	//===========================================================
+	// [+_+] Print time to console formatted as YYYY.MM.DD : hh.mm.ss
+	//===========================================================
+	void printTime(ulong seconds) {
+		char message[64]{};
+		sprintf(message, "%u.%u.%u : %u.%u.%u", year(seconds), month(seconds),
+			day(seconds), hour(seconds), minute(seconds), second(seconds));
+		println(message);
+	}
 
-    void printCurrentTime(int offset_hours = 0) {
-        print("Current Time: ");
-        printTime(now(), offset_hours);
-    }
+	void printTime(ulong seconds, int offset) {
+		printTime(seconds + (offset * 60 * 60));
+	}
 
-    //===========================================================
-    // [+_+] Convert compiled timestrings to seconds since 1 Jan 1970
-    //===========================================================
-    time_t compiledTime() {
-        const time_t FUDGE    = 10;  //Fudge factor to allow for upload time
-        const char * compDate = __DATE__;
-        const char * compTime = __TIME__;
-        const char * months   = "JanFebMarAprMayJunJulAugSepOctNovDec";
+	void printCurrentTime(int offset = 0) {
+		print("Current Time: ");
+		printTime(timeKeeper.get(), offset);
+	}
 
-        char compMon[4]{0};
-        strncpy(compMon, compDate, 3);  // Get month from compiled date
+	//===========================================================
+	// [+_+] Convert compiled timestrings to seconds since 1 Jan 1970
+	//===========================================================
+	time_t compileTime(int offsetMinutes = 0) {
+		const time_t FUDGE	  = 10;	 //Fudge factor to allow for upload time
+		const char * compDate = __DATE__;
+		const char * compTime = __TIME__;
+		const char * months	  = "JanFebMarAprMayJunJulAugSepOctNovDec";
+		char * m;
 
-        char * m = strstr(months, compMon);
+		// Get month from compiled date
+		char compMon[4]{0};
+		strncpy(compMon, compDate, 3);
+		m = strstr(months, compMon);
 
-        TimeElements tm;
-        tm.Month  = ((m - months) / 3 + 1);
-        tm.Day    = atoi(compDate + 4);
-        tm.Year   = atoi(compDate + 7) - 1970;
-        tm.Hour   = atoi(compTime);
-        tm.Minute = atoi(compTime + 3);
-        tm.Second = atoi(compTime + 6);
+		TimeElements tm;
+		tm.Month  = ((m - months) / 3 + 1);
+		tm.Day	  = atoi(compDate + 4);
+		tm.Year	  = atoi(compDate + 7) - 1970;
+		tm.Hour	  = atoi(compTime);
+		tm.Minute = atoi(compTime + 3);
+		tm.Second = atoi(compTime + 6);
 
-        time_t t = makeTime(tm);
-		print("Compiled time: ");
-        printCurrentTime(t);
-        return t + FUDGE;  //Add fudge factor to allow for upload time
-    }
+		time_t t = makeTime(tm);
+		if (offsetMinutes) {
+			t += offsetMinutes * 60;
+			breakTime(t, tm);
+		}
+
+		println("date=", compDate);
+		println("time=", tm.Hour, "h ", tm.Minute, "m ", tm.Second, "s");
+		return t + FUDGE;  //Add fudge factor to allow for compile time
+	}
 };

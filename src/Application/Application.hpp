@@ -65,9 +65,14 @@ private:
 		addComponent(web);
 		addComponent(fileLoader);
 		addComponent(shift);
+		addComponent(power);
 		addComponent(pump);
 		addComponent(scheduler);
 
+		setupServer();
+		web.begin();
+
+		sm.addListener(&status);
 		sm.registerState(StateIdle(), StateName::IDLE);
 		sm.registerState(StateStop(), StateName::STOP);
 		sm.registerState(StateFlush(), StateName::FLUSH);
@@ -80,9 +85,6 @@ private:
 		config.load();
 		status.init(config);
 
-		setupServer();
-		web.begin();
-
 		vm.init(config);
 		vm.addListener(&status);
 		vm.loadValvesFromDirectory(config.valveFolder);
@@ -92,6 +94,10 @@ private:
 
 		// Transition to idle state
 		sm.transitionTo(StateName::IDLE);
+
+		power.onInterrupt([]() {
+			println("Alarm Triggered");
+		});
 	}
 
 	void update() override {
