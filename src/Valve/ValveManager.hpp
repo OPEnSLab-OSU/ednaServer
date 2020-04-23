@@ -29,7 +29,6 @@ private:
 public:
 	constexpr static size_t MAX_VALVES = ProgramSettings::MAX_VALVES;
 	std::array<Valve, MAX_VALVES> valves;
-
 	const char * valveFolder = nullptr;
 
 	void init(Config & config) {
@@ -118,6 +117,10 @@ public:
 		println("ValveManager: finished saving in ", millis() - start, " ms");
 		updateListeners();
 	}
+
+	//
+	// ─── JSONENCODABLE ──────────────────────────────────────────────────────────────
+	//
 
 	static const char * encoderName() {
 		return "ValveManager";

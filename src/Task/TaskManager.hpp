@@ -4,10 +4,8 @@
 #include <KPArray.hpp>
 
 #include <Task/Task.hpp>
-#include <vector>
-
 #include <Application/Config.hpp>
-
+#include <vector>
 #include "SD.h"
 
 class TaskError {
@@ -56,24 +54,29 @@ public:
 
 	void loadTasksFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
+		struct TaskIndex : public JsonDecodable {
+			int count = 0;
+			static constexpr size_t decoderSize() {
+				return 500;
+			}
 
-		FileLoader loader;
+			void decodeJSON(const JsonVariant & src) override {
+				count = src["count"];
+			}
+		} taskIndex;
+
+		// NOTE: This JsonFileLoader needs to be revised
+		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
-		// Load task index file
+		// Load task index file and set the number of tasks
 		KPStringBuilder<32> indexFilepath(dir, "/index.js");
-		File indexFile = SD.open(indexFilepath);
+		taskIndex.load(indexFilepath);
+		tasks.resize(taskIndex.count);
 
-		// Read index file
-		StaticJsonDocument<500> doc;
-		deserializeJson(doc, indexFile);
-		indexFile.close();
-
-		// load the first "count" tasks
-		int count = doc["count"];
-		tasks.resize(count);
-		for (int i = 0; i < count; i++) {
-			KPStringBuilder<32> filepath(dir, "/", "task-", i, ".js");
+		// Decode each task object into memory
+		for (int i = 0; i < taskIndex.count; i++) {
+			KPStringBuilder<32> filepath(dir, "/task-", i, ".js");
 			tasks[i].load(filepath);
 		}
 	}
@@ -122,7 +125,6 @@ public:
 	}
 
 	// NOTE: Validate Task
-
 	int validateTask(Task & task) {
 		// Application & app = *static_cast<Application *>(controller);
 		// task.schedule > now
@@ -135,13 +137,19 @@ public:
 		return 0;
 	}
 
-	void unschedule(int index) {
-	}
+	Task * next() {
+		// First we sort tasks according to their schedule time
+		std::sort(tasks.begin(), tasks.end(), [](const Task & a, const Task & b) {
+			return a.schedule < b.schedule;
+		});
 
-	void remove(int index) {
-	}
+		// Then we partition the ones with status == 1 first
+		std::stable_partition(tasks.begin(), tasks.end(), [](const Task & a) {
+			return a.status == 1;
+		});
 
-	void next() {
+		// Return pointer to the first element or nulltptr if none
+		return (tasks.empty() || tasks.front().status != 1) ? nullptr : &tasks.front();
 	}
 
 	void createTask(const JsonObject & src) {
@@ -177,7 +185,7 @@ public:
 	}
 
 	void deleteTask(int index) {
-		if (index < 0 || index >= tasks.size()) {
+		if (index < 0 || (size_t) index >= tasks.size()) {
 			raise("(TaskManager: delete) Index out of range");
 		}
 

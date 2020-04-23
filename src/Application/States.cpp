@@ -1,9 +1,6 @@
 #include <Application/Application.hpp>
 #include <Application/States.hpp>
 
-void StateIdle::enter(KPStateMachine & sm) {
-}
-
 void StateStop::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 	app.pump.off();
@@ -104,13 +101,14 @@ void StateSample::enter(KPStateMachine & sm) {
 	int r = app.shift.toRegisterIndex(app.status.valveCurrent) + 1;
 	int b = app.shift.toBitIndex(app.status.valveCurrent);
 
+	// We set the latch valve to intake mode, turn on the filter valve, then the pump
 	app.shift.setZeros();
 	app.shift.writeLatchIn();
-	app.shift.setRegister(r, b, HIGH);	// Filter
+	app.shift.setRegister(r, b, HIGH);	// Filter valve
 	app.shift.flush();
 	app.pump.on();
 
-	// This condition will be evaluated repeatedly until true then the callback will be executed
+	// This condition will be evaluated repeatedly until true then the callback will be executed once
 	auto const condition = [&]() {
 		return timeSinceLastTransition() >= secsToMillis(time) || app.status.pressure >= pressure;
 	};
@@ -133,4 +131,7 @@ void StateFlush::enter(KPStateMachine & sm) {
 	setTimeCondition(time, [&]() {
 		sm.transitionTo(StateName::SAMPLE);
 	});
+}
+
+void StateIdle::enter(KPStateMachine & sm) {
 }

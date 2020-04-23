@@ -2,10 +2,11 @@
 class ValveStatus {
 public:
 	enum Code {
-		inactive = -1,
-		sampled,
-		free,
-		operating
+		unavailable = -1,
+		sampled,	// 0
+		free,		// 1
+		operating,	// 2
+		missed
 	} _code;
 
 	// Allow for implicit conversion from ValveStatus::code -> ValveStatus(ValveStatus::code)

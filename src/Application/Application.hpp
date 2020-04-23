@@ -54,6 +54,7 @@ public:
 private:
 	void setup() override {
 		KPController::setup();
+		KPSerialInput::instance().addListener(this);
 
 		// Setup serial communication
 		Serial.begin(115200);
@@ -62,16 +63,6 @@ private:
 		// delay(5000);
 
 		addComponent(sm);
-		addComponent(web);
-		addComponent(fileLoader);
-		addComponent(shift);
-		addComponent(power);
-		addComponent(pump);
-		addComponent(scheduler);
-
-		setupServer();
-		web.begin();
-
 		sm.addListener(&status);
 		sm.registerState(StateIdle(), StateName::IDLE);
 		sm.registerState(StateStop(), StateName::STOP);
@@ -80,7 +71,16 @@ private:
 		sm.registerState(StatePreserve(), StateName::PRESERVE);
 		sm.registerState(StateDecon(), StateName::DECON);
 
-		KPSerialInput::instance().addListener(this);
+		addComponent(web);
+		setupServer();
+
+		addComponent(fileLoader);
+		addComponent(shift);
+		addComponent(power);
+		addComponent(pump);
+		addComponent(scheduler);
+
+		web.begin();
 
 		config.load();
 		status.init(config);
@@ -98,9 +98,108 @@ private:
 		power.onInterrupt([]() {
 			println("Alarm Triggered");
 		});
+
+		auto load = [this]() { scheduleNextTask(); };
+		run(1000, load, scheduler);
+	}
+
+	void handleTask(Task & task) {
+		// NOTE: Waking up after the task schdule
+		time_t timenow = now();
+		if (timenow >= task.schedule) {
+			// vm.setValveStatu
+		}
+
+		// NOTE: Waking up 10 secs before schedule time
+		if (timenow < task.schedule && timenow >= task.schedule - 10) {
+		}
+
+		// NOTE: Waking up more than 10 secs before the schedule time
+		if (timenow < task.schedule - 10) {
+			if (status.preventShutdown) {
+				return;
+			}
+		}
+	}
+
+	bool scheduleNextTask() {
+		Task * task_ptr = tm.next();
+		if (task_ptr == nullptr) {
+			println("No task available");
+			return false;
+		}
+
+		Task & task		= *task_ptr;
+		int valveNumber = task.getValveNumber();
+		if (valveNumber == -1) {
+			println("No valve available");
+			task.markAsCompleted();
+			return false;
+		}
+
+		// println("Task available: ", task);
+
+		// status.currentTaskName = task.name;
+		// vm.setValveOperating(task.getValveNumber());
+
+		handleTask(task);
+
+		// while (true) {
+		// 	KPStatus::current().preventShutdown = false;
+		// 	int id								= app.availableTask();
+		// 	if (id == -1) {
+		// 		println("No task available");
+		// 		power.disarmAlarms();
+		// 		KPStatus::current().valveCurrent = -1;
+		// 		return;
+		// 	} else {
+		// 		println("Task available:", id);
+		// 		app.loadTaskFromStorage(id);
+		// 		// Fix
+		// 		// KPStatus::current().valveCurrent = app.currentTask.valves[app.currentTask.numberOfValvesAssigned - 1];
+		// 		KPStatus::current().valveCurrent = app.currentTask.valves[0];
+		// 	}
+
+		// 	// If waking up before the task (ontrack),
+		// 	// prevent shutdown if current time is within 10 secs of the task schedule else sleep until T-5
+		// 	if (app.checkForMissedSchedule(app.currentTask)) {
+		// 		if (app.taskWithin(app.currentTask, 10)) {
+		// 			KPStatus::current().preventShutdown = true;
+		// 			power.scheduleNextAlarm(app.currentTask.schedule);
+		// 			println("Rescheduling with exact timing");
+		// 		} else {
+		// 			power.scheduleNextAlarm(app.currentTask.schedule - 5);
+		// 			println("Rescheduling with 5secs before");
+		// 		}
+		// 		return;
+		// 		// Missed the schedule but may not miss the deadline
+		// 	} else if (app.beforeDeadline(app.currentTask, 5)) {
+		// 		app.currentTask.schedule = now() + 5;
+		// 		app.updateTaskFile(app.currentTask);
+		// 		app.updateTaskrefsFile();
+		// 		println("Before deadline: scheduling on the same valve...");
+		// 	} else {
+		// 		int lastValveIndex						   = app.currentTask.valves[app.currentTask.numberOfValvesAssigned - 1];
+		// 		KPStatus::current().valves[lastValveIndex] = 1;
+		// 		app.currentTask.next();
+		// 		app.currentTask.schedule = now() + 5;
+		// 		app.updateTaskFile(app.currentTask);
+		// 		app.updateTaskrefsFile();
+
+		// 		if (app.currentTask.numberOfValvesAssigned) {
+		// 			println("Missed deadline: moving to next available valve...");
+		// 		} else {
+		// 			println("Missed deadline: searching for next available task...");
+		// 		}
+		// 	}
+		// }
 	}
 
 	void update() override {
 		KPController::update();
+
+		if (status.isProgrammingMode()) {
+			status.preventShutdown = true;
+		}
 	}
 };

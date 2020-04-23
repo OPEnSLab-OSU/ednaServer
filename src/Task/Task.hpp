@@ -14,11 +14,11 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 	char name[TaskSettings::NAME_LENGTH]{0};
 	char notes[TaskSettings::NOTES_LENGTH]{0};
 
-	int8_t valves[24]{0};
+	std::array<uint8_t, 24> valves;
 	int8_t valveCount		 = 0;
 	int8_t currentValveIndex = -1;
 
-	int status		 = 0;
+	int status		 = 0;  // 0=inactive, 1=active, 2=completed
 	long creation	 = 0;
 	long schedule	 = 0;
 	long timeBetween = 0;
@@ -37,6 +37,23 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 
 	explicit Task(const JsonObject & data) {
 		decodeJSON(data);
+	}
+
+	void markAsCompleted() {
+		status = 2;
+	}
+
+	long next() {
+		schedule = now() + timeBetween;
+		currentValveIndex++;
+	}
+
+	int getValveNumber() {
+		if (currentValveIndex == -1 || currentValveIndex >= valveCount) {
+			return -1;
+		}
+
+		return valves[currentValveIndex];
 	}
 
 	//
@@ -68,8 +85,9 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 		}
 
 		if (source.containsKey("valves")) {
-			copyArray(source["valves"], valves);
-			valveCount		  = source["valves"].as<JsonArray>().size();
+			JsonArray valve_array = source["valves"].as<JsonArray>();
+			copyArray(valve_array, valves.data(), valve_array.size());
+			valveCount		  = valve_array.size();
 			currentValveIndex = source["currentValveIndex"];
 		}
 
@@ -117,7 +135,7 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 			   && dest["dryTime"].set(dryTime)
 			   && dest["preserveTime"].set(preserveTime)
 			   && dest["timeBetween"].set(timeBetween)
-			   && copyArray(valves, valveCount, dest.createNestedArray("valves"))
+			   && copyArray(valves.data(), valveCount, dest.createNestedArray("valves"))
 			   && dest["currentValveIndex"].set(currentValveIndex);
 	}
 

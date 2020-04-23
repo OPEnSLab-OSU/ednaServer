@@ -66,22 +66,6 @@ void Application::setupServer() {
 		res.end();
 	});
 
-	// web.get("/api/taskrefs", [this](Request & req, Response & res) {
-	// 	const size_t size = ProgramSettings::TASKREF_JSON_BUFFER_SIZE * 10;
-	// 	StaticJsonDocument<size> doc;
-	// 	JsonArray taskrefs = doc.to<JsonArray>();
-	// 	for (const Task & task : tm.tasks) {
-	// 		JsonVariant obj = taskrefs.createNestedObject();
-	// 		Taskref ref(task);
-	// 		ref.encodeJSON(obj);
-	// 		serializeJsonPretty(obj, Serial);
-	// 	}
-
-	// 	res.setHeader("Content-Type", "application/json");
-	// 	res.json(doc);
-	// 	res.end();
-	// });
-
 	web.get("/api/tasks", [this](Request & req, Response & res) {
 		StaticJsonDocument<TaskManager::encoderSize()> doc;
 		tm.encodeJSON(doc.to<JsonArray>());
@@ -91,23 +75,23 @@ void Application::setupServer() {
 
 	web.post("/api/task/get", [this](Request & req, Response & res) {
 		using namespace JsonKeys;
-		StaticJsonDocument<Task::encoderSize()> doc;
-		deserializeJson(doc, req.body);
-		serializeJsonPretty(doc, Serial);
-		println();
+		StaticJsonDocument<Task::encoderSize()> body;
+		deserializeJson(body, req.body);
+		serializeJsonPretty(body, Serial);
 
-		// Find task with name
-		int index = tm.findTaskWithName(doc[TASK_NAME]);
+		StaticJsonDocument<Task::encoderSize() + 500> response;
+		const char * name = body["name"];
+		const int index	  = tm.findTaskWithName(name);
+
 		if (index == -1) {
-			res.send("{}");
-			res.end();
-			return;
+			response["error"] = "Task not found";
+		} else {
+			response["success"] = "Task found";
+			JsonVariant payload = response.createNestedObject("payload");
+			tm.tasks[index].encodeJSON(payload);
 		}
 
-		StaticJsonDocument<Task::encoderSize()> task_doc;
-		JsonVariant task_object = task_doc.to<JsonObject>();
-		tm.tasks[index].encodeJSON(task_object);
-		res.json(task_doc);
+		res.json(response);
 		res.end();
 	});
 
@@ -120,15 +104,18 @@ void Application::setupServer() {
 		StaticJsonDocument<Task::encoderSize() + 500> response;
 		const char * name = body["name"];
 		const int index	  = tm.findTaskWithName(name);
+
+		// Adding new task to task array and wrtie to file +
+		// sending http response as appropriate
 		if (index == -1) {
 			tm.createTask(body.as<JsonObject>());
 			tm.writeTaskArrayToDirectory();
 
+			KPStringBuilder<100> success("Successfully created ", name);
+			response["success"] = (char *) success.c_str();
+
 			JsonVariant task = response.createNestedObject("payload");
 			tm.tasks.back().encodeJSON(task);
-
-			KPStringBuilder<100> successMessage("Successfully created ", name);
-			response["success"] = (char *) successMessage.c_str();
 		} else {
 			response["error"] = "Found task with the same name. Task name must be unique";
 		}
@@ -160,6 +147,7 @@ void Application::setupServer() {
 		Task task;
 		task.decodeJSON(body.as<JsonObject>());
 
+		// TODO: Validate Task
 		// tm.validateTask();
 
 		StaticJsonDocument<Task::encoderSize() + 500> response;
@@ -181,10 +169,9 @@ void Application::setupServer() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		const char * name = body["name"];
-
 		StaticJsonDocument<500> response;
-		int index = tm.findTaskWithName(name);
+		const char * name = body["name"];
+		const int index	  = tm.findTaskWithName(name);
 
 		// Task not found
 		if (index == -1) {
@@ -221,19 +208,68 @@ void Application::setupServer() {
 // ──────────────────────────────────────────────────────────────────────────────────────────
 //
 
-#define match(x) if (line == x)
+class InteractiveString {
+public:
+	static constexpr size_t size = 256;
+	char buffer[size]{0};
+	char * p = buffer;
+
+	bool prefix(const char * pre) {
+		if (p >= buffer + size) {
+			return false;
+		}
+
+		const size_t len = strlen(pre);
+		if (strncmp(pre, buffer, len) == 0) {
+			p += len;
+			return true;
+		}
+
+		return false;
+	}
+};
+
+#define match(x)  if (line == x)
+#define prefix(x) if (s.prefix(x))
+#define next(x)
 void Application::commandReceived(const String & line) {
-	match("load status") status.load(config.statusFile);
-	match("save status") status.save(config.statusFile);
-	match("print status") println(status);
+	InteractiveString s;
+	line.toCharArray(s.buffer, s.size);
+	prefix("read") {
+		println("COOL");
+	}
 
-	match("load config") config.load();
-	match("print config") println(config);
+	match("read status") {
+		status.load(config.statusFile);
+	}
 
-	match("print sd") printDirectory(SD.open("/"), 0);
+	match("save status") {
+		status.save(config.statusFile);
+	}
 
-	match("load valves") vm.loadValvesFromDirectory(config.valveFolder);
-	match("save valves") vm.saveValvesToDirectory(config.valveFolder);
+	match("print status") {
+		println(status);
+	}
+
+	match("load config") {
+		config.load();
+	}
+	match("print config") {
+		println(config);
+	}
+
+	match("print sd") {
+		printDirectory(SD.open("/"), 0);
+	}
+
+	match("load valves") {
+		vm.loadValvesFromDirectory(config.valveFolder);
+	}
+
+	match("save valves") {
+		vm.saveValvesToDirectory(config.valveFolder);
+	}
+
 	match("print valves") {
 		for (size_t i = 0; i < vm.valves.size(); i++) {
 			println(vm.valves[i]);
@@ -267,6 +303,10 @@ void Application::commandReceived(const String & line) {
 		println(free_ram());
 	}
 
+	match("m") {
+		println(free_ram());
+	}
+
 	match("test") {
 		auto valves_in_task1 = vm.filter([](const Valve & v) {
 			return strcmp(v.group, "Task 1") == 0;
@@ -277,7 +317,7 @@ void Application::commandReceived(const String & line) {
 		}
 	}
 
-	match("index") {
+	match("read index") {
 		char buffer[64];
 		fileLoader.loadContentOfFile("tasks/index.js", buffer);
 		println(buffer);
