@@ -8,24 +8,6 @@
 #include <vector>
 #include "SD.h"
 
-class TaskError {
-public:
-	char message[256];
-	bool error	 = false;
-	bool success = false;
-
-	TaskError(const char * message, bool isError) {
-		strncpy(this->message, message, 255);
-		this->message[255] = 0;
-		this->error		   = isError;
-		this->success	   = !isError;
-	}
-
-	static TaskError CreateError(const char * message) {
-		return TaskError("ok", true);
-	}
-};
-
 class TaskManager : public KPComponent,
 					public JsonEncodable,
 					public Printable {
@@ -40,60 +22,41 @@ public:
 		taskFolder = config.taskFolder;
 	}
 
+	// Return index of the task with name
 	int findTaskWithName(const char * name) {
 		auto iter = std::find_if(tasks.begin(), tasks.end(), [name](const Task & t) {
 			return strcmp(t.name, name) == 0;
 		});
 
-		if (iter != tasks.end()) {
-			return std::distance(tasks.begin(), iter);
-		}
-
-		return -1;
+		auto d = std::distance(tasks.begin(), iter);
+		return (size_t) d == tasks.size() ? -1 : d;
 	}
 
+	// COMPLETED
 	void loadTasksFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
-		struct TaskIndex : public JsonDecodable {
-			int count = 0;
-			static constexpr size_t decoderSize() {
-				return 500;
-			}
 
-			void decodeJSON(const JsonVariant & src) override {
-				count = src["count"];
-			}
-		} taskIndex;
-
-		// NOTE: This JsonFileLoader needs to be revised
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
 		// Load task index file and set the number of tasks
 		KPStringBuilder<32> indexFilepath(dir, "/index.js");
-		taskIndex.load(indexFilepath);
-		tasks.resize(taskIndex.count);
+		StaticJsonDocument<100> indexFile;
+		loader.load(indexFilepath, indexFile);
+
+		tasks.resize(indexFile["count"]);
 
 		// Decode each task object into memory
-		for (int i = 0; i < taskIndex.count; i++) {
+		for (int i = 0; i < indexFile["count"]; i++) {
 			KPStringBuilder<32> filepath(dir, "/task-", i, ".js");
 			tasks[i].load(filepath);
 		}
 	}
 
-	void updateTasks(const JsonArray & task_array) {
-		for (const JsonObject & object : task_array) {
-			int id = object["valve"];
-			if (tasks[id].status) {
-				tasks[id].decodeJSON(object);
-			} else {
-				println("Task is already inactive");
-			}
-		}
-	}
-
 	// Performe identity check and update the task
 	int updateTaskWithData(JsonDocument & data, JsonDocument & response) {
+		serializeJsonPretty(data, Serial);
+
 		using namespace JsonKeys;
 		int index = findTaskWithName(data[TASK_NAME]);
 		if (index == -1) {
@@ -101,20 +64,18 @@ public:
 			return -1;
 		}
 
+		// Check there is a task with newName then
+		// replaces the name with new name if none is found
 		if (data.containsKey(TASK_NEW_NAME)) {
-			// Check there is a task with newName then
-			// replaces the name with new name if none is found
 			if (findTaskWithName(data[TASK_NEW_NAME]) == -1) {
 				data[TASK_NAME] = data[TASK_NEW_NAME];
-				goto save;
+			} else {
+				KPStringBuilder<64> error("Task with name ", data[TASK_NEW_NAME].as<char *>(), " already exist");
+				response["error"] = (char *) error.c_str();
+				return -1;
 			}
-
-			KPStringBuilder<64> error("Task with name ", data[TASK_NEW_NAME].as<char *>(), " already exist");
-			response["error"] = (char *) error.c_str();
-			return -1;
 		}
 
-	save:
 		JsonVariant payload = response.createNestedObject("payload");
 		tasks[index]		= Task(data.as<JsonObject>());
 		tasks[index].encodeJSON(payload);
@@ -124,7 +85,7 @@ public:
 		return index;
 	}
 
-	// NOTE: Validate Task
+	// TODO: Server-side validation
 	int validateTask(Task & task) {
 		// Application & app = *static_cast<Application *>(controller);
 		// task.schedule > now
@@ -133,10 +94,13 @@ public:
 		return 0;
 	}
 
+	// TODO: Server-side validation
 	int validateTask(Task & task, JsonDocument & response) {
 		return 0;
 	}
 
+	// Get next closest task with status == active
+	// This method mutates class member
 	Task * next() {
 		// First we sort tasks according to their schedule time
 		std::sort(tasks.begin(), tasks.end(), [](const Task & a, const Task & b) {
@@ -145,36 +109,39 @@ public:
 
 		// Then we partition the ones with status == 1 first
 		std::stable_partition(tasks.begin(), tasks.end(), [](const Task & a) {
-			return a.status == 1;
+			return a.status == TaskStatus::active;
 		});
 
 		// Return pointer to the first element or nulltptr if none
-		return (tasks.empty() || tasks.front().status != 1) ? nullptr : &tasks.front();
+		return (tasks.empty() || tasks.front().status != TaskStatus::active) ? nullptr : &tasks.front();
 	}
 
+	// COMPLETED
 	void createTask(const JsonObject & src) {
 		tasks.push_back(Task(src));
 		writeTaskArrayToDirectory();
 	}
 
+	// COMPLETED
 	void updateIndexFile(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
-		// Update the index file
 		KPStringBuilder<32> indexFilepath(dir, "/index.js");
 		StaticJsonDocument<100> indexJson;
 		indexJson["count"] = tasks.size();
 		loader.save(indexFilepath, indexJson);
 	}
 
+	// COMPLETED
 	void writeTaskArrayToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
+
 		for (size_t i = 0; i < tasks.size(); i++) {
 			KPStringBuilder<32> filename("task-", i, ".js");
 			KPStringBuilder<64> filepath(dir, "/", filename);
@@ -226,12 +193,3 @@ public:
 		return charWritten;
 	}
 };
-
-// virtual const char * encoderName() const {
-// 		return "Unnamed";
-// 	}
-
-// 	virtual bool encodeJSON(JsonObject & dest) const = 0;
-// 	virtual void save(const char * filepath) const {
-// 		raise(Error("JsonEncodable save needs override"));
-// 	}

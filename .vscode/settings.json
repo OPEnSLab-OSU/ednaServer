@@ -7,6 +7,9 @@
 		"system_error": "cpp",
 		"*.tcc": "cpp",
 		"memory_resource": "cpp",
-		"limits": "cpp"
+		"limits": "cpp",
+		"istream": "cpp",
+		"ostream": "cpp",
+		"functional": "cpp"
 	}
 }

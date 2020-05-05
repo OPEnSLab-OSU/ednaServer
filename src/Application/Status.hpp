@@ -42,10 +42,6 @@ public:
 		memcpy(valves.getBuffer().data(), config.valves, sizeof(int) * valves.size());
 	}
 
-	bool isProgrammingMode() {
-		return analogRead(Override_Mode_Pin) <= 100;
-	}
-
 	//
 	// ─── SECTION JSONDECODABLE COMPLIANCE ───────────────────────────────────────────
 	//

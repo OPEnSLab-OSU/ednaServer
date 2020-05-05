@@ -9,16 +9,21 @@
 #include <Utilities/JsonEncodableDecodable.hpp>
 #include <Utilities/JsonFileLoader.hpp>
 
+#include <Task/TaskStatus.hpp>
+
 struct Taskref;
 struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 	char name[TaskSettings::NAME_LENGTH]{0};
 	char notes[TaskSettings::NOTES_LENGTH]{0};
 
 	std::array<uint8_t, 24> valves;
-	int8_t valveCount		 = 0;
+	int8_t valveCount = 0;
+
+private:
 	int8_t currentValveIndex = -1;
 
-	int status		 = 0;  // 0=inactive, 1=active, 2=completed
+public:
+	int status		 = TaskStatus::inactive;  // 0=inactive, 1=active, 2=completed
 	long creation	 = 0;
 	long schedule	 = 0;
 	long timeBetween = 0;
@@ -43,12 +48,14 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 		status = 2;
 	}
 
-	long next() {
+	void nextValve() {
 		schedule = now() + timeBetween;
-		currentValveIndex++;
+		if (currentValveIndex++ >= valveCount) {
+			markAsCompleted();
+		}
 	}
 
-	int getValveNumber() {
+	int getValveIndex() {
 		if (currentValveIndex == -1 || currentValveIndex >= valveCount) {
 			return -1;
 		}
@@ -146,56 +153,3 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 		return serializeJsonPretty(doc, Serial);
 	}
 };
-
-// struct Taskref : public JsonEncodable, public JsonDecodable, public Printable {
-// 	char name[TaskSettings::NAME_LENGTH]{0};
-
-// 	Taskref()					   = default;
-// 	Taskref(const Taskref & other) = default;
-// 	Taskref & operator=(const Taskref &) = default;
-
-// 	Taskref(const Task & task) {
-// 		strcpy(name, task.name);
-// 	}
-
-// 	Taskref(const JsonObjectConst & data) {
-// 		decodeJSON(data);
-// 	}
-
-// 	const char * decoderName() const {
-// 		return "Taskref";
-// 	}
-
-// 	const char * encoderName() const {
-// 		return "Taskref";
-// 	}
-
-// 	void load(const char * filepath) override {
-// 		JsonFileLoader loader;
-// 		loader.load<ProgramSettings::TASKREF_JSON_BUFFER_SIZE>(filepath, *this);
-// 	}
-
-// 	void save(const char * filepath) const override {
-// 		JsonFileLoader loader;
-// 		loader.save<ProgramSettings::TASKREF_JSON_BUFFER_SIZE>(filepath, *this);
-// 	}
-
-// 	void decodeJSON(const JsonObjectConst & source) override {
-// 		using namespace TaskSettings;
-// 		strncpy(name, source["name"], NAME_LENGTH);
-// 		if (name[NAME_LENGTH - 1] != 0) {
-// 			println("Warning (Task): Name exceeds its buffer size and will be truncated");
-// 		}
-// 	}
-
-// 	bool encodeJSON(JsonVariant & dest) const override {
-// 		return dest["name"].set((char *) name);
-// 	}
-
-// 	size_t printTo(Print & printer) const override {
-// 		StaticJsonDocument<ProgramSettings::TASKREF_JSON_BUFFER_SIZE> doc;
-// 		JsonVariant object = doc.to<JsonVariant>();
-// 		encodeJSON(object);
-// 		return serializeJsonPretty(object, Serial);
-// 	}
-// };

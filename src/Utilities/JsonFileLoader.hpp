@@ -5,6 +5,24 @@
 
 class JsonFileLoader : public FileLoader {
 public:
+	template <size_t size>
+	void load(const char * filepath, StaticJsonDocument<size> & doc) {
+		File file = SD.open(filepath, FILE_READ);
+		if (!file) {
+			KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
+			println(Error(message));
+			return;
+		}
+
+		// skip empty file
+		if (file.size() == 0) {
+			println("JsonFileLoader: ", filepath, " is empty");
+			return;
+		}
+
+		deserializeJson(doc, file);
+	}
+
 	template <typename Decoder>
 	void load(const char * filepath, Decoder & decoder) const {
 		unsigned long start = millis();

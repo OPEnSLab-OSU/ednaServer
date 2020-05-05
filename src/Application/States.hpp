@@ -1,6 +1,8 @@
 #pragma once
 #include <KPState.hpp>
 
+#define JSON_GET(x, data) x = data[#x]
+
 namespace StateName {
 	constexpr const char * IDLE		= "idle-state";
 	constexpr const char * STOP		= "stop-state";
@@ -54,6 +56,11 @@ public:
 	unsigned long time = 150;
 	float pressure	   = 8;
 	float volume	   = 1000;
-
 	void enter(KPStateMachine & sm) override;
+
+	// void setValuesFromJson(const JsonVariant & data) override {
+	// 	JSON_GET(time, data);
+	// 	JSON_GET(pressure, data);
+	// 	JSON_GET(volume, data);
+	// }
 };

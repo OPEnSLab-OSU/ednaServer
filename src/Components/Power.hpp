@@ -64,22 +64,21 @@ public:
 		}
 	}
 
-	//===========================================================
-	// [+_+] Wait for RTC connection
-	// This is done by asking the RTC to return
-	//===========================================================
+	//
+	// ─── WAIT FOR RTC CONNECTION THIS IS DONE BY ASKING THE RTC TO RETURN A BYTE ────────
+	//
+
 	void waitForConnection() {
 		Wire.begin();
-		while (true) {
-			Wire.requestFrom(RTC_ADDR, 1);
+		Wire.requestFrom(RTC_ADDR, 1, false);  // false: don't release I2C line
 
+		for (;; delay(2000)) {
 			// This means that all bits are high. I2C for DS3231 is active low.
 			if (Wire.read() != -1) {
 				println("\n\033[32;1m[^_^] RTC Connected\033[0m");
 				break;
 			} else {
 				println("\n\033[32;1m[-_-] RTC Not Connected\033[0m");
-				delay(2000);
 			}
 		}
 	}
@@ -115,7 +114,7 @@ public:
 	//===========================================================
 	void sleepForever() {
 		println();
-		println(F("Going to sleep..."));
+		println("Going to sleep...");
 		for (int i = 3; i > 0; i--) {
 			print(F("-> "));
 			println(i);
@@ -124,7 +123,7 @@ public:
 
 		LowPower.standby();
 		println();
-		println(F("Just woke up due to interrupt!"));
+		println("Just woke up due to interrupt!");
 		printCurrentTime();
 	}
 

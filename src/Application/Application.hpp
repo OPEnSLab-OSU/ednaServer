@@ -32,11 +32,11 @@ extern void printDirectory(File dir, int numTabs);
 
 class Application : public KPController, KPSerialInputListener {
 private:
-	void setupServer();
+	void setupServerRouting();
 	void commandReceived(const String & line) override;
 
 public:
-	KPServer web{"web-server", "eDNA-test", "password"};
+	KPServer server{"web-server", "eDNA-test", "password"};
 	KPStateMachine sm{"state-machine"};
 	KPFileLoader fileLoader{"file-loader", SDCard_Pin};
 	KPActionScheduler<10> scheduler{"scheduler"};
@@ -52,16 +52,21 @@ public:
 	TaskManager tm;
 
 private:
+	void develop() {
+		while (!Serial) {
+			delay(100);
+		};
+		// delay(5000);
+	}
+
 	void setup() override {
 		KPController::setup();
 		KPSerialInput::instance().addListener(this);
 
-		// Setup serial communication
 		Serial.begin(115200);
-		while (!Serial) {
-		};
-		// delay(5000);
+		develop();	// NOTE: Remove on production
 
+		// Register state machine states
 		addComponent(sm);
 		sm.addListener(&status);
 		sm.registerState(StateIdle(), StateName::IDLE);
@@ -69,137 +74,113 @@ private:
 		sm.registerState(StateFlush(), StateName::FLUSH);
 		sm.registerState(StateSample(), StateName::SAMPLE);
 		sm.registerState(StatePreserve(), StateName::PRESERVE);
-		sm.registerState(StateDecon(), StateName::DECON);
 
-		addComponent(web);
-		setupServer();
-
+		// Components; the order here doesn't matter
 		addComponent(fileLoader);
 		addComponent(shift);
 		addComponent(power);
 		addComponent(pump);
 		addComponent(scheduler);
+		addComponent(server);
+		setupServerRouting();
+		server.begin();
 
-		web.begin();
-
+		// Load configuration from file and initialize status object
 		config.load();
 		status.init(config);
 
+		// Config valve manager
 		vm.init(config);
 		vm.addListener(&status);
 		vm.loadValvesFromDirectory(config.valveFolder);
 
+		// Configure task manager
 		tm.init(config);
 		tm.loadTasksFromDirectory(config.taskFolder);
 
-		// Transition to idle state
+		// Schedule task if any then wait in IDLE
+		scheduleNextAvailableTask();
 		sm.transitionTo(StateName::IDLE);
 
+		// RTC Interrupt callback
 		power.onInterrupt([]() {
 			println("Alarm Triggered");
 		});
-
-		auto load = [this]() { scheduleNextTask(); };
-		run(1000, load, scheduler);
 	}
 
-	void handleTask(Task & task) {
-		// NOTE: Waking up after the task schdule
+	void transferTaskDataToStateParameters(Task & task) {
+		auto & stateFlush = *sm.getState<StateFlush>(StateName::FLUSH);
+		stateFlush.time	  = task.flushTime;
+		stateFlush.volume = task.flushVolume;
+
+		// blah blah blah
+	}
+
+	bool handleTaskScheduling(Task & task) {
 		time_t timenow = now();
+
+		// NOTE: Missed schedule. Invalidate Task.
 		if (timenow >= task.schedule) {
-			// vm.setValveStatu
+			for (int valve_idx : task.valves) {
+				vm.freeIfNotYetSampled(valve_idx);
+				task.markAsCompleted();
+			}
+
+			return false;
 		}
 
 		// NOTE: Waking up 10 secs before schedule time
-		if (timenow < task.schedule && timenow >= task.schedule - 10) {
+		if (timenow >= task.schedule - 10) {
+			transferTaskDataToStateParameters(task);
+			auto wait = [this]() { sm.transitionTo(StateName::FLUSH); };
+			run(secsToMillis(task.schedule - timenow), wait, scheduler);
+			config.shutdownOverride = true;
 		}
 
 		// NOTE: Waking up more than 10 secs before the schedule time
-		if (timenow < task.schedule - 10) {
-			if (status.preventShutdown) {
-				return;
-			}
+		// Reschedule 5 secs before due
+		else {
+			power.scheduleNextAlarm(task.schedule - 5);
 		}
+
+		return true;
 	}
 
-	bool scheduleNextTask() {
+	bool scheduleNextAvailableTask() {
 		Task * task_ptr = tm.next();
-		if (task_ptr == nullptr) {
+		if (!task_ptr) {
 			println("No task available");
+			power.disarmAlarms();
+			status.valveCurrent = -1;
 			return false;
 		}
 
-		Task & task		= *task_ptr;
-		int valveNumber = task.getValveNumber();
-		if (valveNumber == -1) {
-			println("No valve available");
-			task.markAsCompleted();
-			return false;
-		}
-
-		// println("Task available: ", task);
-
-		// status.currentTaskName = task.name;
-		// vm.setValveOperating(task.getValveNumber());
-
-		handleTask(task);
-
-		// while (true) {
-		// 	KPStatus::current().preventShutdown = false;
-		// 	int id								= app.availableTask();
-		// 	if (id == -1) {
-		// 		println("No task available");
-		// 		power.disarmAlarms();
-		// 		KPStatus::current().valveCurrent = -1;
-		// 		return;
-		// 	} else {
-		// 		println("Task available:", id);
-		// 		app.loadTaskFromStorage(id);
-		// 		// Fix
-		// 		// KPStatus::current().valveCurrent = app.currentTask.valves[app.currentTask.numberOfValvesAssigned - 1];
-		// 		KPStatus::current().valveCurrent = app.currentTask.valves[0];
-		// 	}
-
-		// 	// If waking up before the task (ontrack),
-		// 	// prevent shutdown if current time is within 10 secs of the task schedule else sleep until T-5
-		// 	if (app.checkForMissedSchedule(app.currentTask)) {
-		// 		if (app.taskWithin(app.currentTask, 10)) {
-		// 			KPStatus::current().preventShutdown = true;
-		// 			power.scheduleNextAlarm(app.currentTask.schedule);
-		// 			println("Rescheduling with exact timing");
-		// 		} else {
-		// 			power.scheduleNextAlarm(app.currentTask.schedule - 5);
-		// 			println("Rescheduling with 5secs before");
-		// 		}
-		// 		return;
-		// 		// Missed the schedule but may not miss the deadline
-		// 	} else if (app.beforeDeadline(app.currentTask, 5)) {
-		// 		app.currentTask.schedule = now() + 5;
-		// 		app.updateTaskFile(app.currentTask);
-		// 		app.updateTaskrefsFile();
-		// 		println("Before deadline: scheduling on the same valve...");
-		// 	} else {
-		// 		int lastValveIndex						   = app.currentTask.valves[app.currentTask.numberOfValvesAssigned - 1];
-		// 		KPStatus::current().valves[lastValveIndex] = 1;
-		// 		app.currentTask.next();
-		// 		app.currentTask.schedule = now() + 5;
-		// 		app.updateTaskFile(app.currentTask);
-		// 		app.updateTaskrefsFile();
-
-		// 		if (app.currentTask.numberOfValvesAssigned) {
-		// 			println("Missed deadline: moving to next available valve...");
-		// 		} else {
-		// 			println("Missed deadline: searching for next available task...");
-		// 		}
-		// 	}
-		// }
+		return handleTaskScheduling(*task_ptr);
 	}
 
+	void shutdown() {
+		pump.off();				// Turn off motor
+		shift.writeZeros();		// Turn off all TPIC devices
+		shift.writeLatchOut();	// Reverse latch valve direction
+		power.shutdown();		// Turn off power
+	}
+
+	//
+	// ─── UPDATE ─────────────────────────────────────────────────────────────────────
+	//
+	// Runs after the setup and initialization of all components
+	// ────────────────────────────────────────────────────────────────────────────────
 	void update() override {
 		KPController::update();
 
-		if (status.isProgrammingMode()) {
+		// Prevent shutdown if we are in programming momde and config has override
+		if (status.isProgrammingMode() || config.shutdownOverride) {
 			status.preventShutdown = true;
+		}
+
+		// Shutdown
+		if (!status.preventShutdown) {
+			shutdown();
 		}
 	}
 };

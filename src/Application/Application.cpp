@@ -8,21 +8,17 @@
 // ──────────────────────────────────────────────────────────────────────────
 //
 
-void Application::setupServer() {
-	// web.get("/", [this](Request & req, Response & res) {
-	// 	res.sendFile("combined.htm", fileLoader);
-	// 	res.end();
-	// });
+void Application::setupServerRouting() {
+	server.handlers.reserve(10);
 
-	web.handlers.reserve(10);
-
-	web.get("/", [this](Request & req, Response & res) {
+	// TODO: Respond with actual index file
+	server.get("/", [this](Request & req, Response & res) {
 		res.setHeader("Content-Encoding", "gzip");
 		res.sendFile("index.gz", fileLoader);
 		res.end();
 	});
 
-	web.get("/api/status", [this](Request & req, Response & res) {
+	server.get("/api/status", [this](Request & req, Response & res) {
 		StaticJsonDocument<Status::encoderSize()> response;
 		status.encodeJSON(response.to<JsonObject>());
 		response["utc"] = now();
@@ -35,28 +31,8 @@ void Application::setupServer() {
 		res.end();
 	});
 
-	web.post("/api/rtc/update", [this](Request & req, Response & res) {
-		StaticJsonDocument<100> body;
-		deserializeJson(body, req.body);
-		const time_t utc		 = body["utc"];
-		const int timezoneOffset = body["timezoneOffset"];
-
-		println("utc=", utc);
-		println("compileTime=", power.compileTime(timezoneOffset));
-
-		StaticJsonDocument<100> response;
-		if (utc >= power.compileTime(timezoneOffset) + (millis() / 1000)) {
-			response["success"] = "RTC updated.";
-			power.set(utc);
-		} else {
-			response["error"] = "Time seems sketchy. You sure about this?";
-		}
-
-		res.json(response);
-		res.end();
-	});
-
-	web.get("/api/valves", [this](Request & req, Response & res) {
+	// Get array of valves object
+	server.get("/api/valves", [this](Request & req, Response & res) {
 		StaticJsonDocument<ValveManager::encoderSize()> doc;
 		vm.encodeJSON(doc.to<JsonArray>());
 
@@ -66,14 +42,16 @@ void Application::setupServer() {
 		res.end();
 	});
 
-	web.get("/api/tasks", [this](Request & req, Response & res) {
+	// Get array of tasks obejects
+	server.get("/api/tasks", [this](Request & req, Response & res) {
 		StaticJsonDocument<TaskManager::encoderSize()> doc;
 		tm.encodeJSON(doc.to<JsonArray>());
 		res.json(doc);
 		res.end();
 	});
 
-	web.post("/api/task/get", [this](Request & req, Response & res) {
+	// Get task with name
+	server.post("/api/task/get", [this](Request & req, Response & res) {
 		using namespace JsonKeys;
 		StaticJsonDocument<Task::encoderSize()> body;
 		deserializeJson(body, req.body);
@@ -95,7 +73,8 @@ void Application::setupServer() {
 		res.end();
 	});
 
-	web.post("/api/task/create", [this](Request & req, Response & res) {
+	// Create a new task with name
+	server.post("/api/task/create", [this](Request & req, Response & res) {
 		using namespace JsonKeys;
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
@@ -124,8 +103,8 @@ void Application::setupServer() {
 		res.end();
 	});
 
-	web.post("/api/task/save", [this](Request & req, Response & res) {
-		using namespace JsonKeys;
+	// Update existing task with incoming data
+	server.post("/api/task/save", [this](Request & req, Response & res) {
 		const size_t size = ProgramSettings::TASK_JSON_BUFFER_SIZE;
 		StaticJsonDocument<size> body;
 		deserializeJson(body, req.body);
@@ -137,34 +116,29 @@ void Application::setupServer() {
 		res.end();
 	});
 
-	web.post("/api/task/schedule", [this](Request & req, Response & res) {
-		using namespace JsonKeys;
-		const size_t size = ProgramSettings::TASK_JSON_BUFFER_SIZE;
-		StaticJsonDocument<size> body;
+	// Put task on active status
+	server.post("/api/task/schedule", [this](Request & req, Response & res) {
+		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		Task task;
-		task.decodeJSON(body.as<JsonObject>());
+		StaticJsonDocument<500> response;
 
-		// TODO: Validate Task
-		// tm.validateTask();
+		const char * name = body["name"];
+		const int index	  = tm.findTaskWithName(name);
+		if (index != -1) {
+			response["success"]	   = "Task has been scheduled";
+			tm.tasks[index].status = TaskStatus::active;
+		} else {
+			response["error"] = "No Task with such name";
+		}
 
-		StaticJsonDocument<Task::encoderSize() + 500> response;
-		tm.updateTaskWithData(body, response);
 		res.json(response);
 		res.end();
 	});
 
-	web.post("/api/task/schedule/forced", [this](Request & req, Response & res) {
-		using namespace JsonKeys;
-		const size_t size = ProgramSettings::TASK_JSON_BUFFER_SIZE;
-		StaticJsonDocument<size> body;
-		deserializeJson(body, req.body);
-		serializeJsonPretty(body, Serial);
-	});
-
-	web.post("/api/task/delete", [this](Request & req, Response & res) {
+	// Delete task with name
+	server.post("/api/task/delete", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
@@ -197,7 +171,30 @@ void Application::setupServer() {
 		res.end();
 	});
 
-	web.get("/stop", [this](Request & req, Response & res) {
+	// RTC update
+	server.post("/api/rtc/update", [this](Request & req, Response & res) {
+		StaticJsonDocument<100> body;
+		deserializeJson(body, req.body);
+		const time_t utc		 = body["utc"];
+		const int timezoneOffset = body["timezoneOffset"];
+
+		println("utc=", utc);
+		println("compileTime=", power.compileTime(timezoneOffset));
+
+		StaticJsonDocument<100> response;
+		if (utc >= power.compileTime(timezoneOffset) + (millis() / 1000)) {
+			response["success"] = "RTC updated.";
+			power.set(utc);
+		} else {
+			response["error"] = "Time seems sketchy. You sure about this?";
+		}
+
+		res.json(response);
+		res.end();
+	});
+
+	// Emergency stop
+	server.get("/stop", [this](Request & req, Response & res) {
 		sm.transitionTo(StateName::STOP);
 	});
 }
@@ -323,6 +320,11 @@ void Application::commandReceived(const String & line) {
 		println(buffer);
 	}
 
+	match("action") {
+		auto action = []() { println("Hi There"); };
+		run(1000, action, scheduler);
+	}
+
 	if (line.startsWith("time")) {
 		const char * str = line.c_str() + line.indexOf('e') + 1;
 		int time		 = std::atoi(str);
@@ -332,5 +334,5 @@ void Application::commandReceived(const String & line) {
 }
 
 #ifdef match
-#	undef match
+	#undef match
 #endif

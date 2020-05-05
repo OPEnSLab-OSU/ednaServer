@@ -62,6 +62,12 @@ public:
 		updateListeners();
 	}
 
+	void freeIfNotYetSampled(int id) {
+		if (valves[id].status != ValveStatus::sampled) {
+			valves[id].setStatus(ValveStatus::free);
+		}
+	}
+
 	std::vector<int> filter(std::function<bool(const Valve &)> pred) {
 		std::vector<int> list;
 		for (size_t i = 0; i < valves.size(); i++) {

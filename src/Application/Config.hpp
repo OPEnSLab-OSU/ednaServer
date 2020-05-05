@@ -26,6 +26,8 @@ public:
 	char taskFolder[ProgramSettings::SD_FILE_NAME_LENGTH]{0};
 	char valveFolder[ProgramSettings::SD_FILE_NAME_LENGTH]{0};
 
+	bool shutdownOverride = true;
+
 public:
 	Config()			   = delete;
 	Config(const Config &) = delete;
