@@ -233,7 +233,7 @@ void Application::commandReceived(const String & line) {
 	InteractiveString s;
 	line.toCharArray(s.buffer, s.size);
 	prefix("read") {
-		println("COOL");
+		println("It's working");
 	}
 
 	match("read status") {

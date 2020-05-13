@@ -1,7 +1,7 @@
 #pragma once
 
 #define Power_Module_Pin	A0
-#define RTC_Interrupt_Pin	12	// A1 is eDNA 12 for HYPNOS
+#define RTC_Interrupt_Pin	12	// A1 is eDNA, 12 for HYPNOS
 #define Battery_Voltage_Pin A2
 #define Analog_Sensor_1_Pin A3
 #define Analog_Sensor_2_Pin A4
