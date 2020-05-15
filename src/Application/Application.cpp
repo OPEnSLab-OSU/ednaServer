@@ -279,6 +279,10 @@ void Application::commandReceived(const String & line) {
 		}
 	}
 
+	match("update rtc") {
+		power.set(power.compileTime());
+	}
+
 	match("print tasks") {
 		println(tm);
 	}
@@ -298,38 +302,6 @@ void Application::commandReceived(const String & line) {
 
 	match("mem") {
 		println(free_ram());
-	}
-
-	match("m") {
-		println(free_ram());
-	}
-
-	match("test") {
-		auto valves_in_task1 = vm.filter([](const Valve & v) {
-			return strcmp(v.group, "Task 1") == 0;
-		});
-
-		for (const auto & v : valves_in_task1) {
-			println(v);
-		}
-	}
-
-	match("read index") {
-		char buffer[64];
-		fileLoader.loadContentOfFile("tasks/index.js", buffer);
-		println(buffer);
-	}
-
-	match("action") {
-		auto action = []() { println("Hi There"); };
-		run(1000, action, scheduler);
-	}
-
-	if (line.startsWith("time")) {
-		const char * str = line.c_str() + line.indexOf('e') + 1;
-		int time		 = std::atoi(str);
-		println(time);
-		power.setTimeout(time, true);
 	}
 }
 
