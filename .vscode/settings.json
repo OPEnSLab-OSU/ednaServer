@@ -12,6 +12,10 @@
 		"ostream": "cpp",
 		"functional": "cpp",
 		"fstream": "cpp",
-		"streambuf": "cpp"
+		"streambuf": "cpp",
+		"deque": "cpp",
+		"string": "cpp",
+		"unordered_map": "cpp",
+		"vector": "cpp"
 	}
 }

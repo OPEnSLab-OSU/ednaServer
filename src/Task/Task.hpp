@@ -45,7 +45,9 @@ public:
 	}
 
 	void markAsCompleted() {
-		status = 2;
+		status			  = TaskStatus::completed;
+		valveCount		  = 0;
+		currentValveIndex = -1;
 	}
 
 	void nextValve() {

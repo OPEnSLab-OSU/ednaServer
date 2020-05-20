@@ -128,10 +128,14 @@ void Application::setupServerRouting() {
 		serializeJsonPretty(body, Serial);
 
 		StaticJsonDocument<Task::encoderSize() + 500> response;
-
 		const char * name = body["name"];
 		const int index	  = tm.findTaskWithName(name);
 		if (index != -1) {
+			if (tm.tasks[index].valveCount == 0) {
+				response["error"] = "Cannot schedule a task without an assigned valve";
+				goto send;
+			}
+
 			tm.markTask(index, TaskStatus::active);
 			tm.writeTaskArrayToDirectory();
 
@@ -142,6 +146,7 @@ void Application::setupServerRouting() {
 			response["error"] = "No Task with such name";
 		}
 
+	send:
 		res.json(response);
 		res.end();
 	});
@@ -159,6 +164,7 @@ void Application::setupServerRouting() {
 			tm.markTask(index, TaskStatus::inactive);
 			tm.writeTaskArrayToDirectory();
 			clearRemainingValves(tm.tasks[index]);
+			tm.tasks[index].markAsCompleted();
 
 			JsonVariant payload = response.createNestedObject("payload");
 			encodeJSON(tm.tasks[index], payload);
@@ -239,82 +245,172 @@ void Application::setupServerRouting() {
 // ──────────────────────────────────────────────────────────────────────────────────────────
 //
 
-class StringParser {
-public:
-	const char * parts[10];
+struct StringPart {
+	StringPart * prev = nullptr;
+	const char * ptr  = nullptr;
+
+	void(*callback) = nullptr;
+
+	StringPart()				   = default;
+	StringPart(const StringPart &) = default;
+	StringPart & operator=(const StringPart &) = default;
+
+	StringPart(const char * _ptr)
+		: ptr(_ptr) {}
+
+	StringPart & operator=(const char * rhs) {
+		ptr = rhs;
+		return *this;
+	}
+
+	bool operator==(const char * rhs) const {
+		return strcmp(ptr, rhs) == 0;
+	}
+
+	bool operator!=(const char * rhs) const {
+		return !(*this == rhs);
+	}
+
+	operator const char *() const {
+		return ptr;
+	}
 };
 
-#define match(x) if (line == x)
+class StringParser {
+public:
+	char buffer[256];
+	std::array<StringPart, 16> parts;
+	std::array<StringPart, 16>::iterator it = parts.begin();
+	size_t _size;
+
+	StringParser(const char * line) {
+		strcpy(buffer, line);
+		parse();
+		it = parts.begin();
+	}
+
+	void parse() {
+		auto it	  = parts.begin();
+		auto part = strtok(buffer, " ");
+		*it		  = part;
+		_size	  = 1;
+		while (part && it != parts.end()) {
+			*(++it)	 = strtok(NULL, " ");
+			it->prev = it - 1;
+			part	 = strtok(nullptr, " ");
+			_size++;
+		}
+	}
+
+	StringPart & current() {
+		return *it;
+	}
+
+	StringPart & next() {
+		return *(++it);
+	}
+
+	size_t size() const {
+		return _size;
+	}
+
+	bool operator==(const char * rhs) {
+		return *it == rhs;
+	}
+
+	bool operator!=(const char * rhs) {
+		return *it != rhs;
+	}
+};
+
+#define match(x, s) if (parts[x] == s)
+#define hasValue(x) if (parts[x])
 void Application::commandReceived(const String & line) {
-	match("read status") {
-		status.load(config.statusFile);
+	StringParser parser(line.c_str());
+	auto & parts = parser.parts;
+
+	match(0, "test") {
+		match(1, "1") {
+			println("It works");
+		}
 	}
 
-	match("save status") {
-		status.save(config.statusFile);
+	match(1, "status") {
+		match(0, "read") {
+			status.load(config.statusFile);
+		}
+
+		match(0, "save") {
+			status.save(config.statusFile);
+		}
+
+		match(0, "print") {
+			println(status);
+		}
+
+		return;
 	}
 
-	match("print status") {
-		println(status);
+	match(1, "config") {
+		match(0, "load") {
+			config.load();
+		}
+
+		match(0, "print") {
+			println(config);
+		}
 	}
 
-	match("load config") {
-		config.load();
-	}
-	match("print config") {
-		println(config);
-	}
-
-	match("print sd") {
+	match(1, "sd") match(0, "print") {
 		printDirectory(SD.open("/"), 0);
 	}
 
-	match("load valves") {
-		vm.loadValvesFromDirectory(config.valveFolder);
-	}
+	match(1, "valves") {
+		match(0, "load") {
+			vm.loadValvesFromDirectory(config.valveFolder);
+		}
 
-	match("save valves") {
-		vm.saveValvesToDirectory(config.valveFolder);
-	}
+		match(0, "save") {
+			vm.saveValvesToDirectory(config.valveFolder);
+		}
 
-	match("print valves") {
-		for (size_t i = 0; i < vm.valves.size(); i++) {
-			println(vm.valves[i]);
+		match(0, "print") {
+			for (size_t i = 0; i < vm.valves.size(); i++) {
+				println(vm.valves[i]);
+			}
+		}
+
+		match(0, "free") {
+			if (parts[2]) {
+				int valveNumber = atoi(parts[2]);
+				if (valveNumber >= 0 && valveNumber < config.valveUpperBound) {
+					vm.setValveStatus(valveNumber, ValveStatus::free);
+				}
+			} else {
+				vm.init(config);
+			}
 		}
 	}
 
-	match("reset valves") {
-		for (int i = 0; i < config.valveUpperBound; i++) {
-			vm.init(config);
-		}
-	}
-
-	match("update rtc") {
+	match(0, "update") match(1, "rtc") {
 		power.set(power.compileTime());
 	}
 
-	match("print tasks") {
-		println(tm);
-	}
+	match(1, "tasks") {
+		match(0, "print") {
+			println(tm);
+		}
 
-	match("save tasks") {
-		tm.writeTaskArrayToDirectory();
-		tm.loadTasksFromDirectory();
-		println(tm);
-	}
-
-	match("read test") {
-		char buffer[64];
-		while (fileLoader.loadContentOfFile("index.gz", buffer)) {
-			println(buffer);
+		match(0, "save") {
+			tm.writeTaskArrayToDirectory();
+			tm.loadTasksFromDirectory();
+			println(tm);
 		}
 	}
 
-	match("mem") {
+	match(0, "mem") {
 		println(free_ram());
 	}
 }
-
-#ifdef match
-	#undef match
-#endif
+#undef match
+#undef hasValue
