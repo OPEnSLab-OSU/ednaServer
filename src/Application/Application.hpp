@@ -30,7 +30,9 @@
 
 extern void printDirectory(File dir, int numTabs);
 
-class Application : public KPController, KPSerialInputListener {
+class Application : public KPController,
+					public KPSerialInputListener,
+					public TaskListener {
 private:
 	void setupServerRouting();
 	void commandReceived(const String & line) override;
@@ -56,7 +58,6 @@ private:
 		while (!Serial) {
 			delay(100);
 		};
-		// delay(5000);
 	}
 
 	void setup() override {
@@ -64,7 +65,7 @@ private:
 		KPSerialInput::instance().addListener(this);
 
 		Serial.begin(115200);
-		develop();	// NOTE: Remove on production
+		develop();	// NOTE: Remove in production
 
 		// Register state machine states
 		addComponent(sm);
@@ -119,13 +120,10 @@ private:
 	bool handleTaskScheduling(Task & task) {
 		time_t timenow = now();
 
-		// NOTE: Missed schedule. Invalidate Task.
+		// NOTE: Missed schedule. Clear remaining valves and mark Task as completed.
 		if (timenow >= task.schedule) {
-			for (int valve_idx : task.valves) {
-				vm.freeIfNotYetSampled(valve_idx);
-				task.markAsCompleted();
-			}
-
+			clearRemainingValves(task);
+			task.markAsCompleted();
 			return false;
 		}
 
@@ -147,7 +145,7 @@ private:
 	}
 
 	bool scheduleNextAvailableTask() {
-		Task * task_ptr = tm.next();
+		Task * task_ptr = tm.nearestTask();
 		if (!task_ptr) {
 			println("No task available");
 			power.disarmAlarms();
@@ -163,6 +161,15 @@ private:
 		shift.writeZeros();		// Turn off all TPIC devices
 		shift.writeLatchOut();	// Reverse latch valve direction
 		power.shutdown();		// Turn off power
+	}
+
+	void clearRemainingValves(Task & task) {
+		for (int i = task.currentValveIndex; i < task.valveCount; i++) {
+			vm.freeIfNotYetSampled(task.valves[i]);
+		}
+	}
+
+	void taskChanged(Task & task, TaskManager & tm) override {
 	}
 
 	//

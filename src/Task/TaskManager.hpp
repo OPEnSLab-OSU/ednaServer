@@ -8,12 +8,20 @@
 #include <vector>
 #include "SD.h"
 
+class TaskManager;
+class TaskListener {
+public:
+	virtual void taskChanged(Task & task, TaskManager & tm) = 0;
+};
+
 class TaskManager : public KPComponent,
 					public JsonEncodable,
 					public Printable {
 public:
 	std::vector<Task> tasks;
 	const char * taskFolder = nullptr;
+
+	std::vector<TaskListener *> listeners;
 
 	TaskManager()
 		: KPComponent("TaskManager") {}
@@ -22,6 +30,11 @@ public:
 		taskFolder = config.taskFolder;
 	}
 
+	void notifyListeners(int index) {
+		for (TaskListener * listener : listeners) {
+			listener->taskChanged(tasks[index], *this);
+		}
+	}
 	// Return index of the task with name
 	int findTaskWithName(const char * name) {
 		auto iter = std::find_if(tasks.begin(), tasks.end(), [name](const Task & t) {
@@ -99,9 +112,13 @@ public:
 		return 0;
 	}
 
-	// Get next closest task with status == active
+	void markTask(int index, TaskStatus status) {
+		tasks[index].status = status;
+		notifyListeners(index);
+	}
+	// Get next closest task with active status
 	// This method mutates class member
-	Task * next() {
+	Task * nearestTask() {
 		// First we sort tasks according to their schedule time
 		std::sort(tasks.begin(), tasks.end(), [](const Task & a, const Task & b) {
 			return a.schedule < b.schedule;

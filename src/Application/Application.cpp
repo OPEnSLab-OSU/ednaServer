@@ -12,18 +12,18 @@ void Application::setupServerRouting() {
 	server.handlers.reserve(10);
 
 	// TODO: Respond with actual index file
-	server.get("/", [this](Request & req, Response & res) {
-		res.setHeader("Content-Encoding", "gzip");
-		res.sendFile("index.gz", fileLoader);
-		res.end();
-	});
+	// server.get("/", [this](Request & req, Response & res) {
+	// 	res.setHeader("Content-Encoding", "gzip");
+	// 	res.sendFile("index.gz", fileLoader);
+	// 	res.end();
+	// });
 
 	server.get("/api/status", [this](Request & req, Response & res) {
 		StaticJsonDocument<Status::encoderSize()> response;
-		status.encodeJSON(response.to<JsonObject>());
+		encodeJSON(status, response.to<JsonObject>());
 		response["utc"] = now();
 
-		serializeJsonPretty(response, Serial);
+		// serializeJsonPretty(response, Serial);
 
 		KPStringBuilder<10> length(measureJson(response));
 		res.setHeader("Content-Length", length.c_str());
@@ -34,7 +34,7 @@ void Application::setupServerRouting() {
 	// Get array of valves object
 	server.get("/api/valves", [this](Request & req, Response & res) {
 		StaticJsonDocument<ValveManager::encoderSize()> doc;
-		vm.encodeJSON(doc.to<JsonArray>());
+		encodeJSON(vm, doc.to<JsonArray>());
 
 		KPStringBuilder<10> length(measureJson(doc));
 		res.setHeader("Content-Length", length.c_str());
@@ -45,7 +45,7 @@ void Application::setupServerRouting() {
 	// Get array of tasks obejects
 	server.get("/api/tasks", [this](Request & req, Response & res) {
 		StaticJsonDocument<TaskManager::encoderSize()> doc;
-		tm.encodeJSON(doc.to<JsonArray>());
+		encodeJSON(tm, doc.to<JsonArray>());
 		res.json(doc);
 		res.end();
 	});
@@ -66,7 +66,7 @@ void Application::setupServerRouting() {
 		} else {
 			response["success"] = "Task found";
 			JsonVariant payload = response.createNestedObject("payload");
-			tm.tasks[index].encodeJSON(payload);
+			encodeJSON(tm.tasks[index], payload);
 		}
 
 		res.json(response);
@@ -93,8 +93,8 @@ void Application::setupServerRouting() {
 			KPStringBuilder<100> success("Successfully created ", name);
 			response["success"] = (char *) success.c_str();
 
-			JsonVariant task = response.createNestedObject("payload");
-			tm.tasks.back().encodeJSON(task);
+			JsonVariant payload = response.createNestedObject("payload");
+			encodeJSON(tm.tasks.back(), payload);
 		} else {
 			response["error"] = "Found task with the same name. Task name must be unique";
 		}
@@ -111,7 +111,12 @@ void Application::setupServerRouting() {
 		serializeJsonPretty(body, Serial);
 
 		StaticJsonDocument<Task::encoderSize() + 500> response;
-		tm.updateTaskWithData(body, response);
+		int index = tm.updateTaskWithData(body, response);
+		if (index != -1) {
+			println("Writing to directory");
+			tm.writeTaskArrayToDirectory();
+		}
+
 		res.json(response);
 		res.end();
 	});
@@ -122,13 +127,42 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<500> response;
+		StaticJsonDocument<Task::encoderSize() + 500> response;
 
 		const char * name = body["name"];
 		const int index	  = tm.findTaskWithName(name);
 		if (index != -1) {
-			response["success"]	   = "Task has been scheduled";
-			tm.tasks[index].status = TaskStatus::active;
+			tm.markTask(index, TaskStatus::active);
+			tm.writeTaskArrayToDirectory();
+
+			JsonVariant payload = response.createNestedObject("payload");
+			encodeJSON(tm.tasks[index], payload);
+			response["success"] = "Task has been scheduled";
+		} else {
+			response["error"] = "No Task with such name";
+		}
+
+		res.json(response);
+		res.end();
+	});
+
+	server.post("/api/task/unschedule", [this](Request & req, Response & res) {
+		StaticJsonDocument<100> body;
+		deserializeJson(body, req.body);
+		serializeJsonPretty(body, Serial);
+
+		StaticJsonDocument<Task::encoderSize() + 500> response;
+
+		const char * name = body["name"];
+		const int index	  = tm.findTaskWithName(name);
+		if (index != -1) {
+			tm.markTask(index, TaskStatus::inactive);
+			tm.writeTaskArrayToDirectory();
+			clearRemainingValves(tm.tasks[index]);
+
+			JsonVariant payload = response.createNestedObject("payload");
+			encodeJSON(tm.tasks[index], payload);
+			response["success"] = "Task has been unscheduled";
 		} else {
 			response["error"] = "No Task with such name";
 		}
@@ -205,37 +239,13 @@ void Application::setupServerRouting() {
 // ──────────────────────────────────────────────────────────────────────────────────────────
 //
 
-class InteractiveString {
+class StringParser {
 public:
-	static constexpr size_t size = 256;
-	char buffer[size]{0};
-	char * p = buffer;
-
-	bool prefix(const char * pre) {
-		if (p >= buffer + size) {
-			return false;
-		}
-
-		const size_t len = strlen(pre);
-		if (strncmp(pre, buffer, len) == 0) {
-			p += len;
-			return true;
-		}
-
-		return false;
-	}
+	const char * parts[10];
 };
 
-#define match(x)  if (line == x)
-#define prefix(x) if (s.prefix(x))
-#define next(x)
+#define match(x) if (line == x)
 void Application::commandReceived(const String & line) {
-	InteractiveString s;
-	line.toCharArray(s.buffer, s.size);
-	prefix("read") {
-		println("It's working");
-	}
-
 	match("read status") {
 		status.load(config.statusFile);
 	}

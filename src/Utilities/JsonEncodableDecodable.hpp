@@ -19,6 +19,10 @@ public:
 	}
 };
 
+inline void decodeJSON(JsonDecodable & decoder, const JsonVariant & source) {
+	decoder.decodeJSON(source);
+};
+
 // ────────────────────────────────────────────────────────────────────────────────
 // ─── SECTION  INTERFACE FOR CUSTOM JSON ENCODING OBJECT ─────────────────────────
 // ────────────────────────────────────────────────────────────────────────────────
@@ -33,4 +37,8 @@ public:
 	virtual void save(const char * filepath) const {
 		raise(Error("JsonEncodable save needs override"));
 	}
+};
+
+inline void encodeJSON(JsonEncodable & encoder, const JsonVariant & dest) {
+	encoder.encodeJSON(dest);
 };

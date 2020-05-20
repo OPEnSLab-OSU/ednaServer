@@ -19,7 +19,7 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 	std::array<uint8_t, 24> valves;
 	int8_t valveCount = 0;
 
-private:
+public:
 	int8_t currentValveIndex = -1;
 
 public:

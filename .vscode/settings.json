@@ -10,6 +10,8 @@
 		"limits": "cpp",
 		"istream": "cpp",
 		"ostream": "cpp",
-		"functional": "cpp"
+		"functional": "cpp",
+		"fstream": "cpp",
+		"streambuf": "cpp"
 	}
 }
