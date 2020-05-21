@@ -50,7 +50,7 @@ public:
 
 Application app;
 void setup() {
-	Runtime::setInitialAppController(test_app);
+	Runtime::setInitialAppController(app);
 }
 
 void loop() {

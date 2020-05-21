@@ -174,7 +174,7 @@ public:
 
 			run(secsToMillis(task.schedule - timenow), delayTaskExecution);
 			transferTaskDataToStateParameters(task);
-			println("Task executes in", task.schedule - timenow);
+			println("Task executes in ", task.schedule - timenow, " secs");
 		} else {
 			power.scheduleNextAlarm(task.schedule - 5);
 			println("Task reschduled to 5 secs before actual time");

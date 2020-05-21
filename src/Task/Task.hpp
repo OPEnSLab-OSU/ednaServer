@@ -53,7 +53,7 @@ public:
 	}
 
 	void nextValve() {
-		schedule = now() + timeBetween;
+		schedule = now() + std::max(timeBetween, 5l);
 		if (++currentValveIndex >= valveCount) {
 			markAsCompleted();
 		}
