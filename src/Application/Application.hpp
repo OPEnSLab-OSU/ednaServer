@@ -25,6 +25,8 @@
 
 #include <Utilities/JsonEncodableDecodable.hpp>
 
+#include <Application/Action.hpp>
+
 #define AirValveBitIndex	 2
 #define AlcoholValveBitIndex 3
 #define FlushValveBitIndex	 5
@@ -170,7 +172,7 @@ public:
 				sm.transitionTo(StateName::FLUSH);
 			};
 
-			run(secsToMillis(task.schedule - timenow), delayTaskExecution, scheduler);
+			run(secsToMillis(task.schedule - timenow), delayTaskExecution);
 			transferTaskDataToStateParameters(task);
 			println("Task executes in", task.schedule - timenow);
 		} else {
@@ -183,6 +185,8 @@ public:
 		if (valveIndex != -1) {
 			vm.setValveStatus(valveIndex, ValveStatus::operating);
 		}
+
+		return true;
 	}
 
 	//

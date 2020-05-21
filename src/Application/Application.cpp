@@ -246,39 +246,10 @@ void Application::setupServerRouting() {
 // ──────────────────────────────────────────────────────────────────────────────
 //
 
-class StringPart {
-private:
-	const char * ptr = nullptr;
-
-public:
-	StringPart()				   = default;
-	StringPart(const StringPart &) = default;
-	StringPart & operator=(const StringPart &) = default;
-
-	StringPart(const char * _ptr)
-		: ptr(_ptr) {}
-
-	StringPart & operator=(const char * rhs) {
-		ptr = rhs;
-		return *this;
-	}
-
-	bool operator==(const char * rhs) const {
-		return strcmp(ptr, rhs) == 0;
-	}
-
-	bool operator!=(const char * rhs) const {
-		return !(*this == rhs);
-	}
-
-	operator const char *() const {
-		return ptr;
-	}
-};
 class StringParser {
 public:
 	char buffer[256];
-	std::array<StringPart, 16> parts;
+	std::array<KPString, 16> parts;
 
 	StringParser(const char * line) {
 		strcpy(buffer, line);

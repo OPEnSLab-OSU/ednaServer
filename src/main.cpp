@@ -1,7 +1,8 @@
 #ifndef UNIT_TEST
-#include <KPApplicationRuntime.hpp>
+	#include <KPApplicationRuntime.hpp>
 
-#include <Application/Application.hpp>
+	#include <Application/Application.hpp>
+	#include <Application/Action.hpp>
 
 void printDirectory(File dir, int numTabs) {
 	while (true) {
@@ -26,13 +27,34 @@ void printDirectory(File dir, int numTabs) {
 	}
 }
 
-Application app;
+class TestApplication : public KPController {
+public:
+	void develop() {
+		while (!Serial) {
+			delay(100);
+		};
+	}
 
+	void setup() override {
+		Serial.begin(115200);
+		develop();	// NOTE: Remove in production
+		runForever(1000, "test", []() {
+			println("TESTING...");
+		});
+
+		run(10000, []() {
+			removeAction("test");
+		});
+	}
+} test_app;
+
+Application app;
 void setup() {
-	Runtime::setInitialAppController(app);
+	Runtime::setInitialAppController(test_app);
 }
 
 void loop() {
+	ActionScheduler::sharedInstance().update();
 	Runtime::update();
 }
 #endif
