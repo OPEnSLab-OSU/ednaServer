@@ -17,6 +17,7 @@
 class Config : public JsonDecodable, public JsonEncodable, public Printable {
 public:
 	int valveUpperBound;
+	int numberOfValves;
 	int valves[ProgramSettings::MAX_VALVES]{0};
 
 	const char * configFilepath;
@@ -50,6 +51,7 @@ public:
 		using namespace ConfigKeys;
 
 		valveUpperBound = source[VALVE_UPPER_BOUND];
+		numberOfValves	= valveUpperBound + 1;
 
 		// <- valves
 		JsonArrayConst config_valves = source[VALVES_FREE].as<JsonArrayConst>();

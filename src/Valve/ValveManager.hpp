@@ -1,6 +1,5 @@
 #pragma once
 #include <KPFoundation.hpp>
-#include <KPDataStoreInterface.hpp>
 #include <KPArray.hpp>
 
 #include <Application/Config.hpp>
@@ -49,14 +48,6 @@ public:
 		listeners.push_back(listener);
 	}
 
-	void setValveSampled(int id) {
-		setValveStatus(id, ValveStatus::sampled);
-	}
-
-	void setValveOperating(int id) {
-		setValveStatus(id, ValveStatus::operating);
-	}
-
 	void setValveStatus(int id, ValveStatus status) {
 		valves[id].setStatus(status);
 		updateListeners();
@@ -78,24 +69,6 @@ public:
 		return list;
 	}
 
-	void loadValvesFromDirectory(const char * _dir = nullptr) {
-		const char * dir = _dir ? _dir : valveFolder;
-
-		FileLoader loader;
-		loader.createDirectoryIfNeeded(dir);
-
-		unsigned long start = millis();
-		for (size_t i = 0; i < valves.size(); i++) {
-			KPStringBuilder<32> filename("valve-", i, ".js");
-			KPStringBuilder<64> filepath(dir, "/", filename);
-			valves[i].load(filepath);
-			valves[i].id = i;
-		}
-
-		println("\033[1;32mValveManager\033[0m: finished loading in ", millis() - start, " ms");
-		updateListeners();
-	}
-
 	void updateValves(const JsonArray & task_array) {
 		for (const JsonObject & object : task_array) {
 			int id = object[JsonKeys::VALVE_ID];
@@ -109,7 +82,33 @@ public:
 		updateListeners();
 	}
 
-	void saveValvesToDirectory(const char * dir) {
+	void loadIndexFile(const char * _dir = nullptr) {
+		const char * dir = _dir ? _dir : valveFolder;
+
+		FileLoader loader;
+		loader.createDirectoryIfNeeded(dir);
+	}
+
+	void loadValvesFromDirectory(const char * _dir = nullptr) {
+		const char * dir = _dir ? _dir : valveFolder;
+
+		FileLoader loader;
+		loader.createDirectoryIfNeeded(dir);
+
+		unsigned long start = millis();
+		for (size_t i = 0; i < valves.size(); i++) {
+			KPStringBuilder<32> filename("valve-", i, ".js");
+			KPStringBuilder<64> filepath(dir, "/", filename);
+			valves[i].load(filepath);
+		}
+
+		println("\033[1;32mValveManager\033[0m: finished reading in ", millis() - start, " ms");
+		updateListeners();
+	}
+
+	void writeValvesToDirectory(const char * _dir = nullptr) {
+		const char * dir = _dir ? _dir : valveFolder;
+
 		FileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
@@ -120,7 +119,7 @@ public:
 			valves[i].save(filepath);
 		}
 
-		println("ValveManager: finished saving in ", millis() - start, " ms");
+		println("\033[1;32mValveManager\033[0m: finished writing in ", millis() - start, " ms");
 		updateListeners();
 	}
 

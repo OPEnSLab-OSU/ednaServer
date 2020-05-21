@@ -136,8 +136,9 @@ void Application::setupServerRouting() {
 				goto send;
 			}
 
-			tm.markTask(index, TaskStatus::active);
+			tm.setTaskStatus(index, TaskStatus::active);
 			tm.writeTaskArrayToDirectory();
+			scheduleNextActiveTask();
 
 			JsonVariant payload = response.createNestedObject("payload");
 			encodeJSON(tm.tasks[index], payload);
@@ -161,7 +162,7 @@ void Application::setupServerRouting() {
 		const char * name = body["name"];
 		const int index	  = tm.findTaskWithName(name);
 		if (index != -1) {
-			tm.markTask(index, TaskStatus::inactive);
+			tm.setTaskStatus(index, TaskStatus::inactive);
 			tm.writeTaskArrayToDirectory();
 			clearRemainingValves(tm.tasks[index]);
 			tm.tasks[index].markAsCompleted();
@@ -240,17 +241,16 @@ void Application::setupServerRouting() {
 }
 
 //
-// ──────────────────────────────────────────────────────────────────────────────── II ──────────
-//   :::::: S E R I A L   C O M M A N D   S E T U P : :  :   :    :     :        :          :
-// ──────────────────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────── II ──────────
+//   :::::: S E R I A L   C O M M A N D : :  :   :    :     :        :          :
+// ──────────────────────────────────────────────────────────────────────────────
 //
 
-struct StringPart {
-	StringPart * prev = nullptr;
-	const char * ptr  = nullptr;
+class StringPart {
+private:
+	const char * ptr = nullptr;
 
-	void(*callback) = nullptr;
-
+public:
 	StringPart()				   = default;
 	StringPart(const StringPart &) = default;
 	StringPart & operator=(const StringPart &) = default;
@@ -275,112 +275,87 @@ struct StringPart {
 		return ptr;
 	}
 };
-
 class StringParser {
 public:
 	char buffer[256];
 	std::array<StringPart, 16> parts;
-	std::array<StringPart, 16>::iterator it = parts.begin();
-	size_t _size;
 
 	StringParser(const char * line) {
 		strcpy(buffer, line);
 		parse();
-		it = parts.begin();
 	}
 
 	void parse() {
-		auto it	  = parts.begin();
-		auto part = strtok(buffer, " ");
-		*it		  = part;
-		_size	  = 1;
-		while (part && it != parts.end()) {
-			*(++it)	 = strtok(NULL, " ");
-			it->prev = it - 1;
-			part	 = strtok(nullptr, " ");
-			_size++;
+		auto it = parts.begin();
+		*it		= strtok(buffer, " ");
+		while (it != parts.end()) {
+			*(++it) = strtok(NULL, " ");
 		}
-	}
-
-	StringPart & current() {
-		return *it;
-	}
-
-	StringPart & next() {
-		return *(++it);
-	}
-
-	size_t size() const {
-		return _size;
-	}
-
-	bool operator==(const char * rhs) {
-		return *it == rhs;
-	}
-
-	bool operator!=(const char * rhs) {
-		return *it != rhs;
 	}
 };
 
-#define match(x, s) if (parts[x] == s)
-#define hasValue(x) if (parts[x])
-void Application::commandReceived(const String & line) {
-	StringParser parser(line.c_str());
+#define MatchLine(s) if (line == s)
+#define Match(x, s)	 if (parts[x] == s)
+#define HasValue(x)	 if (parts[x])
+#define BeginParsing(line)             \
+	StringParser parser(line.c_str()); \
 	auto & parts = parser.parts;
 
-	match(0, "test") {
-		match(1, "1") {
+void Application::commandReceived(const String & line) {
+	BeginParsing(line);
+
+	Match(0, "test") {
+		Match(1, "1") {
 			println("It works");
 		}
 	}
 
-	match(1, "status") {
-		match(0, "read") {
+	Match(1, "status") {
+		Match(0, "read") {
 			status.load(config.statusFile);
 		}
 
-		match(0, "save") {
+		Match(0, "save") {
 			status.save(config.statusFile);
 		}
 
-		match(0, "print") {
+		Match(0, "print") {
 			println(status);
 		}
 
 		return;
 	}
 
-	match(1, "config") {
-		match(0, "load") {
+	Match(1, "config") {
+		Match(0, "load") {
 			config.load();
 		}
 
-		match(0, "print") {
+		Match(0, "print") {
 			println(config);
 		}
 	}
 
-	match(1, "sd") match(0, "print") {
+	Match(1, "sd") Match(0, "print") {
 		printDirectory(SD.open("/"), 0);
 	}
 
-	match(1, "valves") {
-		match(0, "load") {
-			vm.loadValvesFromDirectory(config.valveFolder);
+	Match(1, "valves") {
+		Match(0, "load") {
+			vm.loadValvesFromDirectory();
 		}
 
-		match(0, "save") {
-			vm.saveValvesToDirectory(config.valveFolder);
+		Match(0, "save") {
+			vm.writeValvesToDirectory();
 		}
 
-		match(0, "print") {
+		Match(0, "print") {
 			for (size_t i = 0; i < vm.valves.size(); i++) {
 				println(vm.valves[i]);
 			}
 		}
 
-		match(0, "free") {
+		Match(0, "free") {
 			if (parts[2]) {
 				int valveNumber = atoi(parts[2]);
 				if (valveNumber >= 0 && valveNumber < config.valveUpperBound) {
@@ -392,23 +367,53 @@ void Application::commandReceived(const String & line) {
 		}
 	}
 
-	match(0, "update") match(1, "rtc") {
+	Match(0, "update") Match(1, "rtc") {
 		power.set(power.compileTime());
 	}
 
-	match(1, "tasks") {
-		match(0, "print") {
+	Match(1, "tasks") {
+		Match(0, "print") {
 			println(tm);
 		}
 
-		match(0, "save") {
+		Match(0, "save") {
 			tm.writeTaskArrayToDirectory();
 			tm.loadTasksFromDirectory();
 			println(tm);
 		}
+
+		Match(0, "clear") {
+			tm.tasks.clear();
+			tm.updateIndexFile();
+		}
+
+		Match(0, "clean") {
+			tm.cleanUpCompletedTasks();
+			tm.writeTaskArrayToDirectory();
+		}
 	}
 
-	match(0, "mem") {
+	MatchLine("clear alarm") {
+		println("Reseting alarm...");
+		power.resetAlarms();
+	}
+
+	MatchLine("schedule") {
+		println("Scheduling task...");
+		scheduleNextActiveTask();
+	}
+
+	Match(0, "schedule") Match(1, "now") {
+		Task task;
+		task.schedule			= now() + 5;
+		task.sampleTime			= 5;
+		task.deleteOnCompletion = true;
+		task.status				= TaskStatus::active;
+		tm.add(task);
+		scheduleNextActiveTask();
+	}
+
+	MatchLine("mem") {
 		println(free_ram());
 	}
 }

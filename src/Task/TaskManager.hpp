@@ -18,9 +18,8 @@ class TaskManager : public KPComponent,
 					public JsonEncodable,
 					public Printable {
 public:
-	std::vector<Task> tasks;
 	const char * taskFolder = nullptr;
-
+	std::vector<Task> tasks;
 	std::vector<TaskListener *> listeners;
 
 	TaskManager()
@@ -45,7 +44,6 @@ public:
 		return (size_t) d == tasks.size() ? -1 : d;
 	}
 
-	// COMPLETED
 	void loadTasksFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
@@ -56,11 +54,10 @@ public:
 		KPStringBuilder<32> indexFilepath(dir, "/index.js");
 		StaticJsonDocument<100> indexFile;
 		loader.load(indexFilepath, indexFile);
-
 		tasks.resize(indexFile["count"]);
 
 		// Decode each task object into memory
-		for (int i = 0; i < indexFile["count"]; i++) {
+		for (unsigned int i = 0; i < tasks.size(); i++) {
 			KPStringBuilder<32> filepath(dir, "/task-", i, ".js");
 			tasks[i].load(filepath);
 		}
@@ -112,19 +109,26 @@ public:
 		return 0;
 	}
 
-	void markTask(int index, TaskStatus status) {
+	void setTaskStatus(int index, TaskStatus status) {
 		tasks[index].status = status;
 		notifyListeners(index);
 	}
+
+	bool containsActiveTask() {
+		return std::find_if(tasks.begin(), tasks.end(), [](const Task & t) {
+			return t.status == TaskStatus::active;
+		}) != tasks.end();
+	}
+
 	// Get next closest task with active status
 	// This method mutates class member
-	Task * nearestTask() {
+	Task * nearestActiveTask() {
 		// First we sort tasks according to their schedule time
 		std::sort(tasks.begin(), tasks.end(), [](const Task & a, const Task & b) {
 			return a.schedule < b.schedule;
 		});
 
-		// Then we partition the ones with status == 1 first
+		// Then we partition the ones with active status to the left
 		std::stable_partition(tasks.begin(), tasks.end(), [](const Task & a) {
 			return a.status == TaskStatus::active;
 		});
@@ -133,13 +137,24 @@ public:
 		return (tasks.empty() || tasks.front().status != TaskStatus::active) ? nullptr : &tasks.front();
 	}
 
-	// COMPLETED
+	// Create add a new task to task array and write to SD
 	void createTask(const JsonObject & src) {
-		tasks.push_back(Task(src));
+		Task task(src);
+		task.schedule = now() - 1;
+		tasks.push_back(task);
 		writeTaskArrayToDirectory();
 	}
 
-	// COMPLETED
+	void add(const Task & task) {
+		tasks.push_back(task);
+		writeTaskArrayToDirectory();
+	}
+
+	void markTaskAsCompleted(Task & task) {
+		task.markAsCompleted();
+	}
+
+	// Update the index file
 	void updateIndexFile(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
@@ -152,7 +167,7 @@ public:
 		loader.save(indexFilepath, indexJson);
 	}
 
-	// COMPLETED
+	// Write task array to SD directory
 	void writeTaskArrayToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
@@ -170,10 +185,20 @@ public:
 
 	void deleteTask(int index) {
 		if (index < 0 || (size_t) index >= tasks.size()) {
-			raise("(TaskManager: delete) Index out of range");
+			raise("TaskManager.deleteTask: Index out of range");
 		}
 
 		tasks.erase(tasks.begin() + index);
+	}
+
+	void cleanUpCompletedTasks() {
+		auto predicate = std::remove_if(tasks.begin(), tasks.end(), [](const Task & task) {
+			return task.status == TaskStatus::completed && task.deleteOnCompletion;	 // put your condition here
+		});
+
+		println("Size before: ", tasks.size());
+		tasks.erase(predicate, tasks.end());
+		println("Size after: ", tasks.size());
 	}
 
 	//

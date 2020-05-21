@@ -7,9 +7,10 @@
 #include <KPStateMachine.hpp>
 #include <KPAction.hpp>
 
+#include <Procedures/Main.hpp>
+
 #include <Application/Config.hpp>
 #include <Application/Constants.hpp>
-#include <Application/States.hpp>
 #include <Application/Status.hpp>
 
 #include <Components/Pump.hpp>
@@ -29,6 +30,15 @@
 #define FlushValveBitIndex	 5
 
 extern void printDirectory(File dir, int numTabs);
+
+inline bool checkForConnection(uint8_t addr) {
+	Wire.begin();
+	// Wire.beginTransmission(addr);
+	// Wire.write(1);
+	// Wire.endTransmission();
+	Wire.requestFrom(addr, 1);
+	return (Wire.read() != -1);
+}
 
 class Application : public KPController,
 					public KPSerialInputListener,
@@ -53,6 +63,8 @@ public:
 	ValveManager vm;
 	TaskManager tm;
 
+	Task * currentTask = nullptr;
+
 private:
 	void develop() {
 		while (!Serial) {
@@ -74,6 +86,7 @@ private:
 		sm.registerState(StateStop(), StateName::STOP);
 		sm.registerState(StateFlush(), StateName::FLUSH);
 		sm.registerState(StateSample(), StateName::SAMPLE);
+		sm.registerState(StateDry(), StateName::DRY);
 		sm.registerState(StatePreserve(), StateName::PRESERVE);
 
 		// Components; the order here doesn't matter
@@ -100,60 +113,90 @@ private:
 		tm.loadTasksFromDirectory(config.taskFolder);
 
 		// Schedule task if any then wait in IDLE
-		scheduleNextAvailableTask();
+		scheduleNextActiveTask();
 		sm.transitionTo(StateName::IDLE);
 
 		// RTC Interrupt callback
-		power.onInterrupt([]() {
-			println("Alarm Triggered");
+		power.onInterrupt([this]() {
+			scheduleNextActiveTask();
 		});
 	}
 
+public:
 	void transferTaskDataToStateParameters(Task & task) {
-		auto & stateFlush = *sm.getState<StateFlush>(StateName::FLUSH);
-		stateFlush.time	  = task.flushTime;
-		stateFlush.volume = task.flushVolume;
+		auto & flush = *sm.getState<StateFlush>(StateName::FLUSH);
+		flush.time	 = task.flushTime;
 
-		// blah blah blah
+		auto & sample	= *sm.getState<StateSample>(StateName::SAMPLE);
+		sample.time		= task.sampleTime;
+		sample.pressure = task.samplePressure;
+
+		auto & dry = *sm.getState<StateDry>(StateName::DRY);
+		dry.time   = task.dryTime;
+
+		auto & preserve = *sm.getState<StatePreserve>(StateName::PRESERVE);
+		preserve.time	= task.preserveTime;
 	}
 
-	bool handleTaskScheduling(Task & task) {
+	// Return true if task is successfully scheduled.
+	// False if task is either missed or not available.
+	bool scheduleNextActiveTask() {
+		if (!(currentTask = tm.nearestActiveTask())) {
+			power.disarmAlarms();
+			status.currentValve = -1;
+			println("No active task");
+			return false;
+		}
+
+		// Retrieve task
+		Task & task	   = *currentTask;
 		time_t timenow = now();
 
-		// NOTE: Missed schedule. Clear remaining valves and mark Task as completed.
+		// Missed schedule. Clear remaining valves and mark Task as completed.
 		if (timenow >= task.schedule) {
 			clearRemainingValves(task);
-			task.markAsCompleted();
+			tm.markTaskAsCompleted(task);
+			tm.writeTaskArrayToDirectory();
+			currentTask = nullptr;
+			println("Missed task schedule");
 			return false;
 		}
 
-		// NOTE: Waking up 10 secs before schedule time
+		// Waking up 10 secs before schedule time
+		// Else if Waking up more than 10 secs before the schedule time,
+		// reschedule 5 secs before actual time
 		if (timenow >= task.schedule - 10) {
+			auto delayTaskExecution = [this]() {
+				sm.transitionTo(StateName::FLUSH);
+			};
+
+			run(secsToMillis(task.schedule - timenow), delayTaskExecution, scheduler);
 			transferTaskDataToStateParameters(task);
-			auto wait = [this]() { sm.transitionTo(StateName::FLUSH); };
-			run(secsToMillis(task.schedule - timenow), wait, scheduler);
-			config.shutdownOverride = true;
-		}
-
-		// NOTE: Waking up more than 10 secs before the schedule time
-		// Reschedule 5 secs before due
-		else {
+			println("Task executes in", task.schedule - timenow);
+		} else {
 			power.scheduleNextAlarm(task.schedule - 5);
+			println("Task reschduled to 5 secs before actual time");
 		}
 
-		return true;
+		// Set valve status to operating
+		int valveIndex = task.getValveIndex();
+		if (valveIndex != -1) {
+			vm.setValveStatus(valveIndex, ValveStatus::operating);
+		}
 	}
 
-	bool scheduleNextAvailableTask() {
-		Task * task_ptr = tm.nearestTask();
-		if (!task_ptr) {
-			println("No task available");
-			power.disarmAlarms();
-			status.valveCurrent = -1;
-			return false;
-		}
+	//
+	// ─── UPDATE ─────────────────────────────────────────────────────────────────────
+	//
+	// Runs after the setup and initialization of all components
+	// ────────────────────────────────────────────────────────────────────────────────
+	void update() override {
+		KPController::update();
 
-		return handleTaskScheduling(*task_ptr);
+		// Shutdown if we are not in progrmaming mode and preventShutdown=false
+		if (!status.isProgrammingMode() && !status.preventShutdown) {
+			shutdown();
+		}
 	}
 
 	void shutdown() {
@@ -170,24 +213,5 @@ private:
 	}
 
 	void taskChanged(Task & task, TaskManager & tm) override {
-	}
-
-	//
-	// ─── UPDATE ─────────────────────────────────────────────────────────────────────
-	//
-	// Runs after the setup and initialization of all components
-	// ────────────────────────────────────────────────────────────────────────────────
-	void update() override {
-		KPController::update();
-
-		// Prevent shutdown if we are in programming momde and config has override
-		if (status.isProgrammingMode() || config.shutdownOverride) {
-			status.preventShutdown = true;
-		}
-
-		// Shutdown
-		if (!status.preventShutdown) {
-			shutdown();
-		}
 	}
 };

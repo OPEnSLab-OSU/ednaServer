@@ -55,7 +55,6 @@ public:
 			println("Warning (Valve): Group name exceeds its buffer size and will be truncated");
 		}
 
-		id	   = src[VALVE_ID];
 		status = src[VALVE_STATUS];
 	}
 

@@ -6,6 +6,7 @@ public:
 		sampled,	// 0
 		free,		// 1
 		operating,	// 2
+		next,
 		missed
 	} _code;
 

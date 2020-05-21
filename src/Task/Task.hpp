@@ -19,6 +19,8 @@ struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 	std::array<uint8_t, 24> valves;
 	int8_t valveCount = 0;
 
+	bool deleteOnCompletion = false;
+
 public:
 	int8_t currentValveIndex = -1;
 
@@ -52,7 +54,7 @@ public:
 
 	void nextValve() {
 		schedule = now() + timeBetween;
-		if (currentValveIndex++ >= valveCount) {
+		if (++currentValveIndex >= valveCount) {
 			markAsCompleted();
 		}
 	}

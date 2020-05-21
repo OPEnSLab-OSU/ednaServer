@@ -16,10 +16,8 @@ class Status : public JsonDecodable,
 			   public KPStateMachineListener,
 			   public ValveManagerEventListner {
 public:
-	KPArray<int, ProgramSettings::MAX_VALVES> valves;
-	int valveCurrent = -1;
-
-	bool isFull = false;
+	std::vector<int> valves;
+	int currentValve = -1;
 
 	float pressure	  = 0;
 	float temperature = 0;
@@ -31,15 +29,17 @@ public:
 
 	const char * currentStateName = nullptr;
 	const char * currentTaskName  = nullptr;
-	bool preventShutdown		  = false;
+
+	bool isFull			 = false;
+	bool preventShutdown = false;
 
 	Status()			   = default;
 	Status(const Status &) = delete;
 	Status & operator=(const Status &) = delete;
 
 	void init(Config & config) {
-		valves.resize(config.valveUpperBound + 1);
-		memcpy(valves.getBuffer().data(), config.valves, sizeof(int) * valves.size());
+		valves.resize(config.numberOfValves);
+		memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
 	}
 
 	//
@@ -57,7 +57,7 @@ public:
 	// For now, status file is used to save valves status for next start up.
 	void decodeJSON(const JsonVariant & source) override {
 		const JsonArrayConst & source_valves = source[JsonKeys::VALVES].as<JsonArrayConst>();
-		copyArray(source_valves, valves.getBuffer().data(), valves.size());
+		copyArray(source_valves, valves.data(), valves.size());
 		valves.resize(source_valves.size());
 	}
 
@@ -82,7 +82,8 @@ public:
 		using namespace JsonKeys;
 
 		JsonArray doc_valves = dest.createNestedArray(VALVES);
-		copyArray(valves.getBuffer().data(), valves.size(), doc_valves);
+		copyArray(valves.data(), valves.size(), doc_valves);
+		// copyArray(_valves.data(), valves.size(), doc_valves);
 
 		return dest[VALVES_COUNT].set(valves.size())
 			   && dest[SENSOR_PRESSURE].set(pressure)
@@ -115,10 +116,10 @@ public:
 	//
 private:
 	void valvesChanged(const ValveManager & vm) override {
-		valveCurrent = -1;
+		currentValve = -1;
 		for (const Valve & v : vm.valves) {
 			if (v.status == ValveStatus::operating) {
-				valveCurrent = v.id;
+				currentValve = v.id;
 			}
 
 			valves[v.id] = v.status;
@@ -134,4 +135,5 @@ public:
 	static bool isProgrammingMode() {
 		return analogRead(Override_Mode_Pin) <= 100;
 	}
+
 };
