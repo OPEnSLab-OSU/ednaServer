@@ -23,8 +23,6 @@ void Application::setupServerRouting() {
 		encodeJSON(status, response.to<JsonObject>());
 		response["utc"] = now();
 
-		// serializeJsonPretty(response, Serial);
-
 		KPStringBuilder<10> length(measureJson(response));
 		res.setHeader("Content-Length", length.c_str());
 		res.json(response);
@@ -33,20 +31,20 @@ void Application::setupServerRouting() {
 
 	// Get array of valves object
 	server.get("/api/valves", [this](Request & req, Response & res) {
-		StaticJsonDocument<ValveManager::encoderSize()> doc;
-		encodeJSON(vm, doc.to<JsonArray>());
+		StaticJsonDocument<ValveManager::encoderSize()> response;
+		encodeJSON(vm, response.to<JsonArray>());
 
-		KPStringBuilder<10> length(measureJson(doc));
-		res.setHeader("Content-Length", length.c_str());
-		res.json(doc);
+		KPStringBuilder<10> length(measureJson(response));
+		res.setHeader("Content-Length", length);
+		res.json(response);
 		res.end();
 	});
 
 	// Get array of tasks obejects
 	server.get("/api/tasks", [this](Request & req, Response & res) {
-		StaticJsonDocument<TaskManager::encoderSize()> doc;
-		encodeJSON(tm, doc.to<JsonArray>());
-		res.json(doc);
+		StaticJsonDocument<TaskManager::encoderSize()> response;
+		encodeJSON(tm, response.to<JsonArray>());
+		res.json(response);
 		res.end();
 	});
 
@@ -64,9 +62,9 @@ void Application::setupServerRouting() {
 		if (index == -1) {
 			response["error"] = "Task not found";
 		} else {
-			response["success"] = "Task found";
 			JsonVariant payload = response.createNestedObject("payload");
 			encodeJSON(tm.tasks[index], payload);
+			response["success"] = "Task found";
 		}
 
 		res.json(response);
@@ -87,12 +85,16 @@ void Application::setupServerRouting() {
 		// Adding new task to task array and wrtie to file +
 		// sending http response as appropriate
 		if (index == -1) {
-			tm.createTask(body.as<JsonObject>());
+			Task new_task(body.as<JsonObject>());
+			new_task.schedule = now() - 1;
+			tm.add(new_task);
 			tm.writeTaskArrayToDirectory();
 
+			// success response
 			KPStringBuilder<100> success("Successfully created ", name);
 			response["success"] = (char *) success.c_str();
 
+			// return task with partially filled fields
 			JsonVariant payload = response.createNestedObject("payload");
 			encodeJSON(tm.tasks.back(), payload);
 		} else {
@@ -121,7 +123,7 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
-	// Put task on active status
+	// Schedule a task (marking it active)
 	server.post("/api/task/schedule", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
@@ -131,6 +133,7 @@ void Application::setupServerRouting() {
 		const char * name = body["name"];
 		const int index	  = tm.findTaskWithName(name);
 		if (index != -1) {
+			//TODO: perform server validation
 			if (tm.tasks[index].valveCount == 0) {
 				response["error"] = "Cannot schedule a task without an assigned valve";
 				goto send;
@@ -152,15 +155,16 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// Unschedule a task (making it inactive)
 	server.post("/api/task/unschedule", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
 		StaticJsonDocument<Task::encoderSize() + 500> response;
-
 		const char * name = body["name"];
 		const int index	  = tm.findTaskWithName(name);
+
 		if (index != -1) {
 			tm.setTaskStatus(index, TaskStatus::inactive);
 			tm.writeTaskArrayToDirectory();
@@ -182,7 +186,6 @@ void Application::setupServerRouting() {
 	server.post("/api/task/delete", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
-		serializeJsonPretty(body, Serial);
 
 		StaticJsonDocument<500> response;
 		const char * name = body["name"];
@@ -222,12 +225,13 @@ void Application::setupServerRouting() {
 		println("utc=", utc);
 		println("compileTime=", power.compileTime(timezoneOffset));
 
+		// Checking against compiled time + millis() (which should be behind UTC) prevents bogus value
 		StaticJsonDocument<100> response;
-		if (utc >= power.compileTime(timezoneOffset) + (millis() / 1000)) {
-			response["success"] = "RTC updated.";
+		if (utc >= power.compileTime(timezoneOffset) + millisToSecs(millis())) {
+			response["success"] = "RTC updated";
 			power.set(utc);
 		} else {
-			response["error"] = "Time seems sketchy. You sure about this?";
+			response["error"] = "That doens't seem right. You sure about this?";
 		}
 
 		res.json(response);
