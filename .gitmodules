@@ -1,0 +1,3 @@
+[submodule "lib/Framework"]
+	path = lib/Framework
+	url = https://github.com/OPEnSLab-OSU/OPEnSamplerFramework
