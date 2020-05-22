@@ -30,6 +30,7 @@ git pull
 ```shell
 git submodule init
 git submodule update
+git submodule foreach "git checkout develop"
 ```
 
 You should be able to compile at this point. If so stop here, else please let me know.
