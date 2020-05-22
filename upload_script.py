@@ -1,10 +1,13 @@
 import time
 
+# This upload script helps with reconnecting the serial port the
+# upload task. Sometimes it takes a couple of seconds before the
+# computer recognizes the serial port.
+
 # pylint: disable=undefined-variable
 Import("env")
 
 
-# Need to wait for initialization of Serial
 def after_upload(source, target, env):
     seconds = 3
     print("Delay after upload for " + str(seconds) + " seconds...")

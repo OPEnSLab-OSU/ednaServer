@@ -42,5 +42,7 @@
 		"stdexcept": "cpp",
 		"cinttypes": "cpp",
 		"typeinfo": "cpp"
-	}
+	},
+	"python.linting.pylintEnabled": true,
+	"python.linting.enabled": true
 }

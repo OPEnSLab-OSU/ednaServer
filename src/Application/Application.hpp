@@ -5,7 +5,7 @@
 #include <KPSerialInput.hpp>
 #include <KPServer.hpp>
 #include <KPStateMachine.hpp>
-#include <KPAction.hpp>
+#include <Action.hpp>
 
 #include <Procedures/Main.hpp>
 
@@ -24,8 +24,6 @@
 #include <Task/TaskManager.hpp>
 
 #include <Utilities/JsonEncodableDecodable.hpp>
-
-#include <Application/Action.hpp>
 
 #define AirValveBitIndex	 2
 #define AlcoholValveBitIndex 3
@@ -53,7 +51,6 @@ public:
 	KPServer server{"web-server", "eDNA-test", "password"};
 	KPStateMachine sm{"state-machine"};
 	KPFileLoader fileLoader{"file-loader", SDCard_Pin};
-	KPActionScheduler<10> scheduler{"scheduler"};
 
 	Pump pump{"pump", Motor_Forward_Pin, Motor_Reverse_Pin};
 	Power power{"power"};
@@ -96,7 +93,6 @@ private:
 		addComponent(shift);
 		addComponent(power);
 		addComponent(pump);
-		addComponent(scheduler);
 		addComponent(server);
 		setupServerRouting();
 		server.begin();

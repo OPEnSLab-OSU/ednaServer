@@ -2,7 +2,7 @@
 
 We are using git submodule as an internal dependency management. This allows branch selection stright from the parent repo as well as the ability to directly commiting to the sub repo. Together with platform's build system, we don't even have to config libary path.
 
-To learn more: https://git-scm.com/book/en/v2/Git-Tools-Submodules
+Learn more: [Git Submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 
 ## Relevant Commands
 
