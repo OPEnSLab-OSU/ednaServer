@@ -1,8 +1,6 @@
 #ifndef UNIT_TEST
 	#include <KPApplicationRuntime.hpp>
-
 	#include <Application/Application.hpp>
-	#include <Application/Action.hpp>
 
 void printDirectory(File dir, int numTabs) {
 	while (true) {
