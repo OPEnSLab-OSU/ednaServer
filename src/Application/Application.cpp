@@ -133,7 +133,7 @@ void Application::setupServerRouting() {
 		const int index	  = tm.findTaskWithName(name);
 		if (index != -1) {
 			//TODO: perform server validation
-			if (tm.tasks[index].valveCount == 0) {
+			if (tm.tasks[index].size() == 0) {
 				response["error"] = "Cannot schedule a task without an assigned valve";
 				goto send;
 			}

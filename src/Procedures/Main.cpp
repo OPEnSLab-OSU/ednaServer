@@ -14,7 +14,7 @@ void StateStop::enter(KPStateMachine & sm) {
 	app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
 	app.vm.writeValvesToDirectory();
 
-	app.tm.nearestActiveTask()->nextValve();
+	app.tm.nearestActiveTask()->next();
 	app.tm.cleanUpCompletedTasks();
 	app.tm.writeTaskArrayToDirectory();
 	app.scheduleNextActiveTask();

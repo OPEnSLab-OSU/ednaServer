@@ -44,7 +44,7 @@ namespace ConfigKeys {
 namespace TaskSettings {
 	__k_int NAME_LENGTH	 = 25;
 	__k_int GROUP_LENGTH = 25;
-	__k_int NOTES_LENGTH = 128;
+	__k_int NOTES_LENGTH = 80;
 };	// namespace TaskSettings
 
 namespace JsonKeys {

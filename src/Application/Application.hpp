@@ -199,7 +199,7 @@ public:
 		}
 
 		// Set valve status to operating
-		int valveIndex = task.getValveIndex();
+		int valveIndex = task.getCurrentValveIndex();
 		if (valveIndex != -1) {
 			vm.setValveStatus(valveIndex, ValveStatus::operating);
 		}
@@ -232,7 +232,7 @@ public:
 	}
 
 	void clearRemainingValves(Task & task) {
-		for (int i = task.currentValveIndex; i < task.valveCount; i++) {
+		for (int i = task.currentValvePosition(); i < task.size(); i++) {
 			vm.freeIfNotYetSampled(task.valves[i]);
 		}
 	}

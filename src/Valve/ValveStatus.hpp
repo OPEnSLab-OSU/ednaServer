@@ -1,4 +1,13 @@
 #pragma once
+
+//
+// ────────────────────────────────────────────────────────────────────────── I ──────────
+//   :::::: V A L V E   S T A T U S   E N U M : :  :   :    :     :        :          :
+// ────────────────────────────────────────────────────────────────────────────────────
+//
+// This pattern provides the same scoping functionality as class enum but is a class and
+// therefore much more powerful
+//
 class ValveStatus {
 public:
 	enum Code {
@@ -10,8 +19,6 @@ public:
 		missed
 	} _code;
 
-	// Allow for implicit conversion from ValveStatus::code -> ValveStatus(ValveStatus::code)
-	// Meaning that the client code can call function that accept ValveStatus with just ValveStatus::[enum]
 	ValveStatus(Code code)
 		: _code(code) {
 	}
@@ -20,6 +27,7 @@ public:
 		return _code;
 	}
 
+	// Implicit conversion to int
 	operator int() const {
 		return _code;
 	}

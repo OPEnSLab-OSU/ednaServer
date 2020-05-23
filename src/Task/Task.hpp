@@ -11,33 +11,33 @@
 
 #include <Task/TaskStatus.hpp>
 
-struct Taskref;
 struct Task : public JsonEncodable, public JsonDecodable, public Printable {
+public:
+	bool deleteOnCompletion = false;
+
 	char name[TaskSettings::NAME_LENGTH]{0};
 	char notes[TaskSettings::NOTES_LENGTH]{0};
 
-	std::array<uint8_t, 24> valves;
-	int8_t valveCount = 0;
+	long creation = 0;
+	long schedule = 0;
 
-	bool deleteOnCompletion = false;
+	int status		= TaskStatus::inactive;
+	int timeBetween = 0;
+
+	int flushTime	   = 0;
+	int flushVolume	   = 0;
+	int sampleTime	   = 0;
+	int sampleVolume   = 0;
+	int samplePressure = 0;
+	int dryTime		   = 0;
+	int preserveTime   = 0;
+
+	std::vector<uint8_t> valves;
+
+private:
+	int m_currentValvePosition = 0;
 
 public:
-	int8_t currentValveIndex = -1;
-
-public:
-	int status		 = TaskStatus::inactive;  // 0=inactive, 1=active, 2=completed
-	long creation	 = 0;
-	long schedule	 = 0;
-	long timeBetween = 0;
-
-	unsigned long flushTime		 = 0;
-	unsigned long flushVolume	 = 0;
-	unsigned long sampleTime	 = 0;
-	unsigned long samplePressure = 0;
-	unsigned long sampleVolume	 = 0;
-	unsigned long dryTime		 = 0;
-	unsigned long preserveTime	 = 0;
-
 	Task()					 = default;
 	Task(const Task & other) = default;
 	Task & operator=(const Task &) = default;
@@ -47,30 +47,44 @@ public:
 	}
 
 	void markAsCompleted() {
-		status			  = TaskStatus::completed;
-		valveCount		  = 0;
-		currentValveIndex = 0;
+		valves.clear();
+		status = TaskStatus::completed;
 	}
 
-	void nextValve() {
-		schedule = now() + std::max(timeBetween, 5l);
-		if (++currentValveIndex >= valveCount) {
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Set next schedule and move on to the next valve. If no more valve, set the task
+	// as completed
+	// ────────────────────────────────────────────────────────────────────────────────
+	void next() {
+		schedule = now() + std::max(timeBetween, 5);
+		if (++m_currentValvePosition >= size()) {
 			markAsCompleted();
 		}
 	}
 
-	int getValveIndex() {
-		if (currentValveIndex >= valveCount) {
-			return -1;
-		}
-
-		return valves[currentValveIndex];
+	int currentValvePosition() const {
+		return m_currentValvePosition;
 	}
 
-	//
-	// ─── SECTION JSONDECODABLE COMPLIANCE ───────────────────────────────────────────
-	//
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Returns the number of valves assigned to this task
+	// ────────────────────────────────────────────────────────────────────────────────
+	int size() const {
+		return valves.size();
+	}
 
+	bool isCompleted() const {
+		return status == TaskStatus::completed;
+	}
+
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Returns -1 if no more valve, otherwise returns the valve number
+	// ────────────────────────────────────────────────────────────────────────────────
+	int getCurrentValveIndex() const {
+		return (currentValvePosition() >= size()) ? -1 : valves[currentValvePosition()];
+	}
+
+#pragma region JSONDECODABLE
 	static const char * decoderName() {
 		return "Task";
 	}
@@ -97,9 +111,9 @@ public:
 
 		if (source.containsKey("valves")) {
 			JsonArray valve_array = source["valves"].as<JsonArray>();
+			valves.resize(valve_array.size());
 			copyArray(valve_array, valves.data(), valve_array.size());
-			valveCount		  = valve_array.size();
-			currentValveIndex = source["currentValveIndex"];
+			m_currentValvePosition = source["currentValvePosition"];
 		}
 
 		creation	   = source["creation"];
@@ -114,10 +128,8 @@ public:
 		preserveTime   = source["preserveTime"];
 		timeBetween	   = source["timeBetween"];
 	}
-
-	//
-	// ─── SECTION JSONENCODABLE COMPLIANCE ───────────────────────────────────────────
-	//
+#pragma endregion
+#pragma region JSONENCODABLE
 
 	static const char * encoderName() {
 		return "Task";
@@ -146,8 +158,8 @@ public:
 			   && dest["dryTime"].set(dryTime)
 			   && dest["preserveTime"].set(preserveTime)
 			   && dest["timeBetween"].set(timeBetween)
-			   && copyArray(valves.data(), valveCount, dest.createNestedArray("valves"))
-			   && dest["currentValveIndex"].set(currentValveIndex);
+			   && dest["currentValvePosition"].set(currentValvePosition())
+			   && copyArray(valves.data(), valves.size(), dest.createNestedArray("valves"));
 	}
 
 	size_t printTo(Print & printer) const override {
@@ -156,4 +168,5 @@ public:
 		encodeJSON(object);
 		return serializeJsonPretty(doc, Serial);
 	}
+#pragma endregion
 };
