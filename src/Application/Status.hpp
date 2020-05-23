@@ -57,8 +57,8 @@ public:
 	// For now, status file is used to save valves status for next start up.
 	void decodeJSON(const JsonVariant & source) override {
 		const JsonArrayConst & source_valves = source[JsonKeys::VALVES].as<JsonArrayConst>();
-		copyArray(source_valves, valves.data(), valves.size());
 		valves.resize(source_valves.size());
+		copyArray(source_valves, valves.data(), valves.size());
 	}
 
 	// Update the content of status file
@@ -83,7 +83,6 @@ public:
 
 		JsonArray doc_valves = dest.createNestedArray(VALVES);
 		copyArray(valves.data(), valves.size(), doc_valves);
-		// copyArray(_valves.data(), valves.size(), doc_valves);
 
 		return dest[VALVES_COUNT].set(valves.size())
 			   && dest[SENSOR_PRESSURE].set(pressure)
@@ -135,5 +134,4 @@ public:
 	static bool isProgrammingMode() {
 		return analogRead(Override_Mode_Pin) <= 100;
 	}
-
 };

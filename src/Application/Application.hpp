@@ -116,6 +116,8 @@ private:
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
+			println("RTC INTERRUPTED!");
+			power.disarmAlarms();
 			scheduleNextActiveTask();
 		});
 	}

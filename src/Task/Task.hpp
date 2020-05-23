@@ -49,7 +49,7 @@ public:
 	void markAsCompleted() {
 		status			  = TaskStatus::completed;
 		valveCount		  = 0;
-		currentValveIndex = -1;
+		currentValveIndex = 0;
 	}
 
 	void nextValve() {
@@ -60,7 +60,7 @@ public:
 	}
 
 	int getValveIndex() {
-		if (currentValveIndex == -1 || currentValveIndex >= valveCount) {
+		if (currentValveIndex >= valveCount) {
 			return -1;
 		}
 

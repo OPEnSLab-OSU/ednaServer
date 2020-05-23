@@ -57,7 +57,11 @@ public:
 	}
 
 	void update() override {
-		if (alarmTriggered && interruptCallback) {
+		if (!alarmTriggered || !interruptCallback) {
+			return;
+		}
+
+		if (timeKeeper.alarm(1) || timeKeeper.alarm(2)) {
 			alarmTriggered = false;
 			disarmAlarms();
 			interruptCallback();
@@ -185,8 +189,7 @@ public:
 	//===========================================================
 	void printTime(ulong seconds) {
 		char message[64]{};
-		sprintf(message, "%u.%u.%u : %u.%u.%u", year(seconds), month(seconds),
-			day(seconds), hour(seconds), minute(seconds), second(seconds));
+		sprintf(message, "%u.%u.%u : %u.%u.%u", year(seconds), month(seconds), day(seconds), hour(seconds), minute(seconds), second(seconds));
 		println(message);
 	}
 
