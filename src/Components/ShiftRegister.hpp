@@ -1,10 +1,23 @@
-//
-//  KPShiftRegister.cpp
-//  eDNA Framework
-//
-//  Created by Kawin on 2/10/19.
-//  Copyright © 2019 Kawin. All rights reserved.
-//
+/**
+ * Copyright (c) 2020 Kawin Pechetratanapanit
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 #pragma once
 #include <KPFoundation.hpp>
@@ -12,131 +25,159 @@
 
 class ShiftRegister : public KPComponent {
 public:
-    byte * outputs;
+	const int capacityPerRegister = 8;
+	const int capacity;
+	const int registersCount;
 
-    const byte capacityPerRegister = 8;
-    const byte capacity;
-    const byte registersCount;
+	int dataPin	 = 0;
+	int clockPin = 0;
+	int latchPin = 0;
 
-    int dataPin  = 0;
-    int clockPin = 0;
-    int latchPin = 0;
-
-    BitOrder bitOrder = MSBFIRST;
+	int * registers;
+	BitOrder bitOrder = MSBFIRST;
 
 public:
-    int toRegisterIndex(int value) { return value / capacityPerRegister; }
-    int toBitIndex(int value) { return value % capacityPerRegister; }
+	ShiftRegister(const char * name, int capacity, int data, int clock, int latch)
+		: KPComponent(name),
+		  capacity(capacity),
+		  registersCount(capacity / capacityPerRegister) {
+		registers = new int[registersCount]();
+		setRegisterPins(data, clock, latch);
+	}
 
-    ShiftRegister(const char * name, const byte capacity)
-        : KPComponent(name), capacity(capacity), registersCount(capacity / capacityPerRegister) {
-        outputs = new byte[registersCount]();
-    }
+	void setup() override {
+		writeAllRegistersLow();
+	}
 
-    ShiftRegister(const char * name, byte capacity, byte data, byte clock, byte latch)
-        : ShiftRegister(name, capacity) {
-        setPins(data, clock, latch);
-    }
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Helper converting 1D pin index to register index
+	// ────────────────────────────────────────────────────────────────────────────────
+	int toRegisterIndex(int value) {
+		return value / capacityPerRegister;
+	}
 
-    ShiftRegister(byte capacity, byte data, byte clock, byte latch)
-        : ShiftRegister("", capacity, data, clock, latch) {}
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Helper converting 1D pin index to pin index
+	// ────────────────────────────────────────────────────────────────────────────────
+	int toPinIndex(int value) {
+		return value % capacityPerRegister;
+	}
 
-    void flush() {
-        digitalWrite(latchPin, LOW);
-        for (int i = registersCount - 1; i >= 0; i--) {
-            shiftOut(dataPin, clockPin, bitOrder, outputs[i]);
-        }
-        digitalWrite(latchPin, HIGH);
-    }
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Set the hardware pins of the shift registers. The registers should be hooked up
+	// in daisy chain mode.
+	// ────────────────────────────────────────────────────────────────────────────────
+	void setRegisterPins(int data, int clock, int latch) {
+		dataPin	 = data;
+		clockPin = clock;
+		latchPin = latch;
+		pinMode(dataPin, OUTPUT);
+		pinMode(clockPin, OUTPUT);
+		pinMode(latchPin, OUTPUT);
+	}
 
-    void setPins(byte data, byte clock, byte latch) {
-        dataPin = data;
-        pinMode(dataPin, OUTPUT);
-        clockPin = clock;
-        pinMode(clockPin, OUTPUT);
-        latchPin = latch;
-        pinMode(latchPin, OUTPUT);
-        writeZeros();
-    }
+	void setAllRegistersLow() {
+		for (int i = 0; i < registersCount; i++) {
+			registers[i] = 0;
+		}
+	}
 
-    void setZeros() {
-        for (int i = 0; i < registersCount; i++) {
-            outputs[i] = 0;
-        }
-    }
+	void setAllRegistersHigh() {
+		for (int i = 0; i < registersCount; i++) {
+			registers[i] = 255;
+		}
+	}
 
-    void writeZeros() {
-        setZeros();
-        flush();
-    }
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Set individual pin of the register high/low given the register index
+	// ────────────────────────────────────────────────────────────────────────────────s
+	void setRegister(int registerIndex, int pinIndex, bool signal) {
+		if (registerIndex >= registersCount || pinIndex >= capacityPerRegister) {
+			return;
+		}
 
-    void setOnes() {
-        for (int i = 0; i < registersCount; i++) {
-            outputs[i] = 255;
-        }
-    }
+		if (signal) {
+			registers[registerIndex] |= (1 << pinIndex);
+		} else {
+			registers[registerIndex] &= ~(1 << pinIndex);
+		}
+	}
 
-    void writeOnes() {
-        setOnes();
-        flush();
-    }
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Set invidual pin of the register high/low
+	// ────────────────────────────────────────────────────────────────────────────────
+	void setPin(int index, bool signal) {
+		if (index < 0 || index >= capacity) {
+			return;
+		}
 
-    void setRegister(byte registerIndex, byte bitIndex, bool signal) {
-        if (registerIndex >= registersCount || bitIndex >= capacityPerRegister) {
-            return;
-        }
+		setRegister(toRegisterIndex(index), toPinIndex(index), signal);
+	}
 
-        if (signal) {
-            outputs[registerIndex] |= (1 << bitIndex);
-        } else {
-            outputs[registerIndex] &= ~(1 << bitIndex);
-        }
-    }
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Shiftout each byte in the register array in reverse order
+	// ────────────────────────────────────────────────────────────────────────────────
+	void write() {
+		digitalWrite(latchPin, LOW);
+		for (int i = registersCount - 1; i >= 0; i--) {
+			shiftOut(dataPin, clockPin, bitOrder, registers[i]);
+		}
+		digitalWrite(latchPin, HIGH);
+	}
 
-    void writeRegister(byte registerIndex, byte bitIndex, bool signal) {
-        setRegister(registerIndex, bitIndex, signal);
-        flush();
-    }
+	void writePin(int index, bool signal) {
+		setPin(index, signal);
+		write();
+	}
 
-    void setBit(byte index, bool signal) {
-        if (index < 0 || index >= capacity) {
-            return;
-        }
+	void writeRegister(int registerIndex, int pinIndex, bool signal) {
+		setRegister(registerIndex, pinIndex, signal);
+		write();
+	}
 
-        setRegister(toRegisterIndex(index), toBitIndex(index), signal);
-    }
+	void writeAllRegistersLow() {
+		setAllRegistersLow();
+		write();
+	}
 
-    void writeBit(byte index, bool signal) {
-        setBit(index, signal);
-        flush();
-    }
+	void writeAllRegistersHigh() {
+		setAllRegistersHigh();
+		write();
+	}
 
-    void writeOneHot(byte bitIndex) {
-        if (bitIndex / capacityPerRegister >= registersCount) {
-            return;
-        }
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Turn on a single pin where the rest is low
+	// One-hot: https://en.wikipedia.org/wiki/One-hot
+	// ────────────────────────────────────────────────────────────────────────────────
+	void writeOneHot(int pinIndex) {
+		if (pinIndex / capacityPerRegister >= registersCount) {
+			return;
+		}
 
-        setZeros();
-        byte bitNumber                     = 1 << (toBitIndex(bitIndex));
-        outputs[toRegisterIndex(bitIndex)] = bitNumber;
-        flush();
-    }
+		setAllRegistersLow();
+		int bitNumber						 = 1 << (toPinIndex(pinIndex));
+		registers[toRegisterIndex(pinIndex)] = bitNumber;
+		write();
+	}
 
 private:
-    void writeLatch(bool out) {
-        setRegister(0, out, HIGH);  // Latch Valve
-        flush();
-        delay(80);
-        setRegister(0, out, LOW);
-        flush();
-    }
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Convenient methods for working with latch valve
+	// ────────────────────────────────────────────────────────────────────────────────
+	void writeLatch(bool pinIndex) {
+		setRegister(0, pinIndex, HIGH);	 // Latch Valve
+		write();
+		delay(80);
+		setRegister(0, pinIndex, LOW);
+		write();
+	}
 
 public:
-    void writeLatchIn() {
-        writeLatch(0);
-    }
+	void writeLatchIn() {
+		writeLatch(0);
+	}
 
-    void writeLatchOut() {
-        writeLatch(1);
-    }
+	void writeLatchOut() {
+		writeLatch(1);
+	}
 };

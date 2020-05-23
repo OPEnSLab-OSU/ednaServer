@@ -1,85 +1,82 @@
 #pragma once
+#define __k_str constexpr const char *
+#define __k_int constexpr int
 
-#define Power_Module_Pin	A0
-#define RTC_Interrupt_Pin	12	// A1 is eDNA, 12 for HYPNOS
-#define Battery_Voltage_Pin A2
-#define Analog_Sensor_1_Pin A3
-#define Analog_Sensor_2_Pin A4
-#define Override_Mode_Pin	A5
-#define Motor_Forward_Pin	5
-#define Motor_Reverse_Pin	6
-#define SR_Latch_Pin		9
-#define SDCard_Pin			10
-#define SR_Clock_Pin		11
-#define SR_Data_Pin			12
-#define Button_Pin			13
-
-#define consts constexpr const char *
-#define consti constexpr int
+namespace HardwarePins {
+	__k_int POWER_MODULE	  = A0;
+	__k_int RTC_INTERRUPT	  = 12;	 // A1 is eDNA, 12 for HYPNOS
+	__k_int BATTERY_VOLTAGE	  = A2;
+	__k_int ANALOG_SENSOR_1	  = A3;
+	__k_int ANALOG_SENSOR_2	  = A4;
+	__k_int SHUTDOWN_OVERRIDE = A5;
+	__k_int MOTOR_FORWARD	  = 5;
+	__k_int MOTOR_REVERSE	  = 6;
+	__k_int SHFT_REG_LATCH	  = 9;
+	__k_int SD_CARD			  = 10;
+	__k_int SHFT_REG_CLOCK	  = 11;
+	__k_int SHFT_REG_DATA	  = 12;
+	__k_int BUTTON_PIN		  = 13;
+};	// namespace HardwarePins
 
 namespace ProgramSettings {
-	consts CONFIG_FILE_PATH	   = "config.js";
-	consti SD_FILE_NAME_LENGTH = 13;
-
-	consti CONFIG_JSON_BUFFER_SIZE = 500;
-	consti STATUS_JSON_BUFFER_SIZE = 800;
-
-	consti TASK_JSON_BUFFER_SIZE	= 500;
-	consti TASKREF_JSON_BUFFER_SIZE = 50;
-
-	consti MAX_VALVES				 = 24;
-	consti VALVE_JSON_BUFFER_SIZE	 = 500;
-	consti VALVEREF_JSON_BUFFER_SIZE = 50;
-
-	consti VALVE_GROUP_LENGTH = 25;
+	__k_str CONFIG_FILE_PATH		  = "config.js";
+	__k_int SD_FILE_NAME_LENGTH		  = 13;
+	__k_int CONFIG_JSON_BUFFER_SIZE	  = 500;
+	__k_int STATUS_JSON_BUFFER_SIZE	  = 800;
+	__k_int TASK_JSON_BUFFER_SIZE	  = 500;
+	__k_int TASKREF_JSON_BUFFER_SIZE  = 50;
+	__k_int MAX_VALVES				  = 24;
+	__k_int VALVE_JSON_BUFFER_SIZE	  = 500;
+	__k_int VALVEREF_JSON_BUFFER_SIZE = 50;
+	__k_int VALVE_GROUP_LENGTH		  = 25;
 
 };	// namespace ProgramSettings
 
 namespace ConfigKeys {
-	consts VALVES_FREE		 = "freeValves";
-	consts VALVE_UPPER_BOUND = "valveUpperBound";
-	consts FILE_LOG			 = "logFile";
-	consts FILE_STATUS		 = "statusFile";
-	consts FOLDER_TASK		 = "taskFolder";
-	consts FOLDER_VALVE		 = "valveFolder";
+	__k_str VALVES_FREE		  = "freeValves";
+	__k_str VALVE_UPPER_BOUND = "valveUpperBound";
+	__k_str FILE_LOG		  = "logFile";
+	__k_str FILE_STATUS		  = "statusFile";
+	__k_str FOLDER_TASK		  = "taskFolder";
+	__k_str FOLDER_VALVE	  = "valveFolder";
 }  // namespace ConfigKeys
 
 namespace TaskSettings {
-	consti NAME_LENGTH	= 25;
-	consti GROUP_LENGTH = 25;
-	consti NOTES_LENGTH = 128;
+	__k_int NAME_LENGTH	 = 25;
+	__k_int GROUP_LENGTH = 25;
+	__k_int NOTES_LENGTH = 128;
 };	// namespace TaskSettings
 
 namespace JsonKeys {
-	consts STATE_ID				 = "stateId";
-	consts STATE_CURRENT_NAME	 = "stateCurrentName";
-	consts STATE_NAME			 = "stateName";
-	consts STATE_INDEX			 = "stateIndex";
-	consts VALVES				 = "valves";
-	consts VALVES_COUNT			 = "valvesCount";
-	consts VALVE_ID				 = "valveId";
-	consts VALVE_GROUP			 = "valveGroup";
-	consts VALVE_SCHEDULE		 = "valveSchedule";
-	consts VALVE_CURRENT		 = "valveCurrent";
-	consts VALVE_STATUS			 = "valveStatus";
-	consts VALVE_FLUSH_TIME		 = "valveFlushTime";
-	consts VALVE_FLUSH_VOLUME	 = "valveFlushVolume";
-	consts VALVE_SAMPLE_TIME	 = "valveSampleTime";
-	consts VALVE_SAMPLE_PRESSURE = "valveSamplePressure";
-	consts VALVE_SAMPLE_VOLUME	 = "valveSampleVolume";
-	consts VALVE_DRY_TIME		 = "valveDryTime";
-	consts VALVE_PRESERVE_TIME	 = "valvePreserveTime";
-	consts TASK_CURRENT_NAME	 = "taskCurrentName";
-	consts TASK_NAME			 = "name";
-	consts TASK_NEW_NAME		 = "newName";
-	consts TIME_UTC				 = "timeUTC";
-	consts SENSOR_PRESSURE		 = "pressure";
-	consts SENSOR_TEMP			 = "temperature";
-	consts SENSOR_BARO			 = "barometric";
-	consts SENSOR_VOLUME		 = "waterVolume";
-	consts SENSOR_FLOW			 = "waterFlow";
-	consts SENSOR_DEPTH			 = "waterDepth";
+	__k_str STATE_ID			  = "stateId";
+	__k_str STATE_CURRENT_NAME	  = "stateCurrentName";
+	__k_str STATE_NAME			  = "stateName";
+	__k_str STATE_INDEX			  = "stateIndex";
+	__k_str VALVES				  = "valves";
+	__k_str VALVES_COUNT		  = "valvesCount";
+	__k_str VALVE_ID			  = "valveId";
+	__k_str VALVE_GROUP			  = "valveGroup";
+	__k_str VALVE_SCHEDULE		  = "valveSchedule";
+	__k_str VALVE_CURRENT		  = "valveCurrent";
+	__k_str VALVE_STATUS		  = "valveStatus";
+	__k_str VALVE_FLUSH_TIME	  = "valveFlushTime";
+	__k_str VALVE_FLUSH_VOLUME	  = "valveFlushVolume";
+	__k_str VALVE_SAMPLE_TIME	  = "valveSampleTime";
+	__k_str VALVE_SAMPLE_PRESSURE = "valveSamplePressure";
+	__k_str VALVE_SAMPLE_VOLUME	  = "valveSampleVolume";
+	__k_str VALVE_DRY_TIME		  = "valveDryTime";
+	__k_str VALVE_PRESERVE_TIME	  = "valvePreserveTime";
+	__k_str TASK_CURRENT_NAME	  = "taskCurrentName";
+	__k_str TASK_NAME			  = "name";
+	__k_str TASK_NEW_NAME		  = "newName";
+	__k_str TIME_UTC			  = "timeUTC";
+	__k_str SENSOR_PRESSURE		  = "pressure";
+	__k_str SENSOR_TEMP			  = "temperature";
+	__k_str SENSOR_BARO			  = "barometric";
+	__k_str SENSOR_VOLUME		  = "waterVolume";
+	__k_str SENSOR_FLOW			  = "waterFlow";
+	__k_str SENSOR_DEPTH		  = "waterDepth";
 };	// namespace JsonKeys
 
-#undef consts
-#undef consti
+#undef __k_str
+#undef __k_int

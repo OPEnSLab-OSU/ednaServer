@@ -8,7 +8,7 @@ void StateStop::enter(KPStateMachine & sm) {
 
 	Application & app = *static_cast<Application *>(sm.controller);
 	app.pump.off();
-	app.shift.writeZeros();
+	app.shift.writeAllRegistersLow();
 	app.shift.writeLatchOut();
 
 	app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
@@ -28,13 +28,13 @@ void StatePreserve::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 
 	int r = app.shift.toRegisterIndex(app.status.currentValve) + 1;
-	int b = app.shift.toBitIndex(app.status.currentValve);
+	int b = app.shift.toPinIndex(app.status.currentValve);
 
 	app.shift.writeLatchOut();
-	app.shift.writeZeros();
-	app.shift.setBit(AlcoholValveBitIndex, HIGH);
+	app.shift.writeAllRegistersLow();
+	app.shift.setPin(AlcoholValveBitIndex, HIGH);
 	app.shift.setRegister(r, b, HIGH);
-	app.shift.flush();
+	app.shift.write();
 	app.pump.on();
 
 	setTimeCondition(time, [&]() {
@@ -48,12 +48,12 @@ void StateDry::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 
 	int r = app.shift.toRegisterIndex(app.status.currentValve) + 1;
-	int b = app.shift.toBitIndex(app.status.currentValve);
+	int b = app.shift.toPinIndex(app.status.currentValve);
 
-	app.shift.setZeros();
-	app.shift.setBit(AirValveBitIndex, HIGH);
+	app.shift.setAllRegistersLow();
+	app.shift.setPin(AirValveBitIndex, HIGH);
 	app.shift.setRegister(r, b, HIGH);
-	app.shift.flush();
+	app.shift.write();
 	app.pump.on();
 
 	setTimeCondition(time, [&]() {
@@ -67,13 +67,13 @@ void StateSample::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 
 	int r = app.shift.toRegisterIndex(app.status.currentValve) + 1;
-	int b = app.shift.toBitIndex(app.status.currentValve);
+	int b = app.shift.toPinIndex(app.status.currentValve);
 
 	// We set the latch valve to intake mode, turn on the filter valve, then the pump
-	app.shift.setZeros();
+	app.shift.setAllRegistersLow();
 	app.shift.writeLatchIn();
 	app.shift.setRegister(r, b, HIGH);	// Filter valve
-	app.shift.flush();
+	app.shift.write();
 	app.pump.on();
 
 	// This condition will be evaluated repeatedly until true then the callback will be executed once
@@ -91,10 +91,10 @@ void StateFlush::enter(KPStateMachine & sm) {
 	println("StateFlush");
 	Application & app = *static_cast<Application *>(sm.controller);
 
-	app.shift.setZeros();
+	app.shift.setAllRegistersLow();
 	app.shift.writeLatchIn();
-	app.shift.setBit(FlushValveBitIndex, HIGH);
-	app.shift.flush();
+	app.shift.setPin(FlushValveBitIndex, HIGH);
+	app.shift.write();
 	app.pump.on();
 
 	setTimeCondition(time, [&]() {
@@ -110,12 +110,12 @@ void StateFlush::enter(KPStateMachine & sm) {
 
 // 	app.pump.off();
 // 	app.shift.writeLatchOut();
-// 	app.shift.writeZeros();
+// 	app.shift.writeAllRegistersLow();
 
 // 	// Turn on the flush valve, the air intake, and the pump to clean out the main pipe
-// 	app.shift.setBit(FlushValveBitIndex, HIGH);
-// 	app.shift.setBit(AirValveBitIndex, HIGH);
-// 	app.shift.flush();
+// 	app.shift.setPin(FlushValveBitIndex, HIGH);
+// 	app.shift.setPin(AirValveBitIndex, HIGH);
+// 	app.shift.write();
 // 	app.pump.on();
 // 	// auto const flushMainPipe =
 
@@ -127,8 +127,8 @@ void StateFlush::enter(KPStateMachine & sm) {
 // 	// Turn the pump on to 75% power at 12th second then close the flush valve
 // 	setTimeCondition(secsToMillis(12), [&]() {
 // 		app.pump.pwm(0.75);
-// 		app.shift.setBit(FlushValveBitIndex, LOW);
-// 		app.shift.flush();
+// 		app.shift.setPin(FlushValveBitIndex, LOW);
+// 		app.shift.write();
 // 	});
 
 // 	auto const condition = [&]() {
@@ -137,11 +137,11 @@ void StateFlush::enter(KPStateMachine & sm) {
 
 // 	setCondition(condition, [&]() {
 // 		int r = app.shift.toRegisterIndex(app.status.currentValve) + 1;
-// 		int b = app.shift.toBitIndex(app.status.currentValve);
+// 		int b = app.shift.toPinIndex(app.status.currentValve);
 
 // 		app.pump.off();
 // 		app.shift.setRegister(r, b, HIGH);
-// 		app.shift.flush();
+// 		app.shift.write();
 // 		delay(50);
 
 // 		sm.transitionTo(StateName::STOP);

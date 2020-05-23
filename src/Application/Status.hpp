@@ -7,9 +7,6 @@
 #include <Valve/ValveStatus.hpp>
 #include <Valve/ValveManager.hpp>
 
-//
-// ─── NOTE THIS OBJECT IS INTENDED TO BE READ-ONLY THAT PROVIDES SYSTEM-WIDE STATUS
-//
 class Status : public JsonDecodable,
 			   public JsonEncodable,
 			   public Printable,
@@ -37,13 +34,16 @@ public:
 	Status(const Status &) = delete;
 	Status & operator=(const Status &) = delete;
 
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Initialize status from user config
+	// ────────────────────────────────────────────────────────────────────────────────
 	void init(Config & config) {
 		valves.resize(config.numberOfValves);
 		memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
 	}
 
 	//
-	// ─── SECTION JSONDECODABLE COMPLIANCE ───────────────────────────────────────────
+	// ─── SECTION: JSONDECODABLE COMPLIANCE ───────────────────────────────────────────
 	//
 	static const char * decoderName() {
 		return "Status";
@@ -53,22 +53,26 @@ public:
 		return ProgramSettings::STATUS_JSON_BUFFER_SIZE;
 	}
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// May be used to resume operation in future versions.
 	// For now, status file is used to save valves status for next start up.
+	// ────────────────────────────────────────────────────────────────────────────────
 	void decodeJSON(const JsonVariant & source) override {
 		const JsonArrayConst & source_valves = source[JsonKeys::VALVES].as<JsonArrayConst>();
 		valves.resize(source_valves.size());
 		copyArray(source_valves, valves.data(), valves.size());
 	}
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Update the content of status file
+	// ────────────────────────────────────────────────────────────────────────────────
 	void save(const char * filepath) const override {
 		JsonFileLoader loader;
 		loader.save(filepath, *this);
 	}
 
 	//
-	// ─── SECTION JSONENCODABLE COMPLIANCE ───────────────────────────────────────────
+	// ─── SECTION: JSONENCODABLE COMPLIANCE ───────────────────────────────────────────
 	//
 	static const char * encoderName() {
 		return "Status";
@@ -101,7 +105,7 @@ public:
 	}
 
 	//
-	// ─── SECTION PRINTABLE COMPLIANCE ───────────────────────────────────────────────
+	// ─── SECTION: PRINTABLE COMPLIANCE ───────────────────────────────────────────────
 	//
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<encoderSize()> doc;
@@ -111,7 +115,7 @@ public:
 	}
 
 	//
-	// ─── SECTION VALVEMANAGEREVENTLISTENER COMPLIANCE ───────────────────────────────
+	// ─── SECTION: VALVEMANAGEREVENTLISTENER COMPLIANCE ───────────────────────────────
 	//
 private:
 	void valvesChanged(const ValveManager & vm) override {
@@ -130,8 +134,11 @@ private:
 	}
 
 public:
-	// Override_Mode_Pin is connected to an external switch which is active low
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Override_Mode_Pin is connected to an external switch which is active low.
+	// Checking <= 100 to accomodate for noisy signal.
+	// ────────────────────────────────────────────────────────────────────────────────
 	static bool isProgrammingMode() {
-		return analogRead(Override_Mode_Pin) <= 100;
+		return analogRead(HardwarePins::SHUTDOWN_OVERRIDE) <= 100;
 	}
 };

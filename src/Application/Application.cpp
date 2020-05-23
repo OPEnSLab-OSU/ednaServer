@@ -1,5 +1,4 @@
 #include <Application/Application.hpp>
-
 #include <array>
 
 //

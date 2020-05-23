@@ -48,13 +48,26 @@ private:
 	void commandReceived(const String & line) override;
 
 public:
-	KPServer server{"web-server", "eDNA-test", "password"};
-	KPStateMachine sm{"state-machine"};
-	KPFileLoader fileLoader{"file-loader", SDCard_Pin};
+	KPServer server{"web-server",
+		"eDNA-test",
+		"password"};
 
-	Pump pump{"pump", Motor_Forward_Pin, Motor_Reverse_Pin};
+	KPStateMachine sm{"state-machine"};
+
+	KPFileLoader fileLoader{"file-loader",
+		HardwarePins::SD_CARD};
+
 	Power power{"power"};
-	ShiftRegister shift{"shift-register", 32, SR_Data_Pin, SR_Clock_Pin, SR_Latch_Pin};
+
+	Pump pump{"pump",
+		HardwarePins::MOTOR_FORWARD,
+		HardwarePins::MOTOR_REVERSE};
+
+	ShiftRegister shift{"shift-register",
+		32,
+		HardwarePins::SHFT_REG_DATA,
+		HardwarePins::SHFT_REG_CLOCK,
+		HardwarePins::SHFT_REG_LATCH};
 
 	Config config{ProgramSettings::CONFIG_FILE_PATH};
 	Status status;
@@ -78,8 +91,7 @@ private:
 		Serial.begin(115200);
 		develop();	// NOTE: Remove in production
 
-		// Register state machine states
-		addComponent(sm);
+		// Register states
 		sm.addListener(&status);
 		sm.registerState(StateIdle(), StateName::IDLE);
 		sm.registerState(StateStop(), StateName::STOP);
@@ -88,7 +100,8 @@ private:
 		sm.registerState(StateDry(), StateName::DRY);
 		sm.registerState(StatePreserve(), StateName::PRESERVE);
 
-		// Components; the order here doesn't matter
+		// Registering components. The order here should not matter
+		addComponent(sm);
 		addComponent(fileLoader);
 		addComponent(shift);
 		addComponent(power);
@@ -123,6 +136,10 @@ private:
 	}
 
 public:
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Decouple state machine from task object. This is where task data gets transfered
+	// to states' parameters
+	// ────────────────────────────────────────────────────────────────────────────────
 	void transferTaskDataToStateParameters(Task & task) {
 		auto & flush = *sm.getState<StateFlush>(StateName::FLUSH);
 		flush.time	 = task.flushTime;
@@ -138,8 +155,11 @@ public:
 		preserve.time	= task.preserveTime;
 	}
 
-	// Return true if task is successfully scheduled.
-	// False if task is either missed or not available.
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Return:
+	//     true if task is successfully scheduled.
+	//     False if task is either missed schedule or no active task available.
+	// ────────────────────────────────────────────────────────────────────────────────
 	bool scheduleNextActiveTask() {
 		if (!(currentTask = tm.nearestActiveTask())) {
 			power.disarmAlarms();
@@ -158,7 +178,7 @@ public:
 			tm.markTaskAsCompleted(task);
 			tm.writeTaskArrayToDirectory();
 			currentTask = nullptr;
-			println("Missed task schedule");
+			println("Missed schedule");
 			return false;
 		}
 
@@ -201,11 +221,14 @@ public:
 		}
 	}
 
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Put hardware devices into known state before shuting down
+	// ────────────────────────────────────────────────────────────────────────────────
 	void shutdown() {
-		pump.off();				// Turn off motor
-		shift.writeZeros();		// Turn off all TPIC devices
-		shift.writeLatchOut();	// Reverse latch valve direction
-		power.shutdown();		// Turn off power
+		pump.off();					   // Turn off motor
+		shift.writeAllRegistersLow();  // Turn off all TPIC devices
+		shift.writeLatchOut();		   // Reverse latch valve direction
+		power.shutdown();			   // Turn off power
 	}
 
 	void clearRemainingValves(Task & task) {
