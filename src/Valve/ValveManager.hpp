@@ -1,15 +1,16 @@
 #pragma once
 #include <KPFoundation.hpp>
-#include <KPArray.hpp>
 
 #include <Application/Config.hpp>
 #include <Valve/Valve.hpp>
 #include <Valve/ValveStatus.hpp>
-
 #include <Utilities/FileLoader.hpp>
-
 #include <vector>
 
+// ────────────────────────────────────────────────────────────────────────────────
+// This is an extremely simple event listener. This will be updated to a pub-sub
+// model later.
+// ────────────────────────────────────────────────────────────────────────────────
 class ValveManager;
 class ValveManagerEventListner {
 public:
@@ -17,15 +18,18 @@ public:
 };
 
 //
-// ─── SECTION VALVE MANAGER ──────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────── I ──────────
+//   :::::: V A L V E   M A N A G E R : :  :   :    :     :        :          :
+// ────────────────────────────────────────────────────────────────────────────
 //
-// NOTE: This object provide APIs for keeping track of the valve system
-// ────────────────────────────────────────────────────────────────────────────────
+// This object providse APIs for keeping track of the valve system
+//
 class ValveManager : public JsonEncodable {
 private:
 	std::vector<ValveManagerEventListner *> listeners;
 
 public:
+	// TODO: Change to vector due to its flexibility
 	constexpr static size_t MAX_VALVES = ProgramSettings::MAX_VALVES;
 	std::array<Valve, MAX_VALVES> valves;
 	const char * valveFolder = nullptr;
@@ -53,35 +57,31 @@ public:
 		updateListeners();
 	}
 
-	void freeIfNotYetSampled(int id) {
+	void setValveFreeIfNotYetSampled(int id) {
 		if (valves[id].status != ValveStatus::sampled) {
-			valves[id].setStatus(ValveStatus::free);
+			setValveStatus(id, ValveStatus::free);
 		}
 	}
 
-	std::vector<int> filter(std::function<bool(const Valve &)> pred) {
-		std::vector<int> list;
-		for (size_t i = 0; i < valves.size(); i++) {
-			if (pred(valves[i])) {
-				list.push_back(i);
-			}
-		}
-		return list;
-	}
-
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Update valve objects from JSON array
+	// ────────────────────────────────────────────────────────────────────────────────
 	void updateValves(const JsonArray & task_array) {
 		for (const JsonObject & object : task_array) {
 			int id = object[JsonKeys::VALVE_ID];
-			if (valves[id].status) {
+			if (valves[id].status != ValveStatus::sampled) {
 				valves[id].decodeJSON(object);
 			} else {
+				PrintConfig::printVerbose = Verbosity::debug;
 				println("Valve is already sampled");
+				PrintConfig::printVerbose = PrintConfig::defaultPrintVerbose;
 			}
 		}
 
 		updateListeners();
 	}
 
+	// TODO: Would index file be useful here?
 	void loadIndexFile(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
@@ -89,6 +89,10 @@ public:
 		loader.createDirectoryIfNeeded(dir);
 	}
 
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Reading and decode each JSON file in the given directory to corresponding valve
+	// object.
+	// ────────────────────────────────────────────────────────────────────────────────
 	void loadValvesFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
@@ -106,6 +110,10 @@ public:
 		updateListeners();
 	}
 
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Encode and store each valve object to corresponding JSON file in the given directory
+	// @param _dir
+	// ────────────────────────────────────────────────────────────────────────────────
 	void writeValvesToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
@@ -123,10 +131,7 @@ public:
 		updateListeners();
 	}
 
-	//
-	// ─── JSONENCODABLE ──────────────────────────────────────────────────────────────
-	//
-
+#pragma region JSONENCODABLE
 	static const char * encoderName() {
 		return "ValveManager";
 	}
@@ -135,13 +140,14 @@ public:
 		return Valve::encoderSize() * MAX_VALVES;
 	}
 
-	bool encodeJSON(const JsonVariant & dst) const {
+	bool encodeJSON(const JsonVariant & dest) const {
 		for (const auto & v : valves) {
-			if (!v.encodeJSON(dst.createNestedObject())) {
+			if (!v.encodeJSON(dest.createNestedObject())) {
 				return false;
 			}
 		}
 
 		return true;
 	}
+#pragma endregion
 };

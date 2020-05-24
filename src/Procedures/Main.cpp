@@ -1,6 +1,10 @@
 #include <Application/Application.hpp>
 #include <Procedures/Main.hpp>
 
+std::array<int, 2> getNumbers() {
+	return {1, 2};
+}
+
 void StateIdle::enter(KPStateMachine & sm) {}
 
 void StateStop::enter(KPStateMachine & sm) {
@@ -26,14 +30,12 @@ void StatePreserve::enter(KPStateMachine & sm) {
 	println("StatePreserve");
 
 	Application & app = *static_cast<Application *>(sm.controller);
-
-	int r = app.shift.toRegisterIndex(app.status.currentValve) + 1;
-	int b = app.shift.toPinIndex(app.status.currentValve);
+	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	app.shift.writeLatchOut();
 	app.shift.writeAllRegistersLow();
-	app.shift.setPin(AlcoholValveBitIndex, HIGH);
-	app.shift.setRegister(r, b, HIGH);
+	app.shift.setPin(AlcoholValvePinNumber, HIGH);
+	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
 	app.shift.write();
 	app.pump.on();
 
@@ -46,13 +48,11 @@ void StateDry::enter(KPStateMachine & sm) {
 	println("StateDry");
 
 	Application & app = *static_cast<Application *>(sm.controller);
-
-	int r = app.shift.toRegisterIndex(app.status.currentValve) + 1;
-	int b = app.shift.toPinIndex(app.status.currentValve);
+	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	app.shift.setAllRegistersLow();
-	app.shift.setPin(AirValveBitIndex, HIGH);
-	app.shift.setRegister(r, b, HIGH);
+	app.shift.setPin(AirValvePinNumber, HIGH);
+	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
 	app.shift.write();
 	app.pump.on();
 
@@ -65,14 +65,12 @@ void StateSample::enter(KPStateMachine & sm) {
 	println("StateSample");
 
 	Application & app = *static_cast<Application *>(sm.controller);
-
-	int r = app.shift.toRegisterIndex(app.status.currentValve) + 1;
-	int b = app.shift.toPinIndex(app.status.currentValve);
+	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	// We set the latch valve to intake mode, turn on the filter valve, then the pump
 	app.shift.setAllRegistersLow();
 	app.shift.writeLatchIn();
-	app.shift.setRegister(r, b, HIGH);	// Filter valve
+	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);	// Filter valve
 	app.shift.write();
 	app.pump.on();
 
@@ -90,10 +88,9 @@ void StateSample::enter(KPStateMachine & sm) {
 void StateFlush::enter(KPStateMachine & sm) {
 	println("StateFlush");
 	Application & app = *static_cast<Application *>(sm.controller);
-
 	app.shift.setAllRegistersLow();
 	app.shift.writeLatchIn();
-	app.shift.setPin(FlushValveBitIndex, HIGH);
+	app.shift.setPin(FlushValvePinNumber, HIGH);
 	app.shift.write();
 	app.pump.on();
 
@@ -113,8 +110,8 @@ void StateFlush::enter(KPStateMachine & sm) {
 // 	app.shift.writeAllRegistersLow();
 
 // 	// Turn on the flush valve, the air intake, and the pump to clean out the main pipe
-// 	app.shift.setPin(FlushValveBitIndex, HIGH);
-// 	app.shift.setPin(AirValveBitIndex, HIGH);
+// 	app.shift.setPin(FlushValvePinNumber, HIGH);
+// 	app.shift.setPin(AirValvePinNumber, HIGH);
 // 	app.shift.write();
 // 	app.pump.on();
 // 	// auto const flushMainPipe =
@@ -127,7 +124,7 @@ void StateFlush::enter(KPStateMachine & sm) {
 // 	// Turn the pump on to 75% power at 12th second then close the flush valve
 // 	setTimeCondition(secsToMillis(12), [&]() {
 // 		app.pump.pwm(0.75);
-// 		app.shift.setPin(FlushValveBitIndex, LOW);
+// 		app.shift.setPin(FlushValvePinNumber, LOW);
 // 		app.shift.write();
 // 	});
 

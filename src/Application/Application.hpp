@@ -1,5 +1,5 @@
 #pragma once
-
+#define ARDUINOJSON_USE_LONG_LONG 1
 #include <KPController.hpp>
 #include <KPFileLoader.hpp>
 #include <KPSerialInput.hpp>
@@ -25,10 +25,6 @@
 
 #include <Utilities/JsonEncodableDecodable.hpp>
 
-#define AirValveBitIndex	 2
-#define AlcoholValveBitIndex 3
-#define FlushValveBitIndex	 5
-
 extern void printDirectory(File dir, int numTabs);
 
 inline bool checkForConnection(uint8_t addr) {
@@ -39,6 +35,11 @@ inline bool checkForConnection(uint8_t addr) {
 	Wire.requestFrom(addr, 1);
 	return (Wire.read() != -1);
 }
+
+struct ValveBlock {
+	const int regIndex;
+	const int pinIndex;
+};
 
 class Application : public KPController,
 					public KPSerialInputListener,
@@ -107,14 +108,18 @@ private:
 		addComponent(power);
 		addComponent(pump);
 		addComponent(server);
-		setupServerRouting();
 		server.begin();
+
+		// Delay the server setup to reduce startup time
+		run(0, [this]() {
+			setupServerRouting();
+		});
 
 		// Load configuration from file and initialize status object
 		config.load();
 		status.init(config);
 
-		// Config valve manager
+		// Configure valve manager
 		vm.init(config);
 		vm.addListener(&status);
 		vm.loadValvesFromDirectory(config.valveFolder);
@@ -129,13 +134,18 @@ private:
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
-			println("RTC INTERRUPTED!");
+			println("\033[1;32mRTC Interrupted!\033[0m");
 			power.disarmAlarms();
 			scheduleNextActiveTask();
 		});
 	}
 
 public:
+	ValveBlock currentValveNumberToBlock() {
+		return {
+			shift.toRegisterIndex(status.currentValve) + 1,
+			shift.toPinIndex(status.currentValve)};
+	}
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Decouple state machine from task object. This is where task data gets transfered
 	// to states' parameters
@@ -143,10 +153,12 @@ public:
 	void transferTaskDataToStateParameters(Task & task) {
 		auto & flush = *sm.getState<StateFlush>(StateName::FLUSH);
 		flush.time	 = task.flushTime;
+		flush.volume = task.flushVolume;
 
 		auto & sample	= *sm.getState<StateSample>(StateName::SAMPLE);
 		sample.time		= task.sampleTime;
 		sample.pressure = task.samplePressure;
+		sample.volume	= task.flushVolume;
 
 		auto & dry = *sm.getState<StateDry>(StateName::DRY);
 		dry.time   = task.dryTime;
@@ -157,7 +169,7 @@ public:
 
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Return:
-	//     true if task is successfully scheduled.
+	//     True if task is successfully scheduled.
 	//     False if task is either missed schedule or no active task available.
 	// ────────────────────────────────────────────────────────────────────────────────
 	bool scheduleNextActiveTask() {
@@ -182,15 +194,19 @@ public:
 			return false;
 		}
 
-		// Waking up 10 secs before schedule time
-		// Else if Waking up more than 10 secs before the schedule time,
-		// reschedule 5 secs before actual time
+		// If this method is called between 10 secs before the actual schedule,
+		// then stays awake until the task execution.
+		// Else, reschedule RTC interrupt to 5 secs before the actual schedule.
 		if (timenow >= task.schedule - 10) {
-			auto delayTaskExecution = [this]() {
+			TimedAction delayTaskExecution;
+			delayTaskExecution.name		= "delayTaskExecution";
+			delayTaskExecution.interval = secsToMillis(task.schedule - timenow);
+			delayTaskExecution.callback = [this]() {
 				sm.transitionTo(StateName::FLUSH);
 			};
 
-			run(secsToMillis(task.schedule - timenow), delayTaskExecution);
+			// ASYNC: Notice how we are delaying this function call
+			run(delayTaskExecution);
 			transferTaskDataToStateParameters(task);
 			println("Task executes in ", task.schedule - timenow, " secs");
 		} else {
@@ -233,7 +249,7 @@ public:
 
 	void clearRemainingValves(Task & task) {
 		for (int i = task.currentValvePosition(); i < task.size(); i++) {
-			vm.freeIfNotYetSampled(task.valves[i]);
+			vm.setValveFreeIfNotYetSampled(task.valves[i]);
 		}
 	}
 

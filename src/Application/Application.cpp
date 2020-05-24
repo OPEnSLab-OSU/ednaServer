@@ -17,6 +17,9 @@ void Application::setupServerRouting() {
 	// 	res.end();
 	// });
 
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Get the current status
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.get("/api/status", [this](Request & req, Response & res) {
 		StaticJsonDocument<Status::encoderSize()> response;
 		encodeJSON(status, response.to<JsonObject>());
@@ -28,7 +31,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
-	// Get array of valves object
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Get a list of valve objects
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.get("/api/valves", [this](Request & req, Response & res) {
 		StaticJsonDocument<ValveManager::encoderSize()> response;
 		encodeJSON(vm, response.to<JsonArray>());
@@ -39,7 +44,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
-	// Get array of tasks obejects
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Get a lit of task objects
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.get("/api/tasks", [this](Request & req, Response & res) {
 		StaticJsonDocument<TaskManager::encoderSize()> response;
 		encodeJSON(tm, response.to<JsonArray>());
@@ -47,7 +54,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Get task with name
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/get", [this](Request & req, Response & res) {
 		using namespace JsonKeys;
 		StaticJsonDocument<Task::encoderSize()> body;
@@ -70,7 +79,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Create a new task with name
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/create", [this](Request & req, Response & res) {
 		using namespace JsonKeys;
 		StaticJsonDocument<100> body;
@@ -104,7 +115,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Update existing task with incoming data
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/save", [this](Request & req, Response & res) {
 		const size_t size = ProgramSettings::TASK_JSON_BUFFER_SIZE;
 		StaticJsonDocument<size> body;
@@ -122,7 +135,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Schedule a task (marking it active)
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/schedule", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
@@ -154,7 +169,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Unschedule a task (making it inactive)
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/unschedule", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
@@ -181,7 +198,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Delete task with name
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/delete", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
@@ -214,7 +233,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// RTC update
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/rtc/update", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
@@ -237,7 +258,9 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	// ────────────────────────────────────────────────────────────────────────────────
 	// Emergency stop
+	// ────────────────────────────────────────────────────────────────────────────────
 	server.get("/stop", [this](Request & req, Response & res) {
 		sm.transitionTo(StateName::STOP);
 	});

@@ -10,9 +10,14 @@
 #include <Valve/ValveStatus.hpp>
 
 //
-// ─── SECTION VALVE OBJECT ───────────────────────────────────────────────────────
+// ────────────────────────────────────────────────── I ──────────
+//   :::::: V A L V E : :  :   :    :     :        :          :
+// ────────────────────────────────────────────────────────────
 //
-struct Valve : public JsonEncodable, public JsonDecodable, public Printable {
+
+struct Valve : public JsonEncodable,
+			   public JsonDecodable,
+			   public Printable {
 public:
 	int id	   = ValveStatus::unavailable;
 	int status = ValveStatus::unavailable;
@@ -22,18 +27,18 @@ public:
 	Valve(const Valve & other) = default;
 	Valve & operator=(const Valve &) = default;
 
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Explicit construction from JSON Object
+	// ────────────────────────────────────────────────────────────────────────────────
 	explicit Valve(const JsonObject & data) {
 		decodeJSON(data);
 	}
 
-	void setStatus(ValveStatus vs) {
-		status = vs;
+	void setStatus(ValveStatus status) {
+		this->status = status;
 	}
 
-	//
-	// ─── SECTION JSONDECODABLE COMPLIANCE ───────────────────────────────────────────
-	//
-
+#pragma region JSONDECODABLE
 	static const char * decoderName() {
 		return "Valve";
 	}
@@ -57,11 +62,8 @@ public:
 
 		status = src[VALVE_STATUS];
 	}
-
-	//
-	// ─── SECTION JSONENCODABLE COMPLIANCE ───────────────────────────────────────────
-	//
-
+#pragma endregion
+#pragma region JSONENCODABLE
 	const char * encoderName() const {
 		return "Valve";
 	}
@@ -81,7 +83,7 @@ public:
 		JsonFileLoader loader;
 		loader.save(filepath, *this);
 	}
-
+#pragma endregion
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<encoderSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();

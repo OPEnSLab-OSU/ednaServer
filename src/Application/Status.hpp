@@ -114,9 +114,7 @@ public:
 		return serializeJsonPretty(object, printer);
 	}
 
-	//
-	// ─── SECTION: VALVEMANAGEREVENTLISTENER COMPLIANCE ───────────────────────────────
-	//
+#pragma region VALVE_MANAGER_EVENTLISTENER
 private:
 	void valvesChanged(const ValveManager & vm) override {
 		currentValve = -1;
@@ -128,6 +126,7 @@ private:
 			valves[v.id] = v.status;
 		}
 	}
+#pragma endregion VALVE_MANAGER_EVENTLISTENER
 
 	void stateTransitioned(const KPStateMachine & sm) override {
 		currentStateName = sm.getCurrentState()->getName();

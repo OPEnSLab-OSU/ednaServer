@@ -6,21 +6,23 @@ void printDirectory(File dir, int numTabs) {
 	while (true) {
 		File entry = dir.openNextFile();
 		if (!entry) {
-			// no more files
 			break;
 		}
+
 		for (uint8_t i = 0; i < numTabs; i++) {
 			print('\t');
 		}
+
 		print(entry.name());
+
 		if (entry.isDirectory()) {
 			println("/");
 			printDirectory(entry, numTabs + 1);
 		} else {
-			// files have sizes, directories do not
 			print("\t\t");
-			println(entry.size(), DEC);
+			println(entry.size(), DEC);	 // files have sizes, directories do not
 		}
+
 		entry.close();
 	}
 }
@@ -30,7 +32,7 @@ public:
 	void develop() {
 		while (!Serial) {
 			delay(100);
-		};
+		}
 	}
 
 	void setup() override {
@@ -41,7 +43,7 @@ public:
 		});
 
 		run(10000, []() {
-			removeAction("test");
+			cancelAction("test");
 		});
 	}
 } test_app;
@@ -52,7 +54,7 @@ void setup() {
 }
 
 void loop() {
-	ActionScheduler::sharedInstance().update();
 	Runtime::update();
+	ActionScheduler::sharedInstance().update();
 }
 #endif

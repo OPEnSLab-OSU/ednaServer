@@ -33,7 +33,7 @@ public:
 	int clockPin = 0;
 	int latchPin = 0;
 
-	int * registers;
+	int8_t * registers;
 	BitOrder bitOrder = MSBFIRST;
 
 public:
@@ -41,7 +41,7 @@ public:
 		: KPComponent(name),
 		  capacity(capacity),
 		  registersCount(capacity / capacityPerRegister) {
-		registers = new int[registersCount]();
+		registers = new int8_t[registersCount]();
 		setRegisterPins(data, clock, latch);
 	}
 
@@ -52,15 +52,19 @@ public:
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Helper converting 1D pin index to register index
 	// ────────────────────────────────────────────────────────────────────────────────
-	int toRegisterIndex(int value) {
-		return value / capacityPerRegister;
+	int toRegisterIndex(int pinNumber) const {
+		return pinNumber / capacityPerRegister;
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Helper converting 1D pin index to pin index
 	// ────────────────────────────────────────────────────────────────────────────────
-	int toPinIndex(int value) {
-		return value % capacityPerRegister;
+	int toPinIndex(int pinNumber) const {
+		return pinNumber % capacityPerRegister;
+	}
+
+	std::pair<int, int> toRegisterAndPinIndices(int pinNumber) const {
+		return {toRegisterIndex(pinNumber), toPinIndex(pinNumber)};
 	}
 
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -84,7 +88,7 @@ public:
 
 	void setAllRegistersHigh() {
 		for (int i = 0; i < registersCount; i++) {
-			registers[i] = 255;
+			registers[i] = 0xFF;
 		}
 	}
 
@@ -149,14 +153,13 @@ public:
 	// Turn on a single pin where the rest is low
 	// One-hot: https://en.wikipedia.org/wiki/One-hot
 	// ────────────────────────────────────────────────────────────────────────────────
-	void writeOneHot(int pinIndex) {
-		if (pinIndex / capacityPerRegister >= registersCount) {
+	void writeOneHot(int pinNumber) {
+		if (toRegisterIndex(pinNumber) >= registersCount) {
 			return;
 		}
 
 		setAllRegistersLow();
-		int bitNumber						 = 1 << (toPinIndex(pinIndex));
-		registers[toRegisterIndex(pinIndex)] = bitNumber;
+		setPin(pinNumber, HIGH);
 		write();
 	}
 
@@ -164,11 +167,11 @@ private:
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Convenient methods for working with latch valve
 	// ────────────────────────────────────────────────────────────────────────────────
-	void writeLatch(bool pinIndex) {
-		setRegister(0, pinIndex, HIGH);	 // Latch Valve
+	void writeLatch(bool controlPin) {
+		setPin(controlPin, HIGH);
 		write();
 		delay(80);
-		setRegister(0, pinIndex, LOW);
+		setPin(controlPin, LOW);
 		write();
 	}
 

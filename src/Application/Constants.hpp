@@ -2,6 +2,10 @@
 #define __k_str constexpr const char *
 #define __k_int constexpr int
 
+#define AirValvePinNumber	  2
+#define AlcoholValvePinNumber 3
+#define FlushValvePinNumber	  5
+
 namespace HardwarePins {
 	__k_int POWER_MODULE	  = A0;
 	__k_int RTC_INTERRUPT	  = 12;	 // A1 is eDNA, 12 for HYPNOS

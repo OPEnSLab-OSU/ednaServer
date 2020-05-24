@@ -154,7 +154,9 @@ public:
 		task.markAsCompleted();
 	}
 
-	// Update the index file
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Update the index file which has meta data about the tasks
+	// ────────────────────────────────────────────────────────────────────────────────
 	void updateIndexFile(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 

@@ -50,7 +50,6 @@ public:
 	unsigned long time = 150;
 	float pressure	   = 8;
 	float volume	   = 1000;
-	int valve_index	   = 0;
 	void enter(KPStateMachine & sm) override;
 
 	// void setValuesFromJson(const JsonVariant & data) override {
