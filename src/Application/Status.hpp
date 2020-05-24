@@ -42,9 +42,33 @@ public:
 		memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
 	}
 
-	//
-	// ─── SECTION: JSONDECODABLE COMPLIANCE ───────────────────────────────────────────
-	//
+private:
+	void valvesChanged(const ValveManager & vm) override {
+		currentValve = -1;
+		for (const Valve & v : vm.valves) {
+			if (v.status == ValveStatus::operating) {
+				currentValve = v.id;
+			}
+
+			valves[v.id] = v.status;
+		}
+	}
+
+	void stateTransitioned(const KPStateMachine & sm) override {
+		currentStateName = sm.getCurrentState()->getName();
+	}
+
+public:
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Override_Mode_Pin is connected to an external switch which is active low.
+	// Checking <= 100 to accomodate for noisy signal.
+	// ────────────────────────────────────────────────────────────────────────────────
+	static bool isProgrammingMode() {
+		return analogRead(HardwarePins::SHUTDOWN_OVERRIDE) <= 100;
+	}
+
+#pragma region JSONDECODABLE
+
 	static const char * decoderName() {
 		return "Status";
 	}
@@ -63,17 +87,12 @@ public:
 		copyArray(source_valves, valves.data(), valves.size());
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Update the content of status file
-	// ────────────────────────────────────────────────────────────────────────────────
-	void save(const char * filepath) const override {
+	void load(const char * filepath) override {
 		JsonFileLoader loader;
-		loader.save(filepath, *this);
+		loader.load(filepath, *this);
 	}
-
-	//
-	// ─── SECTION: JSONENCODABLE COMPLIANCE ───────────────────────────────────────────
-	//
+#pragma endregion JSONDECODABLE
+#pragma region JSONENCODABLE
 	static const char * encoderName() {
 		return "Status";
 	}
@@ -99,45 +118,21 @@ public:
 			   && dest[TASK_CURRENT_NAME].set(currentTaskName);
 	}
 
-	void load(const char * filepath) override {
+	// ────────────────────────────────────────────────────────────────────────────────
+	// Update the content of status file
+	// ────────────────────────────────────────────────────────────────────────────────
+	void save(const char * filepath) const override {
 		JsonFileLoader loader;
-		loader.load(filepath, *this);
+		loader.save(filepath, *this);
 	}
 
-	//
-	// ─── SECTION: PRINTABLE COMPLIANCE ───────────────────────────────────────────────
-	//
+#pragma endregion JSONENCODABLE
+#pragma region PRINTABLE
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<encoderSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, printer);
 	}
-
-#pragma region VALVE_MANAGER_EVENTLISTENER
-private:
-	void valvesChanged(const ValveManager & vm) override {
-		currentValve = -1;
-		for (const Valve & v : vm.valves) {
-			if (v.status == ValveStatus::operating) {
-				currentValve = v.id;
-			}
-
-			valves[v.id] = v.status;
-		}
-	}
-#pragma endregion VALVE_MANAGER_EVENTLISTENER
-
-	void stateTransitioned(const KPStateMachine & sm) override {
-		currentStateName = sm.getCurrentState()->getName();
-	}
-
-public:
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Override_Mode_Pin is connected to an external switch which is active low.
-	// Checking <= 100 to accomodate for noisy signal.
-	// ────────────────────────────────────────────────────────────────────────────────
-	static bool isProgrammingMode() {
-		return analogRead(HardwarePins::SHUTDOWN_OVERRIDE) <= 100;
-	}
+#pragma endregion PRINTABLE
 };
