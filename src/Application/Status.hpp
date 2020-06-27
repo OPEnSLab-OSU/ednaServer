@@ -5,13 +5,13 @@
 
 #include <Utilities/JsonFileLoader.hpp>
 #include <Valve/ValveStatus.hpp>
-#include <Valve/ValveManager.hpp>
+#include <Valve/ValveObserver.hpp>
 
 class Status : public JsonDecodable,
 			   public JsonEncodable,
 			   public Printable,
 			   public KPStateMachineListener,
-			   public ValveManagerEventListner {
+			   public ValveObserver {
 public:
 	std::vector<int> valves;
 	int currentValve = -1;
@@ -34,24 +34,29 @@ public:
 	Status(const Status &) = delete;
 	Status & operator=(const Status &) = delete;
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Initialize status from user config
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────────
+	 * @brief Initialize status from user config
+	 * 
+	 * @param config Config object containing meta data of the system
+	**/
 	void init(Config & config) {
 		valves.resize(config.numberOfValves);
 		memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
 	}
 
 private:
-	void valvesChanged(const ValveManager & vm) override {
+	void valveArrayDidUpdate(const std::vector<Valve> & valves) override {
 		currentValve = -1;
-		for (const Valve & v : vm.valves) {
+		for (const Valve & v : valves) {
 			if (v.status == ValveStatus::operating) {
 				currentValve = v.id;
 			}
 
-			valves[v.id] = v.status;
+			this->valves[v.id] = v.status;
 		}
+	}
+
+	void valveDidUpdate(const Valve & valve) override {
 	}
 
 	void stateTransitioned(const KPStateMachine & sm) override {

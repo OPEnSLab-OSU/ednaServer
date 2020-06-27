@@ -95,19 +95,20 @@ public:
 		}
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Wait for RTC to connect. This is done by checking if the return byte from the RTC
-	// is -1. In two complement's signed interger, all bits high means -1.
-	// Since, I2C for DS3231 is active low, this means that the RTC is not connected
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Wait for RTC to connect. This is done by checking if the return byte
+	 *  from the RTC is -1. In two complement's signed interger, all bits high means
+	 *  -1.Since, I2C for DS3231 is active low, this means that the RTC is not
+	 *  connected
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void waitForConnection() {
 		Wire.begin();
-		Wire.requestFrom(RTC_ADDR, 1, false);  // false: don't release I2C line
-		for (;; delay(2000)) {
+		for (;; delay(5000)) {
+			Wire.requestFrom(RTC_ADDR, 1, false);  // false: don't release I2C line
 			if (Wire.read() == -1) {
-				println("\n\033[32;1m[-_-] RTC Not Connected\033[0m");
+				println("\n\033[31;1mRTC Not Connected\033[0m");
 			} else {
-				println("\n\033[32;1m[^_^] RTC Connected\033[0m");
+				println("\n\033[32;1mRTC Connected\033[0m");
 				break;
 			}
 		}

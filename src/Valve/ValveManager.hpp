@@ -2,97 +2,95 @@
 #include <KPFoundation.hpp>
 
 #include <Application/Config.hpp>
+#include <Application/Subject.hpp>
 #include <Valve/Valve.hpp>
 #include <Valve/ValveStatus.hpp>
+#include <Valve/ValveObserver.hpp>
 #include <Utilities/FileLoader.hpp>
-#include <vector>
 
-// ────────────────────────────────────────────────────────────────────────────────
-// This is an extremely simple event listener. This will be updated to a pub-sub
-// model later.
-// ────────────────────────────────────────────────────────────────────────────────
-class ValveManager;
-class ValveManagerEventListner {
-public:
-	virtual void valvesChanged(const ValveManager & vm) = 0;
-};
+#include <vector>
 
 //
 // ────────────────────────────────────────────────────────────────── I ──────────
 //   :::::: V A L V E   M A N A G E R : :  :   :    :     :        :          :
-// ────────────────────────────────────────────────────────────────────────────
+//   ────────────────────────────────────────────────────────────────────────────
 //
-// This object providse APIs for keeping track of the valve system
-//
-class ValveManager : public JsonEncodable {
-private:
-	std::vector<ValveManagerEventListner *> listeners;
 
+/** ────────────────────────────────────────────────────────────────────────────────
+ * @brief This object providse APIs for keeping track of the valve system
+ * 
+**/
+class ValveManager : public JsonEncodable,
+					 public Subject<ValveObserver> {
 public:
-	// TODO: Change to vector due to its flexibility
-	constexpr static size_t MAX_VALVES = ProgramSettings::MAX_VALVES;
-	std::array<Valve, MAX_VALVES> valves;
+	std::vector<Valve> valves;
 	const char * valveFolder = nullptr;
 
+	/** ────────────────────────────────────────────────────────────────────────────────
+	 * @brief Initialize ValveManager with the config object. This method sets
+	 * status for each valve according to config object.
+	 *
+	 * @param config Config object containing meta information about the system
+	**/
 	void init(Config & config) {
 		valveFolder = config.valveFolder;
+		valves.resize(config.numberOfValves);
 		for (size_t i = 0; i < valves.size(); i++) {
 			valves[i].id = i;
 			valves[i].setStatus(ValveStatus::Code(config.valves[i]));
 		}
 	}
 
-	void updateListeners() {
-		for (auto listener : listeners) {
-			listener->valvesChanged(*this);
-		}
-	}
-
-	void addListener(ValveManagerEventListner * listener) {
-		listeners.push_back(listener);
-	}
-
+	/** ────────────────────────────────────────────────────────────────────────────────
+	 * @brief Set the status of the valve to the specified status 
+	 *
+	 * @param id Id of the valve
+	 * @param status Status to set valve to
+	**/
 	void setValveStatus(int id, ValveStatus status) {
 		valves[id].setStatus(status);
-		updateListeners();
+
+		updateObservers(&ValveObserver::valveDidUpdate, valves[id]);
 	}
 
+	/** ────────────────────────────────────────────────────────────────────────────────
+	 * @brief Set the status of the valve to "free" if the valve is not yet sampled
+	 *
+	 * @param id Id of the valve (usally the index number)
+	**/
 	void setValveFreeIfNotYetSampled(int id) {
 		if (valves[id].status != ValveStatus::sampled) {
 			setValveStatus(id, ValveStatus::free);
+			updateObservers(&ValveObserver::valveDidUpdate, valves[id]);
 		}
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Update valve objects from JSON array
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────────
+	 * @brief Update valve objects from JSON array
+	 *
+	 * @param task_array JSON Array encoded by ArduinoJson 
+	**/
 	void updateValves(const JsonArray & task_array) {
 		for (const JsonObject & object : task_array) {
 			int id = object[JsonKeys::VALVE_ID];
 			if (valves[id].status != ValveStatus::sampled) {
 				valves[id].decodeJSON(object);
 			} else {
-				PrintConfig::printVerbose = Verbosity::debug;
+				PrintConfig::setPrintVerbose(Verbosity::info);
 				println("Valve is already sampled");
-				PrintConfig::printVerbose = PrintConfig::defaultPrintVerbose;
+				PrintConfig::setDefaultVerbose();
 			}
 		}
 
-		updateListeners();
+		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 
-	// TODO: Would index file be useful here?
-	void loadIndexFile(const char * _dir = nullptr) {
-		const char * dir = _dir ? _dir : valveFolder;
-
-		FileLoader loader;
-		loader.createDirectoryIfNeeded(dir);
-	}
-
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Reading and decode each JSON file in the given directory to corresponding valve
-	// object.
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────────
+	 * @brief Reading and decode each JSON file in the given directory to
+	 * corresponding valve object.
+	 *
+	 * @param _dir Path to the valve folder (default=~/valves)
+	**/
 	void loadValvesFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
@@ -106,14 +104,19 @@ public:
 			valves[i].load(filepath);
 		}
 
+		PrintConfig::setPrintVerbose(Verbosity::debug);
 		println("\033[1;32mValveManager\033[0m: finished reading in ", millis() - start, " ms");
-		updateListeners();
+		PrintConfig::setDefaultVerbose();
+
+		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Encode and store each valve object to corresponding JSON file in the given directory
-	// @param _dir
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────────
+	 * @brief Encode and store each valve object to corresponding JSON file in the
+	 * given directory
+	 *
+	 * @param _dir Path to the valve folder (default=~/valves)
+	**/
 	void writeValvesToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
@@ -127,8 +130,11 @@ public:
 			valves[i].save(filepath);
 		}
 
+		PrintConfig::setPrintVerbose(Verbosity::debug);
 		println("\033[1;32mValveManager\033[0m: finished writing in ", millis() - start, " ms");
-		updateListeners();
+		PrintConfig::setDefaultVerbose();
+
+		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 
 #pragma region JSONENCODABLE
@@ -137,7 +143,7 @@ public:
 	}
 
 	static constexpr size_t encoderSize() {
-		return Valve::encoderSize() * MAX_VALVES;
+		return Valve::encoderSize() * ProgramSettings::MAX_VALVES;
 	}
 
 	bool encodeJSON(const JsonVariant & dest) const {

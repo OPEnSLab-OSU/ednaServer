@@ -1,26 +1,26 @@
 #pragma once
 #include <KPFoundation.hpp>
 #include <KPDataStoreInterface.hpp>
-#include <KPArray.hpp>
 
 #include <Task/Task.hpp>
+#include <Task/TaskObserver.hpp>
 #include <Application/Config.hpp>
+
 #include <vector>
 #include "SD.h"
 
-class TaskManager;
-class TaskListener {
-public:
-	virtual void taskChanged(Task & task, TaskManager & tm) = 0;
-};
-
+/**
+ * @brief Manages and keeping track of tasks
+ * 
+ */
 class TaskManager : public KPComponent,
 					public JsonEncodable,
-					public Printable {
+					public Printable,
+					public Subject<TaskObserver> {
 public:
 	const char * taskFolder = nullptr;
 	std::vector<Task> tasks;
-	std::vector<TaskListener *> listeners;
+	std::vector<TaskObserver *> listeners;
 
 	TaskManager()
 		: KPComponent("TaskManager") {}
@@ -29,12 +29,12 @@ public:
 		taskFolder = config.taskFolder;
 	}
 
-	void notifyListeners(int index) {
-		for (TaskListener * listener : listeners) {
-			listener->taskChanged(tasks[index], *this);
-		}
-	}
-	// Return index of the task with name
+	/**
+	 * @brief Return index of the task with name
+	 * 
+	 * @param name name of the task
+	 * @return int index of the task in the task array, otherwise -1.
+	 */
 	int findTaskWithName(const char * name) {
 		auto iter = std::find_if(tasks.begin(), tasks.end(), [name](const Task & t) {
 			return strcmp(t.name, name) == 0;
@@ -111,7 +111,7 @@ public:
 
 	void setTaskStatus(int index, TaskStatus status) {
 		tasks[index].status = status;
-		notifyListeners(index);
+		updateObservers(&TaskObserver::taskDidUpdate, tasks[index]);
 	}
 
 	bool containsActiveTask() {

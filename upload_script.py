@@ -1,8 +1,8 @@
 import time
 
-# This upload script helps with reconnecting the serial port the
-# upload task. Sometimes it takes a couple of seconds before the
-# computer recognizes the serial port.
+# This upload script helps with reconnecting the serial port after reupload.
+# Sometimes it takes a couple of seconds before the computer recognizes the serial
+# port.
 
 # pylint: disable=undefined-variable
 Import("env")

@@ -22,11 +22,17 @@
 
 #include <Task/Task.hpp>
 #include <Task/TaskManager.hpp>
-
 #include <Utilities/JsonEncodableDecodable.hpp>
 
-extern void printDirectory(File dir, int numTabs);
+#define PRINT_MODE(mode, x)                        \
+	PrintConfig::setPrintVerbose(Verbosity::mode); \
+	x;                                             \
+	PrintConfig::setDefaultVerbose()
 
+#define PRINT_DEBUG	  PrintConfig::setPrintVerbose(Verbosity::debug);
+#define PRINT_DEFAULT PrintConfig::setDefaultVerbose();
+
+extern void printDirectory(File dir, int numTabs);
 inline bool checkForConnection(uint8_t addr) {
 	Wire.begin();
 	// Wire.beginTransmission(addr);
@@ -43,7 +49,7 @@ struct ValveBlock {
 
 class Application : public KPController,
 					public KPSerialInputListener,
-					public TaskListener {
+					public TaskObserver {
 private:
 	void setupServerRouting();
 	void commandReceived(const String & line) override;
@@ -52,13 +58,6 @@ public:
 	KPServer server{"web-server",
 		"eDNA-test",
 		"password"};
-
-	KPStateMachine sm{"state-machine"};
-
-	KPFileLoader fileLoader{"file-loader",
-		HardwarePins::SD_CARD};
-
-	Power power{"power"};
 
 	Pump pump{"pump",
 		HardwarePins::MOTOR_FORWARD,
@@ -69,6 +68,12 @@ public:
 		HardwarePins::SHFT_REG_DATA,
 		HardwarePins::SHFT_REG_CLOCK,
 		HardwarePins::SHFT_REG_LATCH};
+
+	KPFileLoader fileLoader{"file-loader",
+		HardwarePins::SD_CARD};
+
+	KPStateMachine sm{"state-machine"};
+	Power power{"power"};
 
 	Config config{ProgramSettings::CONFIG_FILE_PATH};
 	Status status;
@@ -92,14 +97,10 @@ private:
 		Serial.begin(115200);
 		develop();	// NOTE: Remove in production
 
-		// Register states
-		sm.addListener(&status);
-		sm.registerState(StateIdle(), StateName::IDLE);
-		sm.registerState(StateStop(), StateName::STOP);
-		sm.registerState(StateFlush(), StateName::FLUSH);
-		sm.registerState(StateSample(), StateName::SAMPLE);
-		sm.registerState(StateDry(), StateName::DRY);
-		sm.registerState(StatePreserve(), StateName::PRESERVE);
+#ifdef DEBUG
+		PRINT_MODE(debug, println("DEBUG MODE"));
+		println("Default print verbosity is ", static_cast<int>(PrintConfig::defaultPrintVerbose));
+#endif
 
 		// Registering components. The order here should not matter
 		addComponent(sm);
@@ -109,6 +110,15 @@ private:
 		addComponent(pump);
 		addComponent(server);
 		server.begin();
+
+		// Register states
+		sm.addListener(&status);
+		sm.registerState(StateIdle(), StateName::IDLE);
+		sm.registerState(StateStop(), StateName::STOP);
+		sm.registerState(StateFlush(), StateName::FLUSH);
+		sm.registerState(StateSample(), StateName::SAMPLE);
+		sm.registerState(StateDry(), StateName::DRY);
+		sm.registerState(StatePreserve(), StateName::PRESERVE);
 
 		// Delay the server setup to reduce startup time
 		run(0, [this]() {
@@ -121,7 +131,7 @@ private:
 
 		// Configure valve manager
 		vm.init(config);
-		vm.addListener(&status);
+		vm.addObserver(status);
 		vm.loadValvesFromDirectory(config.valveFolder);
 
 		// Configure task manager
@@ -190,7 +200,7 @@ public:
 			tm.markTaskAsCompleted(task);
 			tm.writeTaskArrayToDirectory();
 			currentTask = nullptr;
-			println("Missed schedule");
+			PRINT_MODE(info, println("Missed schedule"));
 			return false;
 		}
 
@@ -208,10 +218,11 @@ public:
 			// ASYNC: Notice how we are delaying this function call
 			run(delayTaskExecution);
 			transferTaskDataToStateParameters(task);
-			println("Task executes in ", task.schedule - timenow, " secs");
+
+			PRINT_MODE(debug, println("Task executes in ", task.schedule - timenow, " secs"));
 		} else {
 			power.scheduleNextAlarm(task.schedule - 5);
-			println("Task reschduled to 5 secs before actual time");
+			PRINT_MODE(debug, println("Task reschduled to 5 secs before actual time"));
 		}
 
 		// Set valve status to operating
@@ -223,11 +234,10 @@ public:
 		return true;
 	}
 
-	//
-	// ─── UPDATE ─────────────────────────────────────────────────────────────────────
-	//
-	// Runs after the setup and initialization of all components
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 ** @brief Runs after the setup and initialization of all components
+	 ** 
+	───────────────────────────────────────────────────────────────────────────── */
 	void update() override {
 		KPController::update();
 
@@ -237,9 +247,10 @@ public:
 		}
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Put hardware devices into known state before shuting down
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 ** @brief Turn off the motor, shut off the pins and power off the system
+	 **
+	───────────────────────────────────────────────────────────────────────────── */
 	void shutdown() {
 		pump.off();					   // Turn off motor
 		shift.writeAllRegistersLow();  // Turn off all TPIC devices
@@ -253,6 +264,9 @@ public:
 		}
 	}
 
-	void taskChanged(Task & task, TaskManager & tm) override {
+	void taskDidUpdate(const Task & task) override {
+	}
+
+	void taskCollectionDidUpdate(const std::vector<Task> & tasks) override {
 	}
 };
