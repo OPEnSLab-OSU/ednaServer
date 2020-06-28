@@ -10,7 +10,7 @@
 class Status : public JsonDecodable,
 			   public JsonEncodable,
 			   public Printable,
-			   public KPStateMachineListener,
+			   public KPStateMachineObserver,
 			   public ValveObserver {
 public:
 	std::vector<int> valves;
@@ -57,10 +57,14 @@ private:
 	}
 
 	void valveDidUpdate(const Valve & valve) override {
+		valves[valve.id] = valve.status;
+		if (valve.status == ValveStatus::operating) {
+			currentValve = valve.id;
+		}
 	}
 
-	void stateTransitioned(const KPStateMachine & sm) override {
-		currentStateName = sm.getCurrentState()->getName();
+	void stateDidBegin(const KPState * current) override {
+		currentStateName = current->getName();
 	}
 
 public:
@@ -73,7 +77,6 @@ public:
 	}
 
 #pragma region JSONDECODABLE
-
 	static const char * decoderName() {
 		return "Status";
 	}
@@ -84,7 +87,7 @@ public:
 
 	// ────────────────────────────────────────────────────────────────────────────────
 	// May be used to resume operation in future versions.
-	// For now, status file is used to save valves status for next start up.
+	// For now, status file is used to save valves status for next startup.
 	// ────────────────────────────────────────────────────────────────────────────────
 	void decodeJSON(const JsonVariant & source) override {
 		const JsonArrayConst & source_valves = source[JsonKeys::VALVES].as<JsonArrayConst>();
@@ -92,10 +95,6 @@ public:
 		copyArray(source_valves, valves.data(), valves.size());
 	}
 
-	void load(const char * filepath) override {
-		JsonFileLoader loader;
-		loader.load(filepath, *this);
-	}
 #pragma endregion JSONDECODABLE
 #pragma region JSONENCODABLE
 	static const char * encoderName() {
@@ -121,14 +120,6 @@ public:
 			   && dest[SENSOR_FLOW].set(waterFlow)
 			   && dest[STATE_CURRENT_NAME].set(currentStateName)
 			   && dest[TASK_CURRENT_NAME].set(currentTaskName);
-	}
-
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Update the content of status file
-	// ────────────────────────────────────────────────────────────────────────────────
-	void save(const char * filepath) const override {
-		JsonFileLoader loader;
-		loader.save(filepath, *this);
 	}
 
 #pragma endregion JSONENCODABLE

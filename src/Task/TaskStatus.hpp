@@ -11,7 +11,7 @@
 class TaskStatus {
 public:
 	enum Code {
-		inactive,	// 0
+		inactive = 0,
 		active,		// 1
 		completed,	// 2
 		missed		// 3

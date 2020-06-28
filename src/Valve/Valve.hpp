@@ -1,12 +1,9 @@
 #pragma once
-#include <KPArray.hpp>
 #include <KPFoundation.hpp>
 
 #include <ArduinoJson.h>
-
 #include <Application/Constants.hpp>
 #include <Utilities/JsonEncodableDecodable.hpp>
-
 #include <Valve/ValveStatus.hpp>
 
 //
@@ -27,9 +24,11 @@ public:
 	Valve(const Valve & other) = default;
 	Valve & operator=(const Valve &) = default;
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Explicit construction from JSON Object
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Explicit construction of a new Valve object from JSON data
+	 *  
+	 *  @param data Data in form of ArduinoJson's JsonObject
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	explicit Valve(const JsonObject & data) {
 		decodeJSON(data);
 	}
@@ -45,11 +44,6 @@ public:
 
 	static constexpr size_t decoderSize() {
 		return ProgramSettings::VALVE_JSON_BUFFER_SIZE;
-	}
-
-	void load(const char * filepath) override {
-		JsonFileLoader loader;
-		loader.load(filepath, *this);
 	}
 
 	void decodeJSON(const JsonVariant & src) override {
@@ -79,15 +73,13 @@ public:
 			   && dst[VALVE_STATUS].set(status);
 	}
 
-	void save(const char * filepath) const override {
-		JsonFileLoader loader;
-		loader.save(filepath, *this);
-	}
 #pragma endregion
+#pragma region PRINTABLE
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<encoderSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, Serial);
 	}
+#pragma endregion
 };

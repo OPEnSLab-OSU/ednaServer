@@ -33,7 +33,6 @@ namespace ProgramSettings {
 	__k_int VALVE_JSON_BUFFER_SIZE	  = 500;
 	__k_int VALVEREF_JSON_BUFFER_SIZE = 50;
 	__k_int VALVE_GROUP_LENGTH		  = 25;
-
 };	// namespace ProgramSettings
 
 namespace ConfigKeys {

@@ -1,9 +1,9 @@
 #pragma once
+#include <KPObserver.hpp>
+#include <Task/Task.hpp>
 #include <vector>
-#include "Application/Observer.hpp"
-#include "Task.hpp"
 
-class TaskObserver : public Observer {
+class TaskObserver : public KPObserver {
 public:
 	static const char * ObserverName() {
 		return "TaskListner";

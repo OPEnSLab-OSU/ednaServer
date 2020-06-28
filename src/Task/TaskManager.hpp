@@ -1,5 +1,6 @@
 #pragma once
 #include <KPFoundation.hpp>
+#include <KPSubject.hpp>
 #include <KPDataStoreInterface.hpp>
 
 #include <Task/Task.hpp>
@@ -16,11 +17,13 @@
 class TaskManager : public KPComponent,
 					public JsonEncodable,
 					public Printable,
-					public Subject<TaskObserver> {
+					public KPSubject<TaskObserver> {
+private:
+	std::unordered_map<int, Task> tasks;
+
 public:
+	// std::vector<Task> tasks;
 	const char * taskFolder = nullptr;
-	std::vector<Task> tasks;
-	std::vector<TaskObserver *> listeners;
 
 	TaskManager()
 		: KPComponent("TaskManager") {}
@@ -29,134 +32,167 @@ public:
 		taskFolder = config.taskFolder;
 	}
 
-	/**
-	 * @brief Return index of the task with name
-	 * 
-	 * @param name name of the task
-	 * @return int index of the task in the task array, otherwise -1.
-	 */
-	int findTaskWithName(const char * name) {
-		auto iter = std::find_if(tasks.begin(), tasks.end(), [name](const Task & t) {
-			return strcmp(t.name, name) == 0;
-		});
-
-		auto d = std::distance(tasks.begin(), iter);
-		return (size_t) d == tasks.size() ? -1 : d;
+	Task createTask() {
+		Task task;
+		task.id		  = random(1, RAND_MAX);
+		task.schedule = now() - 1;
+		return task;
 	}
 
+	const std::unordered_map<int, Task> & taskCollection() const {
+		return tasks;
+	}
+
+	bool setTaskStatus(int id, TaskStatus status) {
+		if (tasks.find(id) == tasks.end()) {
+			return false;
+		}
+
+		tasks[id].status = status;
+		updateObservers(&TaskObserver::taskDidUpdate, tasks[id]);
+	}
+
+	int numberOfActiveTasks() {
+		return std::count_if(tasks.begin(), tasks.end(), [](const std::pair<int, Task> & kv) {
+			return kv.second.status == TaskStatus::active;
+		});
+	}
+
+	bool markTaskAsCompleted(int id) {
+		if (tasks.find(id) == tasks.end()) {
+			return false;
+		}
+
+		tasks[id].status = TaskStatus::completed;
+		return true;
+	}
+
+	bool removeTask(int id) {
+		return tasks.erase(id);
+	}
+
+	int removeIf(std::function<bool(const Task &)> predicate) {
+		int oldSize = tasks.size();
+		for (auto it = tasks.begin(); it != tasks.end();) {
+			if (predicate(it->second)) {
+				it = tasks.erase(it);
+			} else {
+				it++;
+			}
+		}
+		return oldSize - tasks.size();
+	}
+
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Load all tasks object from the specified directory in the SD card
+	 *  
+	 *  @param _dir 
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void loadTasksFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
-		// Load task index file and set the number of tasks
+		// Load task index file and get the number of tasks
 		KPStringBuilder<32> indexFilepath(dir, "/index.js");
 		StaticJsonDocument<100> indexFile;
 		loader.load(indexFilepath, indexFile);
-		tasks.resize(indexFile["count"]);
 
 		// Decode each task object into memory
-		for (unsigned int i = 0; i < tasks.size(); i++) {
+		int count = indexFile["count"];
+		for (int i = 0; i < count; i++) {
 			KPStringBuilder<32> filepath(dir, "/task-", i, ".js");
-			tasks[i].load(filepath);
+			Task task;
+			loader.load(filepath, task);
+			insert(task, false);  // All tasks in the SD card should be unique
 		}
 	}
 
 	// Performe identity check and update the task
-	int updateTaskWithData(JsonDocument & data, JsonDocument & response) {
-		serializeJsonPretty(data, Serial);
+	// int updateTaskWithData(JsonDocument & data, JsonDocument & response) {
+	// 	serializeJsonPretty(data, Serial);
 
-		using namespace JsonKeys;
-		int index = findTaskWithName(data[TASK_NAME]);
-		if (index == -1) {
-			response["error"] = "No task with such name";
-			return -1;
-		}
+	// 	using namespace JsonKeys;
+	// 	int index = findTaskWithName(data[TASK_NAME]);
+	// 	if (index == -1) {
+	// 		response["error"] = "No task with such name";
+	// 		return -1;
+	// 	}
 
-		// Check there is a task with newName then
-		// replaces the name with new name if none is found
-		if (data.containsKey(TASK_NEW_NAME)) {
-			if (findTaskWithName(data[TASK_NEW_NAME]) == -1) {
-				data[TASK_NAME] = data[TASK_NEW_NAME];
-			} else {
-				KPStringBuilder<64> error("Task with name ", data[TASK_NEW_NAME].as<char *>(), " already exist");
-				response["error"] = (char *) error.c_str();
-				return -1;
+	// 	// Check there is a task with newName then
+	// 	// replaces the name with new name if none is found
+	// 	if (data.containsKey(TASK_NEW_NAME)) {
+	// 		if (findTaskWithName(data[TASK_NEW_NAME]) == -1) {
+	// 			data[TASK_NAME] = data[TASK_NEW_NAME];
+	// 		} else {
+	// 			KPStringBuilder<64> error("Task with name ", data[TASK_NEW_NAME].as<char *>(), " already exist");
+	// 			response["error"] = (char *) error.c_str();
+	// 			return -1;
+	// 		}
+	// 	}
+
+	// 	JsonVariant payload = response.createNestedObject("payload");
+	// 	tasks[index]		= Task(data.as<JsonObject>());
+	// 	tasks[index].encodeJSON(payload);
+
+	// 	KPStringBuilder<100> success("Saved", data[TASK_NAME].as<char *>());
+	// 	response["success"] = (char *) success.c_str();
+	// 	return index;
+	// }
+
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Get the Active Task Ids sorted by their schedules (<)
+	 *  
+	 *  @return std::vector<int> list of ids
+	 *  ──────────────────────────────────────────────────────────────────────────── */
+	std::vector<int> getActiveSortedTaskIds() {
+		std::vector<int> result;
+		result.reserve(tasks.size());
+
+		for (const auto & kv : tasks) {
+			if (kv.second.status == TaskStatus::active) {
+				result.push_back(kv.first);
 			}
 		}
 
-		JsonVariant payload = response.createNestedObject("payload");
-		tasks[index]		= Task(data.as<JsonObject>());
-		tasks[index].encodeJSON(payload);
+		std::sort(result.begin(), result.end(), [this](int a, int b) {
+			return tasks[a].schedule < tasks[b].schedule;
+		});
 
-		KPStringBuilder<100> success("Saved", data[TASK_NAME].as<char *>());
-		response["success"] = (char *) success.c_str();
-		return index;
+		return result;
 	}
 
-	// TODO: Server-side validation
-	int validateTask(Task & task) {
-		// Application & app = *static_cast<Application *>(controller);
-		// task.schedule > now
-		if (task.schedule < now() && task.schedule != -1) {
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Insert task into TaskManager's internal data structure 
+	 *  
+	 *  @param task Task object to be inserted 
+	 *  @param forced Forced ID generation if task.id already exists
+	 *  @return bool true on successful insertion, false otherwise
+	 *  ──────────────────────────────────────────────────────────────────────────── */
+	bool insert(Task & task, bool forced = false) {
+		if (forced) {
+			while (tasks.insert({task.id, task}).second == false) {
+				task.id = random(RAND_MAX);
+			}
+
+			return true;
 		}
-		return 0;
-	}
 
-	// TODO: Server-side validation
-	int validateTask(Task & task, JsonDocument & response) {
-		return 0;
-	}
+		if (tasks.find(task.id) == tasks.end()) {
+			return false;
+		}
 
-	void setTaskStatus(int index, TaskStatus status) {
-		tasks[index].status = status;
-		updateObservers(&TaskObserver::taskDidUpdate, tasks[index]);
-	}
-
-	bool containsActiveTask() {
-		return std::find_if(tasks.begin(), tasks.end(), [](const Task & t) {
-			return t.status == TaskStatus::active;
-		}) != tasks.end();
-	}
-
-	// Get next closest task with active status
-	// This method mutates class member
-	Task * nearestActiveTask() {
-		// First we sort tasks according to their schedule time
-		std::sort(tasks.begin(), tasks.end(), [](const Task & a, const Task & b) {
-			return a.schedule < b.schedule;
-		});
-
-		// Then we partition the ones with active status to the left
-		std::stable_partition(tasks.begin(), tasks.end(), [](const Task & a) {
-			return a.status == TaskStatus::active;
-		});
-
-		// Return pointer to the first element or nulltptr if none
-		return (tasks.empty() || tasks.front().status != TaskStatus::active) ? nullptr : &tasks.front();
-	}
-
-	// Create add a new task to task array and write to SD
-	void createTask(const JsonObject & src) {
-		Task task(src);
-		task.schedule = now() - 1;
-		tasks.push_back(task);
+		tasks.insert({task.id, task});
 		writeTaskArrayToDirectory();
+		return true;
 	}
 
-	void add(const Task & task) {
-		tasks.push_back(task);
-		writeTaskArrayToDirectory();
-	}
-
-	void markTaskAsCompleted(Task & task) {
-		task.markAsCompleted();
-	}
-
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Update the index file which has meta data about the tasks
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Update the index file containing info about tasks
+	 *  
+	 *  @param _dir Path to tasks directory (default=~/tasks)
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void updateIndexFile(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
@@ -169,7 +205,11 @@ public:
 		loader.save(indexFilepath, indexJson);
 	}
 
-	// Write task array to SD directory
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Write task array to SD directory
+	 *  
+	 *  @param _dir Path to tasks directory (default=~/tasks)
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void writeTaskArrayToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
@@ -185,55 +225,37 @@ public:
 		updateIndexFile(dir);
 	}
 
-	void deleteTask(int index) {
-		if (index < 0 || (size_t) index >= tasks.size()) {
-			raise("TaskManager.deleteTask: Index out of range");
-		}
-
-		tasks.erase(tasks.begin() + index);
-	}
-
-	void cleanUpCompletedTasks() {
-		auto predicate = std::remove_if(tasks.begin(), tasks.end(), [](const Task & task) {
-			return task.status == TaskStatus::completed && task.deleteOnCompletion;	 // put your condition here
-		});
-
-		println("Size before: ", tasks.size());
-		tasks.erase(predicate, tasks.end());
-		println("Size after: ", tasks.size());
-	}
-
-	//
-	// ─── SECTION JSONDECODABLE COMPLIANCE ──────────────────────────────────────────────
-	//
-
+#pragma region JSONENCODABLE
 	static const char * encoderName() {
 		return "TaskManager";
 	}
 
 	static constexpr size_t encoderSize() {
-		return Task::encoderSize() * 10;
+		return Task::encoderSize() * 5;
 	}
 
 	bool encodeJSON(const JsonVariant & dst) const override {
-		for (const Task & t : tasks) {
+		for (const auto & kv : tasks) {
 			JsonVariant obj = dst.createNestedObject();
-			if (!t.encodeJSON(obj)) {
+			if (!kv.second.encodeJSON(obj)) {
 				return false;
 			}
 		}
 
 		return true;
 	}
+#pragma endregion
+#pragma region PRINTABLE
 
 	size_t printTo(Print & p) const {
 		size_t charWritten = 0;
 		charWritten += p.println("[");
-		for (auto & task : tasks) {
-			charWritten += p.print(task);
+		for (const auto & kv : tasks) {
+			charWritten += p.print(kv.second);
 			charWritten += p.println(",");
 		}
-		charWritten += p.println("]");
-		return charWritten;
+
+		return charWritten + p.println("]");
 	}
+#pragma endregion
 };

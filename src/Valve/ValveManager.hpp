@@ -1,8 +1,7 @@
 #pragma once
 #include <KPFoundation.hpp>
-
+#include <KPSubject.hpp>
 #include <Application/Config.hpp>
-#include <Application/Subject.hpp>
 #include <Valve/Valve.hpp>
 #include <Valve/ValveStatus.hpp>
 #include <Valve/ValveObserver.hpp>
@@ -16,22 +15,18 @@
 //   ────────────────────────────────────────────────────────────────────────────
 //
 
-/** ────────────────────────────────────────────────────────────────────────────────
- * @brief This object providse APIs for keeping track of the valve system
- * 
-**/
 class ValveManager : public JsonEncodable,
-					 public Subject<ValveObserver> {
+					 public KPSubject<ValveObserver> {
 public:
 	std::vector<Valve> valves;
 	const char * valveFolder = nullptr;
 
-	/** ────────────────────────────────────────────────────────────────────────────────
-	 * @brief Initialize ValveManager with the config object. This method sets
-	 * status for each valve according to config object.
-	 *
-	 * @param config Config object containing meta information about the system
-	**/
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Initialize ValveManager with the config object. This method sets
+	 *  status for each valve according to config object.
+	 *  
+	 *  @param config onfig object containing meta information about the system
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void init(Config & config) {
 		valveFolder = config.valveFolder;
 		valves.resize(config.numberOfValves);
@@ -41,23 +36,16 @@ public:
 		}
 	}
 
-	/** ────────────────────────────────────────────────────────────────────────────────
-	 * @brief Set the status of the valve to the specified status 
-	 *
-	 * @param id Id of the valve
-	 * @param status Status to set valve to
-	**/
 	void setValveStatus(int id, ValveStatus status) {
 		valves[id].setStatus(status);
-
 		updateObservers(&ValveObserver::valveDidUpdate, valves[id]);
 	}
 
-	/** ────────────────────────────────────────────────────────────────────────────────
-	 * @brief Set the status of the valve to "free" if the valve is not yet sampled
-	 *
-	 * @param id Id of the valve (usally the index number)
-	**/
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Set the status of the valve to "free" if the valve is not yet sampled
+	 *  
+	 *  @param id Id of the valve (usally the index number)
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void setValveFreeIfNotYetSampled(int id) {
 		if (valves[id].status != ValveStatus::sampled) {
 			setValveStatus(id, ValveStatus::free);
@@ -65,11 +53,11 @@ public:
 		}
 	}
 
-	/** ────────────────────────────────────────────────────────────────────────────────
-	 * @brief Update valve objects from JSON array
-	 *
-	 * @param task_array JSON Array encoded by ArduinoJson 
-	**/
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Update valve objects from JSON array
+	 *  
+	 *  @param task_array SON Array encoded by ArduinoJson 
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void updateValves(const JsonArray & task_array) {
 		for (const JsonObject & object : task_array) {
 			int id = object[JsonKeys::VALVE_ID];
@@ -85,23 +73,23 @@ public:
 		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 
-	/** ────────────────────────────────────────────────────────────────────────────────
-	 * @brief Reading and decode each JSON file in the given directory to
-	 * corresponding valve object.
-	 *
-	 * @param _dir Path to the valve folder (default=~/valves)
-	**/
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Reading and decode each JSON file in the given directory to
+	 *  corresponding valve object.
+	 *  
+	 *  @param _dir Path to the valve folder (default=~/valves)
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void loadValvesFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
-		FileLoader loader;
+		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
 		unsigned long start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
 			KPStringBuilder<32> filename("valve-", i, ".js");
 			KPStringBuilder<64> filepath(dir, "/", filename);
-			valves[i].load(filepath);
+			loader.load(filepath, valves[i]);
 		}
 
 		PrintConfig::setPrintVerbose(Verbosity::debug);
@@ -111,23 +99,23 @@ public:
 		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 
-	/** ────────────────────────────────────────────────────────────────────────────────
-	 * @brief Encode and store each valve object to corresponding JSON file in the
-	 * given directory
-	 *
-	 * @param _dir Path to the valve folder (default=~/valves)
-	**/
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Encode and store each valve object to corresponding JSON file in the
+	 *  given directory
+	 *  
+	 *  @param _dir Path to the valve folder (default=~/valves)
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void writeValvesToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
-		FileLoader loader;
+		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
 		unsigned long start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
 			KPStringBuilder<32> filename("valve-", i, ".js");
 			KPStringBuilder<64> filepath(dir, "/", filename);
-			valves[i].save(filepath);
+			loader.save(filepath, valves[i]);
 		}
 
 		PrintConfig::setPrintVerbose(Verbosity::debug);

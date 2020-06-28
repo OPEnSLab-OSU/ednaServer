@@ -14,9 +14,6 @@ public:
 
 	static constexpr size_t decoderSize();
 	virtual void decodeJSON(const JsonVariant & source) = 0;
-	virtual void load(const char * filepath) {
-		raise(Error("JsonDecodable load needs override"));
-	}
 };
 
 inline void decodeJSON(JsonDecodable & decoder, const JsonVariant & source) {
@@ -34,9 +31,6 @@ public:
 
 	static const size_t encoderSize();
 	virtual bool encodeJSON(const JsonVariant & dest) const = 0;
-	virtual void save(const char * filepath) const {
-		raise(Error("JsonEncodable save needs override"));
-	}
 };
 
 inline void encodeJSON(JsonEncodable & encoder, const JsonVariant & dest) {

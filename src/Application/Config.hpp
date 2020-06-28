@@ -7,14 +7,17 @@
 
 #include <ArduinoJson.h>
 
-// ────────────────────────────────────────────────────────────────────────────────
-// ─── SECTION CONFIG ─────────────────────────────────────────────────────────────
-// ────────────────────────────────────────────────────────────────────────────────
 //
-// NOTE This object is intended to be read-only and represents to actual data in the
-// config file in SD card
+// ──────────────────────────────────────────────────── I ──────────
+//   :::::: C O N F I G : :  :   :    :     :        :          :
+// ──────────────────────────────────────────────────────────────
+//
+// NOTE: This object is intended to be read-only and mirrors actual data in the
+// config file
 // ────────────────────────────────────────────────────────────────────────────────
-class Config : public JsonDecodable, public JsonEncodable, public Printable {
+class Config : public JsonDecodable,
+			   public JsonEncodable,
+			   public Printable {
 public:
 	int valveUpperBound;
 	int numberOfValves;
@@ -53,7 +56,6 @@ public:
 		valveUpperBound = source[VALVE_UPPER_BOUND];
 		numberOfValves	= valveUpperBound + 1;
 
-		// <- valves
 		JsonArrayConst config_valves = source[VALVES_FREE].as<JsonArrayConst>();
 		for (int freeValveId : config_valves) {
 			if (freeValveId < 0) {
@@ -75,11 +77,7 @@ public:
 		strncpy(valveFolder, source[FOLDER_VALVE], SD_FILE_NAME_LENGTH);
 	}
 
-	void load(const char * filepath = nullptr) override {
-		JsonFileLoader loader;
-		loader.load(configFilepath, *this);
-	}
-
+#pragma region JSONENCODABLE
 	static const char * encoderName() {
 		return "config";
 	}
@@ -101,7 +99,8 @@ public:
 			   && dest[FOLDER_TASK].set((char *) taskFolder)
 			   && dest[FOLDER_VALVE].set((char *) valveFolder);
 	}
-
+#pragma endregion
+#pragma region PRINTABLE
 	size_t printTo(Print & p) const override {
 		using namespace ConfigKeys;
 		StaticJsonDocument<encoderSize()> doc;
@@ -109,4 +108,5 @@ public:
 
 		return serializeJsonPretty(doc, Serial);
 	}
+#pragma endregion
 };

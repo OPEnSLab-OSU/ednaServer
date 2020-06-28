@@ -97,7 +97,7 @@ void Application::setupServerRouting() {
 		if (index == -1) {
 			Task new_task(body.as<JsonObject>());
 			new_task.schedule = now() - 1;
-			tm.add(new_task);
+			tm.insert(new_task);
 			tm.writeTaskArrayToDirectory();
 
 			// success response
@@ -148,7 +148,7 @@ void Application::setupServerRouting() {
 		const int index	  = tm.findTaskWithName(name);
 		if (index != -1) {
 			//TODO: perform server validation
-			if (tm.tasks[index].size() == 0) {
+			if (tm.tasks[index].numberOfValves() == 0) {
 				response["error"] = "Cannot schedule a task without an assigned valve";
 				goto send;
 			}
@@ -184,7 +184,7 @@ void Application::setupServerRouting() {
 		if (index != -1) {
 			tm.setTaskStatus(index, TaskStatus::inactive);
 			tm.writeTaskArrayToDirectory();
-			clearRemainingValves(tm.tasks[index]);
+			invalidateValvesForTask(tm.tasks[index]);
 			tm.tasks[index].markAsCompleted();
 
 			JsonVariant payload = response.createNestedObject("payload");
@@ -223,7 +223,7 @@ void Application::setupServerRouting() {
 
 		// If no error
 		if (!response.containsKey("error")) {
-			tm.deleteTask(index);
+			tm.removeTask(index);
 			tm.writeTaskArrayToDirectory();
 			response["success"] = "Task deleted";
 		}
@@ -299,6 +299,7 @@ public:
 	auto & parts = parser.parts;
 
 void Application::commandReceived(const String & line) {
+	JsonFileLoader loader;
 	BeginParsing(line);
 
 	Match(0, "test") {
@@ -309,11 +310,11 @@ void Application::commandReceived(const String & line) {
 
 	Match(1, "status") {
 		Match(0, "read") {
-			status.load(config.statusFile);
+			loader.load(config.statusFile, status);
 		}
 
 		Match(0, "save") {
-			status.save(config.statusFile);
+			loader.save(config.statusFile, status);
 		}
 
 		Match(0, "print") {
@@ -325,7 +326,7 @@ void Application::commandReceived(const String & line) {
 
 	Match(1, "config") {
 		Match(0, "load") {
-			config.load();
+			loader.load(config.configFilepath, config);
 		}
 
 		Match(0, "print") {
@@ -385,7 +386,7 @@ void Application::commandReceived(const String & line) {
 		}
 
 		Match(0, "clean") {
-			tm.cleanUpCompletedTasks();
+			tm.removeIf([](const Task & task) { return task.status == TaskStatus::completed; });
 			tm.writeTaskArrayToDirectory();
 		}
 	}
@@ -401,12 +402,12 @@ void Application::commandReceived(const String & line) {
 	}
 
 	Match(0, "schedule") Match(1, "now") {
-		Task task;
+		Task task				= tm.createTask();
 		task.schedule			= now() + 5;
 		task.sampleTime			= 5;
 		task.deleteOnCompletion = true;
 		task.status				= TaskStatus::active;
-		tm.add(task);
+		tm.insert(task);
 		scheduleNextActiveTask();
 	}
 

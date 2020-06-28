@@ -15,12 +15,12 @@ namespace StateName {
 
 class StateIdle : public KPState {
 public:
-	void enter(KPStateMachine & sm) override;
+	void enter(KPStateMachine & machine) override;
 };
 
 class StateStop : public KPState {
 public:
-	void enter(KPStateMachine & sm) override;
+	void enter(KPStateMachine & machine) override;
 };
 
 class StatePreserve : public KPState {

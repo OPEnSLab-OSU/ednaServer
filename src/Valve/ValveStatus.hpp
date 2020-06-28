@@ -1,12 +1,12 @@
 #pragma once
 
 //
-// ────────────────────────────────────────────────────────────────────────── I ──────────
-//   :::::: V A L V E   S T A T U S   E N U M : :  :   :    :     :        :          :
-// ────────────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────── I ──────────
+//   :::::: V A L V E   S T A T U S : :  :   :    :     :        :          :
+// ──────────────────────────────────────────────────────────────────────────
 //
-// This pattern provides the same scoping functionality as class enum but is a class and
-// therefore much more powerful
+// This pattern provides the same scoping functionality as class enum but is
+// actually a class and therefore much more powerful
 //
 class ValveStatus {
 public:
