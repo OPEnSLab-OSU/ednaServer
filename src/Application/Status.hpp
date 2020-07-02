@@ -24,8 +24,8 @@ public:
 	float waterDepth  = 0;
 	float waterFlow	  = 0;
 
-	const char * currentStateName = nullptr;
-	const char * currentTaskName  = nullptr;
+	KPString currentStateName = nullptr;
+	KPString currentTaskName  = nullptr;
 
 	bool isFull			 = false;
 	bool preventShutdown = false;
@@ -34,11 +34,11 @@ public:
 	Status(const Status &) = delete;
 	Status & operator=(const Status &) = delete;
 
-	/** ────────────────────────────────────────────────────────────────────────────────
-	 * @brief Initialize status from user config
-	 * 
-	 * @param config Config object containing meta data of the system
-	**/
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Initialize status from user config
+	 *  
+	 *  @param config Config object containing meta data of the system
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void init(Config & config) {
 		valves.resize(config.numberOfValves);
 		memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
@@ -63,17 +63,28 @@ private:
 		}
 	}
 
+	static const char * ObserverName() {
+		return "Status-StateMachineObserver";
+	}
+
 	void stateDidBegin(const KPState * current) override {
 		currentStateName = current->getName();
+		println(currentStateName);
 	}
 
 public:
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Override_Mode_Pin is connected to an external switch which is active low.
-	// Checking <= 100 to accomodate for noisy signal.
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Override_Mode_Pin is connected to an external switch which is active low.
+	 *  Override_Mode_Pin is connected to an external switch which is active low.
+	 * 
+	 *  @return bool true if machine is in programming mode, false otherwise
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	static bool isProgrammingMode() {
+#ifdef DEBUG
+		return true;
+#else
 		return analogRead(HardwarePins::SHUTDOWN_OVERRIDE) <= 100;
+#endif
 	}
 
 #pragma region JSONDECODABLE
@@ -81,16 +92,18 @@ public:
 		return "Status";
 	}
 
-	static constexpr size_t decoderSize() {
+	static constexpr size_t decodingSize() {
 		return ProgramSettings::STATUS_JSON_BUFFER_SIZE;
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// May be used to resume operation in future versions.
-	// For now, status file is used to save valves status for next startup.
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief May be used to resume operation in future versions. For now, 
+	 *  status file is used to save valves status for next startup.
+	 * 
+	 *  @param source 
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void decodeJSON(const JsonVariant & source) override {
-		const JsonArrayConst & source_valves = source[JsonKeys::VALVES].as<JsonArrayConst>();
+		const JsonArrayConst & source_valves = source[StatusKeys::VALVES].as<JsonArrayConst>();
 		valves.resize(source_valves.size());
 		copyArray(source_valves, valves.data(), valves.size());
 	}
@@ -101,13 +114,12 @@ public:
 		return "Status";
 	}
 
-	static constexpr size_t encoderSize() {
+	static constexpr size_t encodingSize() {
 		return ProgramSettings::STATUS_JSON_BUFFER_SIZE;
 	}
 
 	bool encodeJSON(const JsonVariant & dest) const override {
-		using namespace JsonKeys;
-
+		using namespace StatusKeys;
 		JsonArray doc_valves = dest.createNestedArray(VALVES);
 		copyArray(valves.data(), valves.size(), doc_valves);
 
@@ -118,14 +130,14 @@ public:
 			   && dest[SENSOR_VOLUME].set(waterVolume)
 			   && dest[SENSOR_DEPTH].set(waterDepth)
 			   && dest[SENSOR_FLOW].set(waterFlow)
-			   && dest[STATE_CURRENT_NAME].set(currentStateName)
-			   && dest[TASK_CURRENT_NAME].set(currentTaskName);
+			   && dest[CURRENT_TASK].set(currentStateName)
+			   && dest[CURRENT_STATE].set(currentTaskName);
 	}
 
 #pragma endregion JSONENCODABLE
 #pragma region PRINTABLE
 	size_t printTo(Print & printer) const override {
-		StaticJsonDocument<encoderSize()> doc;
+		StaticJsonDocument<encodingSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, printer);

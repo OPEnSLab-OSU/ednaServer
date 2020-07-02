@@ -2,9 +2,11 @@
 #define __k_str constexpr const char *
 #define __k_int constexpr int
 
-#define AirValvePinNumber	  2
-#define AlcoholValvePinNumber 3
-#define FlushValvePinNumber	  5
+namespace TPICDevices {
+	__k_int AIR_VALVE	   = 2;
+	__k_int ALCHOHOL_VALVE = 3;
+	__k_int FLUSH_VALVE	   = 5;
+};	// namespace TPICDevices
 
 namespace HardwarePins {
 	__k_int POWER_MODULE	  = A0;
@@ -35,6 +37,19 @@ namespace ProgramSettings {
 	__k_int VALVE_GROUP_LENGTH		  = 25;
 };	// namespace ProgramSettings
 
+namespace TaskSettings {
+	__k_int NAME_LENGTH	 = 25;
+	__k_int GROUP_LENGTH = 25;
+	__k_int NOTES_LENGTH = 80;
+};	// namespace TaskSettings
+
+//
+// ────────────────────────────────────────────────────────── I ──────────
+//   :::::: J S O N   K E Y S : :  :   :    :     :        :          :
+// ────────────────────────────────────────────────────────────────────
+//
+// These are used to retrieve values from ArduinoJson's JSON Object
+
 namespace ConfigKeys {
 	__k_str VALVES_FREE		  = "freeValves";
 	__k_str VALVE_UPPER_BOUND = "valveUpperBound";
@@ -44,42 +59,49 @@ namespace ConfigKeys {
 	__k_str FOLDER_VALVE	  = "valveFolder";
 }  // namespace ConfigKeys
 
-namespace TaskSettings {
-	__k_int NAME_LENGTH	 = 25;
-	__k_int GROUP_LENGTH = 25;
-	__k_int NOTES_LENGTH = 80;
-};	// namespace TaskSettings
+namespace TaskKeys {
+	__k_str ID				= "id";
+	__k_str NAME			= "name";
+	__k_str STATUS			= "status";
+	__k_str VALVES			= "valves";
+	__k_str VALVES_OFFSET	= "valvesOffset";
+	__k_str CREATED_AT		= "createdAt";
+	__k_str SCHEDULE		= "schedule";
+	__k_str TIME_BETWEEN	= "timeBetween";
+	__k_str NOTES			= "notes";
+	__k_str DELETE			= "deleteOnCompletion";
+	__k_str FLUSH_TIME		= "flushTime";
+	__k_str FLUSH_VOLUME	= "flushVolume";
+	__k_str SAMPLE_TIME		= "sampleTime";
+	__k_str SAMPLE_PRESSURE = "samplePressure";
+	__k_str SAMPLE_VOLUME	= "sampleVolume";
+	__k_str DRY_TIME		= "dryTime";
+	__k_str PRESERVE_TIME	= "preserveTime";
+}  // namespace TaskKeys
 
-namespace JsonKeys {
-	__k_str STATE_ID			  = "stateId";
-	__k_str STATE_CURRENT_NAME	  = "stateCurrentName";
-	__k_str STATE_NAME			  = "stateName";
-	__k_str STATE_INDEX			  = "stateIndex";
-	__k_str VALVES				  = "valves";
-	__k_str VALVES_COUNT		  = "valvesCount";
-	__k_str VALVE_ID			  = "valveId";
-	__k_str VALVE_GROUP			  = "valveGroup";
-	__k_str VALVE_SCHEDULE		  = "valveSchedule";
-	__k_str VALVE_CURRENT		  = "valveCurrent";
-	__k_str VALVE_STATUS		  = "valveStatus";
-	__k_str VALVE_FLUSH_TIME	  = "valveFlushTime";
-	__k_str VALVE_FLUSH_VOLUME	  = "valveFlushVolume";
-	__k_str VALVE_SAMPLE_TIME	  = "valveSampleTime";
-	__k_str VALVE_SAMPLE_PRESSURE = "valveSamplePressure";
-	__k_str VALVE_SAMPLE_VOLUME	  = "valveSampleVolume";
-	__k_str VALVE_DRY_TIME		  = "valveDryTime";
-	__k_str VALVE_PRESERVE_TIME	  = "valvePreserveTime";
-	__k_str TASK_CURRENT_NAME	  = "taskCurrentName";
-	__k_str TASK_NAME			  = "name";
-	__k_str TASK_NEW_NAME		  = "newName";
-	__k_str TIME_UTC			  = "timeUTC";
-	__k_str SENSOR_PRESSURE		  = "pressure";
-	__k_str SENSOR_TEMP			  = "temperature";
-	__k_str SENSOR_BARO			  = "barometric";
-	__k_str SENSOR_VOLUME		  = "waterVolume";
-	__k_str SENSOR_FLOW			  = "waterFlow";
-	__k_str SENSOR_DEPTH		  = "waterDepth";
-};	// namespace JsonKeys
+namespace ValveKeys {
+	__k_str ID	   = "id";
+	__k_str STATUS = "status";
+	__k_str GROUP  = "group";
+}  // namespace ValveKeys
+
+namespace StatusKeys {
+	__k_str VALVE_ID		= "valveId";
+	__k_str VALVE_GROUP		= "valveGroup";
+	__k_str VALVE_SCHEDULE	= "valveSchedule";
+	__k_str VALVE_CURRENT	= "valveCurrent";
+	__k_str VALVE_STATUS	= "valveStatus";
+	__k_str VALVES			= "valves";
+	__k_str VALVES_COUNT	= "valvesCount";
+	__k_str SENSOR_PRESSURE = "pressure";
+	__k_str SENSOR_TEMP		= "temperature";
+	__k_str SENSOR_BARO		= "barometric";
+	__k_str SENSOR_VOLUME	= "waterVolume";
+	__k_str SENSOR_FLOW		= "waterFlow";
+	__k_str SENSOR_DEPTH	= "waterDepth";
+	__k_str CURRENT_TASK	= "currentTaskName";
+	__k_str CURRENT_STATE	= "currentStateName";
+};	// namespace StatusKeys
 
 #undef __k_str
 #undef __k_int

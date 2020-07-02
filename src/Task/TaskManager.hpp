@@ -10,16 +10,14 @@
 #include <vector>
 #include "SD.h"
 
-/**
- * @brief Manages and keeping track of tasks
- * 
- */
 class TaskManager : public KPComponent,
 					public JsonEncodable,
 					public Printable,
 					public KPSubject<TaskObserver> {
-private:
-	std::unordered_map<int, Task> tasks;
+public:
+	using CollectionType = std::unordered_map<int, Task>;
+	using EntryType		 = CollectionType::value_type;
+	CollectionType tasks;
 
 public:
 	// std::vector<Task> tasks;
@@ -32,15 +30,34 @@ public:
 		taskFolder = config.taskFolder;
 	}
 
+	int generateTaskId() const {
+		return random(1, RAND_MAX);
+	}
+
 	Task createTask() {
 		Task task;
-		task.id		  = random(1, RAND_MAX);
-		task.schedule = now() - 1;
+		task.id		   = generateTaskId();
+		task.createdAt = now();
+		task.schedule  = now();
 		return task;
 	}
 
-	const std::unordered_map<int, Task> & taskCollection() const {
+	const CollectionType & taskCollection() const {
 		return tasks;
+	}
+
+	bool advanceTask(int id) {
+		if (!findTask(id)) {
+			return false;
+		}
+
+		auto & task	  = tasks[id];
+		task.schedule = now() + std::max(task.timeBetween, 5);
+		if (++task.m_valveOffset >= task.numberOfValves()) {
+			return markTaskAsCompleted(id);
+		}
+
+		return true;
 	}
 
 	bool setTaskStatus(int id, TaskStatus status) {
@@ -50,10 +67,11 @@ public:
 
 		tasks[id].status = status;
 		updateObservers(&TaskObserver::taskDidUpdate, tasks[id]);
+		return true;
 	}
 
-	int numberOfActiveTasks() {
-		return std::count_if(tasks.begin(), tasks.end(), [](const std::pair<int, Task> & kv) {
+	int numberOfActiveTasks() const {
+		return std::count_if(tasks.begin(), tasks.end(), [](const EntryType & kv) {
 			return kv.second.status == TaskStatus::active;
 		});
 	}
@@ -63,30 +81,50 @@ public:
 			return false;
 		}
 
-		tasks[id].status = TaskStatus::completed;
+		auto & task = tasks[id];
+		if (task.deleteOnCompletion) {
+			println("DELETED: ", id);
+			deleteTask(id);
+		} else {
+			task.status = TaskStatus::completed;
+			updateObservers(&TaskObserver::taskDidUpdate, task);
+		}
+
 		return true;
 	}
 
-	bool removeTask(int id) {
-		return tasks.erase(id);
+	bool findTask(int id) const {
+		return tasks.find(id) != tasks.end();
 	}
 
-	int removeIf(std::function<bool(const Task &)> predicate) {
+	bool deleteTask(int id) {
+		if (tasks.erase(id)) {
+			updateObservers(&TaskObserver::taskDidDelete, id);
+			return true;
+		}
+
+		return false;
+	}
+
+	int deleteIf(std::function<bool(const Task &)> predicate) {
 		int oldSize = tasks.size();
 		for (auto it = tasks.begin(); it != tasks.end();) {
 			if (predicate(it->second)) {
-				it = tasks.erase(it);
+				auto id = it->first;
+				it		= tasks.erase(it);
+				updateObservers(&TaskObserver::taskDidDelete, id);
 			} else {
 				it++;
 			}
 		}
+
 		return oldSize - tasks.size();
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Load all tasks object from the specified directory in the SD card
 	 *  
-	 *  @param _dir 
+	 *  @param _dir Path to tasks directory (default=~/tasks)
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void loadTasksFromDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
@@ -105,7 +143,7 @@ public:
 			KPStringBuilder<32> filepath(dir, "/task-", i, ".js");
 			Task task;
 			loader.load(filepath, task);
-			insert(task, false);  // All tasks in the SD card should be unique
+			tasks.insert({task.id, task});
 		}
 	}
 
@@ -170,22 +208,16 @@ public:
 	 *  @param forced Forced ID generation if task.id already exists
 	 *  @return bool true on successful insertion, false otherwise
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	bool insert(Task & task, bool forced = false) {
+	bool insertTask(Task & task, bool forced = false) {
 		if (forced) {
-			while (tasks.insert({task.id, task}).second == false) {
+			while (!tasks.insert({task.id, task}).second) {
 				task.id = random(RAND_MAX);
 			}
 
 			return true;
 		}
 
-		if (tasks.find(task.id) == tasks.end()) {
-			return false;
-		}
-
-		tasks.insert({task.id, task});
-		writeTaskArrayToDirectory();
-		return true;
+		return tasks.insert({task.id, task}).second;
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
@@ -210,16 +242,20 @@ public:
 	 *  
 	 *  @param _dir Path to tasks directory (default=~/tasks)
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void writeTaskArrayToDirectory(const char * _dir = nullptr) {
+	void writeToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : taskFolder;
 
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
-		for (size_t i = 0; i < tasks.size(); i++) {
+		println("Task size: ", tasks.size());
+
+		int i = 0;
+		for (auto & kv : tasks) {
 			KPStringBuilder<32> filename("task-", i, ".js");
 			KPStringBuilder<64> filepath(dir, "/", filename);
-			loader.save(filepath, tasks[i]);
+			loader.save(filepath, kv.second);
+			i++;
 		}
 
 		updateIndexFile(dir);
@@ -230,8 +266,8 @@ public:
 		return "TaskManager";
 	}
 
-	static constexpr size_t encoderSize() {
-		return Task::encoderSize() * 5;
+	static constexpr size_t encodingSize() {
+		return Task::encodingSize() * 5;
 	}
 
 	bool encodeJSON(const JsonVariant & dst) const override {

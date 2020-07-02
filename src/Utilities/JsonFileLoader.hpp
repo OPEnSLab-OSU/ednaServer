@@ -6,7 +6,7 @@
 class JsonFileLoader : public FileLoader {
 public:
 	template <size_t size>
-	void load(const char * filepath, StaticJsonDocument<size> & doc) {
+	void load(const char * filepath, StaticJsonDocument<size> & dst) {
 		File file = SD.open(filepath, FILE_READ);
 		if (!file) {
 			KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
@@ -20,7 +20,7 @@ public:
 			return;
 		}
 
-		deserializeJson(doc, file);
+		deserializeJson(dst, file);
 	}
 
 	template <typename Decoder>
@@ -42,7 +42,7 @@ public:
 		}
 
 		// deserialize file to JSON document
-		StaticJsonDocument<Decoder::decoderSize()> doc;
+		StaticJsonDocument<Decoder::decodingSize()> doc;
 		const DeserializationError error = deserializeJson(doc, file);
 		file.close();
 
@@ -69,7 +69,7 @@ public:
 	template <typename Encoder>
 	void save(const char * filepath, const Encoder & encoder) const {
 		// call the encoder function
-		StaticJsonDocument<Encoder::encoderSize()> doc;
+		StaticJsonDocument<Encoder::encodingSize()> doc;
 		JsonVariant dest = doc.template to<JsonVariant>();
 		if (!encoder.encodeJSON(dest)) {
 			KPStringBuilder<120> message("Encoder (", encoder.encoderName(), "): JSON object size exceeds the buffer limit.");

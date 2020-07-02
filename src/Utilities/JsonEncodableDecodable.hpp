@@ -12,7 +12,7 @@ public:
 		return "Unnamed";
 	}
 
-	static constexpr size_t decoderSize();
+	static constexpr size_t decodingSize();
 	virtual void decodeJSON(const JsonVariant & source) = 0;
 };
 
@@ -29,7 +29,7 @@ public:
 		return "Unnamed";
 	}
 
-	static const size_t encoderSize();
+	static const size_t encodingSize();
 	virtual bool encodeJSON(const JsonVariant & dest) const = 0;
 };
 

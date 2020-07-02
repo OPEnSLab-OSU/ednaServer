@@ -45,7 +45,7 @@ public:
 		return "Config";
 	}
 
-	static constexpr size_t decoderSize() {
+	static constexpr size_t decodingSize() {
 		return ProgramSettings::CONFIG_JSON_BUFFER_SIZE;
 	}
 
@@ -82,7 +82,7 @@ public:
 		return "config";
 	}
 
-	static constexpr size_t encoderSize() {
+	static constexpr size_t encodingSize() {
 		return ProgramSettings::CONFIG_JSON_BUFFER_SIZE;
 	}
 
@@ -103,7 +103,7 @@ public:
 #pragma region PRINTABLE
 	size_t printTo(Print & p) const override {
 		using namespace ConfigKeys;
-		StaticJsonDocument<encoderSize()> doc;
+		StaticJsonDocument<encodingSize()> doc;
 		encodeJSON(doc.to<JsonVariant>());
 
 		return serializeJsonPretty(doc, Serial);

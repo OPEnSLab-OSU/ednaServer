@@ -12,7 +12,7 @@
 
 struct Task : public JsonEncodable, public JsonDecodable, public Printable {
 public:
-	bool deleteOnCompletion = false;
+	friend class TaskManager;
 
 	int id;
 	char name[TaskSettings::NAME_LENGTH]{0};
@@ -32,6 +32,8 @@ public:
 	int dryTime		   = 0;
 	int preserveTime   = 0;
 
+	bool deleteOnCompletion = false;
+
 	std::vector<uint8_t> valves;
 
 private:
@@ -45,17 +47,6 @@ public:
 	explicit Task(const JsonObject & data) {
 		decodeJSON(data);
 	}
-
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Set next schedule and move on to the next valve. If no more valve, set the task
-	// as completed
-	// ────────────────────────────────────────────────────────────────────────────────
-	// void next() {
-	// 	schedule = now() + std::max(timeBetween, 5);
-	// 	if (++m_valveOffset >= numberOfValves()) {
-	// 		markAsCompleted();
-	// 	}
-	// }
 
 	int valveOffset() const {
 		return m_valveOffset;
@@ -83,40 +74,41 @@ public:
 		return "Task";
 	}
 
-	static constexpr size_t decoderSize() {
+	static constexpr size_t decodingSize() {
 		return ProgramSettings::TASK_JSON_BUFFER_SIZE;
 	}
 
 	void decodeJSON(const JsonVariant & source) override {
 		using namespace TaskSettings;
+		using namespace TaskKeys;
 
-		if (source.containsKey("name")) {
-			snprintf(name, NAME_LENGTH, "%s", source["name"].as<char *>());
+		if (source.containsKey(NAME)) {
+			snprintf(name, NAME_LENGTH, "%s", source[NAME].as<char *>());
 		}
 
-		if (source.containsKey("notes")) {
-			snprintf(notes, NOTES_LENGTH, "%s", source["notes"].as<char *>());
+		if (source.containsKey(NOTES)) {
+			snprintf(notes, NOTES_LENGTH, "%s", source[NOTES].as<char *>());
 		}
 
-		if (source.containsKey("valves")) {
-			JsonArray valve_array = source["valves"].as<JsonArray>();
+		if (source.containsKey(VALVES)) {
+			JsonArray valve_array = source[VALVES].as<JsonArray>();
 			valves.resize(valve_array.size());
 			copyArray(valve_array, valves.data(), valve_array.size());
-			m_valveOffset = source["valveOffset"];
+			m_valveOffset = source[VALVES_OFFSET];
 		}
 
-		id			   = source["id"];
-		createdAt	   = source["createdAt"];
-		schedule	   = source["schedule"];
-		status		   = source["status"];
-		flushTime	   = source["flushTime"];
-		flushVolume	   = source["flushVolume"];
-		sampleTime	   = source["sampleTime"];
-		samplePressure = source["samplePressure"];
-		sampleVolume   = source["sampleVolume"];
-		dryTime		   = source["dryTime"];
-		preserveTime   = source["preserveTime"];
-		timeBetween	   = source["timeBetween"];
+		id			   = source[ID];
+		createdAt	   = source[CREATED_AT];
+		schedule	   = source[SCHEDULE];
+		status		   = source[STATUS];
+		flushTime	   = source[FLUSH_TIME];
+		flushVolume	   = source[FLUSH_VOLUME];
+		sampleTime	   = source[SAMPLE_TIME];
+		samplePressure = source[SAMPLE_PRESSURE];
+		sampleVolume   = source[SAMPLE_VOLUME];
+		dryTime		   = source[DRY_TIME];
+		preserveTime   = source[PRESERVE_TIME];
+		timeBetween	   = source[TIME_BETWEEN];
 	}
 #pragma endregion
 #pragma region JSONENCODABLE
@@ -125,31 +117,33 @@ public:
 		return "Task";
 	}
 
-	static constexpr size_t encoderSize() {
+	static constexpr size_t encodingSize() {
 		return ProgramSettings::TASK_JSON_BUFFER_SIZE;
 	}
 
 	bool encodeJSON(const JsonVariant & dst) const override {
-		return dst["id"].set(id)
-			   && dst["name"].set((char *) name)
-			   && dst["notes"].set((char *) notes)
-			   && dst["status"].set(status)
-			   && dst["creation"].set(createdAt)
-			   && dst["schedule"].set(schedule)
-			   && dst["flushTime"].set(flushTime)
-			   && dst["flushVolume"].set(flushVolume)
-			   && dst["sampleTime"].set(sampleTime)
-			   && dst["samplePressure"].set(samplePressure)
-			   && dst["sampleVolume"].set(sampleVolume)
-			   && dst["dryTime"].set(dryTime)
-			   && dst["preserveTime"].set(preserveTime)
-			   && dst["timeBetween"].set(timeBetween)
-			   && dst["valveOffset"].set(valveOffset())
-			   && copyArray(valves.data(), valves.size(), dst.createNestedArray("valves"));
+		using namespace TaskKeys;
+		return dst[ID].set(id)
+			   && dst[NAME].set((char *) name)
+			   && dst[NOTES].set((char *) notes)
+			   && dst[STATUS].set(status)
+			   && dst[CREATED_AT].set(createdAt)
+			   && dst[SCHEDULE].set(schedule)
+			   && dst[FLUSH_TIME].set(flushTime)
+			   && dst[FLUSH_TIME].set(flushVolume)
+			   && dst[SAMPLE_TIME].set(sampleTime)
+			   && dst[SAMPLE_PRESSURE].set(samplePressure)
+			   && dst[SAMPLE_VOLUME].set(sampleVolume)
+			   && dst[DRY_TIME].set(dryTime)
+			   && dst[PRESERVE_TIME].set(preserveTime)
+			   && dst[TIME_BETWEEN].set(timeBetween)
+			   && dst[VALVES_OFFSET].set(valveOffset())
+			   && dst[DELETE].set(deleteOnCompletion)
+			   && copyArray(valves.data(), valves.size(), dst.createNestedArray(VALVES));
 	}
 
 	size_t printTo(Print & printer) const override {
-		StaticJsonDocument<encoderSize()> doc;
+		StaticJsonDocument<encodingSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(doc, Serial);

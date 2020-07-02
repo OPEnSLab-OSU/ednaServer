@@ -42,19 +42,19 @@ public:
 		return "Valve";
 	}
 
-	static constexpr size_t decoderSize() {
+	static constexpr size_t decodingSize() {
 		return ProgramSettings::VALVE_JSON_BUFFER_SIZE;
 	}
 
 	void decodeJSON(const JsonVariant & src) override {
-		using namespace JsonKeys;
+		using namespace ValveKeys;
 		// -> group
-		strncpy(group, src[VALVE_GROUP], ProgramSettings::VALVE_GROUP_LENGTH);
+		strncpy(group, src[GROUP], ProgramSettings::VALVE_GROUP_LENGTH);
 		if (group[ProgramSettings::VALVE_GROUP_LENGTH - 1] != 0) {
 			println("Warning (Valve): Group name exceeds its buffer size and will be truncated");
 		}
 
-		status = src[VALVE_STATUS];
+		status = src[STATUS];
 	}
 #pragma endregion
 #pragma region JSONENCODABLE
@@ -62,21 +62,21 @@ public:
 		return "Valve";
 	}
 
-	static constexpr size_t encoderSize() {
+	static constexpr size_t encodingSize() {
 		return ProgramSettings::VALVE_JSON_BUFFER_SIZE;
 	}
 
 	bool encodeJSON(const JsonVariant & dst) const override {
-		using namespace JsonKeys;
-		return dst[VALVE_ID].set(id)
-			   && dst[VALVE_GROUP].set((char *) group)
-			   && dst[VALVE_STATUS].set(status);
+		using namespace ValveKeys;
+		return dst[ID].set(id)
+			   && dst[GROUP].set((char *) group)
+			   && dst[STATUS].set(status);
 	}
 
 #pragma endregion
 #pragma region PRINTABLE
 	size_t printTo(Print & printer) const override {
-		StaticJsonDocument<encoderSize()> doc;
+		StaticJsonDocument<encodingSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
 		return serializeJsonPretty(object, Serial);

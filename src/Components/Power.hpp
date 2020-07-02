@@ -57,7 +57,7 @@ public:
 		interruptCallback = callbcak;
 	}
 
-	void setup() override {
+	void setupRTC() {
 		// Initilize RTC I2C Bus
 		waitForConnection();
 		rtc.begin();
@@ -73,6 +73,10 @@ public:
 		// Print out the current time
 		println("RTC startup time: ");
 		printCurrentTime();
+	}
+
+	void setup() override {
+		setupRTC();
 
 		// Register interrupt pin as active low
 		pinMode(HardwarePins::RTC_INTERRUPT, INPUT_PULLUP);
@@ -88,6 +92,7 @@ public:
 		}
 
 		// Check if the interrupt is comming from RTC
+		// This is important in noisy environment
 		if (rtc.alarm(1) || rtc.alarm(2)) {
 			disarmAlarms();
 			interruptCallback();
@@ -146,7 +151,7 @@ public:
 
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Bring the chip to the low power mode.
-	// External interrupt is required to awake the device and resume operation
+	// External interrupt is required to wake the device and resume operation
 	// ────────────────────────────────────────────────────────────────────────────────
 	void sleepForever() {
 		println();
@@ -247,24 +252,23 @@ public:
 	// Convert compiled timestrings to seconds since 1 Jan 1970
 	// ────────────────────────────────────────────────────────────────────────────────
 	time_t compileTime(int offsetMinutes = 0) {
-		const time_t FUDGE	  = 10;	 //Fudge factor to allow for upload time
-		const char * compDate = __DATE__;
-		const char * compTime = __TIME__;
-		const char * months	  = "JanFebMarAprMayJunJulAugSepOctNovDec";
+		const char * date	= __DATE__;
+		const char * time	= __TIME__;
+		const char * months = "JanFebMarAprMayJunJulAugSepOctNovDec";
 		char * m;
 
 		// Get month from compiled date
-		char compMon[4]{0};
-		strncpy(compMon, compDate, 3);
-		m = strstr(months, compMon);
+		char month[4]{0};
+		strncpy(month, date, 3);
+		m = strstr(months, month);
 
 		TimeElements tm;
 		tm.Month  = ((m - months) / 3 + 1);
-		tm.Day	  = atoi(compDate + 4);
-		tm.Year	  = atoi(compDate + 7) - 1970;
-		tm.Hour	  = atoi(compTime);
-		tm.Minute = atoi(compTime + 3);
-		tm.Second = atoi(compTime + 6);
+		tm.Day	  = atoi(date + 4);
+		tm.Year	  = atoi(date + 7) - 1970;
+		tm.Hour	  = atoi(time);
+		tm.Minute = atoi(time + 3);
+		tm.Second = atoi(time + 6);
 
 		time_t t = makeTime(tm);
 		if (offsetMinutes) {
@@ -272,7 +276,7 @@ public:
 			breakTime(t, tm);
 		}
 
-		printTime(t);
-		return t + FUDGE;  //Add fudge factor to allow for compile time
+		constexpr time_t FUDGE = 10;
+		return t + FUDGE;  //Add FUDGE factor to allow for time to compile
 	}
 };

@@ -60,7 +60,7 @@ public:
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void updateValves(const JsonArray & task_array) {
 		for (const JsonObject & object : task_array) {
-			int id = object[JsonKeys::VALVE_ID];
+			int id = object[ValveKeys::ID];
 			if (valves[id].status != ValveStatus::sampled) {
 				valves[id].decodeJSON(object);
 			} else {
@@ -105,7 +105,7 @@ public:
 	 *  
 	 *  @param _dir Path to the valve folder (default=~/valves)
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void writeValvesToDirectory(const char * _dir = nullptr) {
+	void writeToDirectory(const char * _dir = nullptr) {
 		const char * dir = _dir ? _dir : valveFolder;
 
 		JsonFileLoader loader;
@@ -130,8 +130,8 @@ public:
 		return "ValveManager";
 	}
 
-	static constexpr size_t encoderSize() {
-		return Valve::encoderSize() * ProgramSettings::MAX_VALVES;
+	static constexpr size_t encodingSize() {
+		return Valve::encodingSize() * ProgramSettings::MAX_VALVES;
 	}
 
 	bool encodeJSON(const JsonVariant & dest) const {

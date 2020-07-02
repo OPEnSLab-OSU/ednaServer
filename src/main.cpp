@@ -43,7 +43,7 @@ public:
 		});
 
 		run(10000, []() {
-			cancelAction("test");
+			cancel("test");
 		});
 	}
 } test_app;
@@ -55,6 +55,7 @@ void setup() {
 
 void loop() {
 	Runtime::update();
+	KPSerialInput::sharedInstance().update();
 	ActionScheduler::sharedInstance().update();
 }
 #endif

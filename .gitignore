@@ -4,3 +4,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+# ignore node_modules symlink
+node_modules
+node_modules.nosync

@@ -29,15 +29,12 @@
 	x;                                             \
 	PrintConfig::setDefaultVerbose()
 
-#define PRINT_DEBUG	  PrintConfig::setPrintVerbose(Verbosity::debug);
-#define PRINT_DEFAULT PrintConfig::setDefaultVerbose();
+#define PRINT_REGION_DEBUG PrintConfig::setPrintVerbose(Verbosity::debug);
+#define PRINT_DEFAULT	   PrintConfig::setDefaultVerbose();
 
 extern void printDirectory(File dir, int numTabs);
 inline bool checkForConnection(uint8_t addr) {
 	Wire.begin();
-	// Wire.beginTransmission(addr);
-	// Wire.write(1);
-	// Wire.endTransmission();
 	Wire.requestFrom(addr, 1);
 	return (Wire.read() != -1);
 }
@@ -45,6 +42,12 @@ inline bool checkForConnection(uint8_t addr) {
 struct ValveBlock {
 	const int regIndex;
 	const int pinIndex;
+};
+
+enum class ScheduleStatus {
+	noActiveTask,
+	inOperation,
+	onSchedule,
 };
 
 class Application : public KPController,
@@ -91,8 +94,7 @@ private:
 	}
 
 	void setup() override {
-		KPController::setup();
-		KPSerialInput::instance().addObserver(*this);
+		KPSerialInput::sharedInstance().addObserver(this);
 
 		Serial.begin(115200);
 		develop();	// NOTE: Remove in production
@@ -102,13 +104,13 @@ private:
 		addComponent(power);
 		randomSeed(now());
 
-#ifdef DEBUG
-		PRINT_MODE(debug, println("DEBUG MODE"));
+		PRINT_REGION_DEBUG
+		println("DEBUG MODE");
 		println("Default print verbosity is ", static_cast<int>(PrintConfig::defaultPrintVerbose));
-#endif
+		PRINT_DEFAULT
 
 		// Register components
-		// Note that we broadcast the WIFI signal as soon as possible
+		// Broadcast the WIFI signal as soon as possible
 		addComponent(server);
 		server.begin();
 		run(0, [this]() {
@@ -154,6 +156,8 @@ private:
 			power.disarmAlarms();
 			scheduleNextActiveTask();
 		});
+
+		runForever(2000, "mem", []() { printFreeRam(); });
 	}
 
 public:
@@ -164,12 +168,12 @@ public:
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Decouple state machine from task object. This is where task data gets transfered
-	 *  to states' parameters
+	 *  @brief Decouple state machine from task object. This is where task data gets
+	 *  transfered to states' parameters
 	 *  
 	 *  @param task Task object containing states' parameters
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void transferTaskDataToStateParameters(Task & task) {
+	void transferTaskDataToStateParameters(const Task & task) {
 		auto & flush = *sm.getState<StateFlush>(StateName::FLUSH);
 		flush.time	 = task.flushTime;
 		flush.volume = task.flushVolume;
@@ -192,87 +196,63 @@ public:
 	 *  @return true if task is successfully scheduled.
 	 *  @return false if task is either missed schedule or no active task available.
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	int scheduleNextActiveTask(bool skipCurrentOperatingTask = false) {
-		enum SchedulingStatus {
-			noActiveTask = -1,
-			missedSchedule,
-			ok
-		};
-
+	ScheduleStatus scheduleNextActiveTask(bool shouldInvalidateCurrentTask = false) {
 		std::vector<int> taskIds = tm.getActiveSortedTaskIds();
-		if (taskIds.size()) {
-			return noActiveTask;
+		if (taskIds.empty()) {
+			return ScheduleStatus::noActiveTask;
 		}
 
 		for (auto id : taskIds) {
-			const auto & task	= tm.taskCollection().at(id);
-			auto invalidateTask = [this, &task]() {
-				invalidateValvesForTask(task);
-				tm.markTaskAsCompleted(task.id);
-			};
+			auto & task		= tm.tasks[id];
+			time_t time_now = now();
 
 			if (id == currentTaskId) {
-				if (now() >= task.schedule && skipCurrentOperatingTask) {
-					invalidateTask();
+				if (time_now >= task.schedule && shouldInvalidateCurrentTask) {
+					cancel("delayTaskExecution");
+					invalidateTask(task);
+					if (status.currentStateName != StateName::STOP) {
+						sm.transitionTo(StateName::STOP);
+					} else {
+					}
 					continue;
 				}
-			} else {
-				if (now() >= task.schedule) {
-					invalidateTask();
-					continue;
-				}
+
+				return ScheduleStatus::inOperation;
 			}
+
+			// Missed schedule
+			if (time_now >= task.schedule) {
+				println("MISSED SCHEDULE");
+				invalidateTask(task);
+				tm.writeToDirectory();
+				continue;
+			}
+
+			// Wake up between 10 secs of the actual schedule time
+			// Prepare an action and return status=operating
+			if (time_now >= task.schedule - 10) {
+				TimedAction delayTaskExecution;
+				delayTaskExecution.name		= "delayTaskExecution";
+				delayTaskExecution.interval = secsToMillis(task.schedule - time_now);
+				delayTaskExecution.callback = [this]() {
+					sm.transitionTo(StateName::FLUSH);
+				};
+
+				run(delayTaskExecution);
+				transferTaskDataToStateParameters(task);
+				status.preventShutdown = true;
+				currentTaskId		   = id;
+				return ScheduleStatus::inOperation;
+			}
+
+			// Wake up before any task
+			status.preventShutdown = false;
+			power.scheduleNextAlarm(task.schedule - 5);
+			return ScheduleStatus::onSchedule;
 		}
 
-		// if (!(currentTaskId = tm.nearestActiveTask())) {
-		// 	power.disarmAlarms();
-		// 	status.currentValve = -1;
-		// 	PRINT_MODE(info, println("No active task"));
-		// 	return false;
-		// }
-
-		// // Retrieve task
-		// Task & task	   = *currentTaskId;
-		// time_t timenow = now();
-
-		// // Missed schedule. Clear remaining valves and mark Task as completed.
-		// if (timenow >= task.schedule) {
-		// 	invalidateValvesForTask(task);
-		// 	tm.markTaskAsCompleted(task);
-		// 	tm.writeTaskArrayToDirectory();
-		// 	currentTaskId = nullptr;
-		// 	PRINT_MODE(info, println("Missed schedule"));
-		// 	return false;
-		// }
-
-		// // If this method is called between 10 secs before the actual schedule,
-		// // then stays awake until the task execution.
-		// // Else, reschedule RTC interrupt to 5 secs before the actual schedule.
-		// if (timenow >= task.schedule - 10) {
-		// 	TimedAction delayTaskExecution;
-		// 	delayTaskExecution.name		= "delayTaskExecution";
-		// 	delayTaskExecution.interval = secsToMillis(task.schedule - timenow);
-		// 	delayTaskExecution.callback = [this]() {
-		// 		sm.transitionTo(StateName::FLUSH);
-		// 	};
-
-		// 	// ASYNC: Notice how we are delaying this function call
-		// 	run(delayTaskExecution);
-		// 	transferTaskDataToStateParameters(task);
-
-		// 	PRINT_MODE(debug, println("Task executes in ", task.schedule - timenow, " secs"));
-		// } else {
-		// 	power.scheduleNextAlarm(task.schedule - 5);
-		// 	PRINT_MODE(debug, println("Task reschduled to 5 secs before actual time"));
-		// }
-
-		// // Set valve status to operating
-		// int valveIndex = task.getCurrentValveId();
-		// if (valveIndex != -1) {
-		// 	vm.setValveStatus(valveIndex, ValveStatus::operating);
-		// }
-
-		// return true;
+		currentTaskId = 0;
+		return ScheduleStatus::noActiveTask;
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
@@ -282,7 +262,6 @@ public:
 	void update() override {
 		KPController::update();
 
-		// Shutdown if we are not in progrmaming mode and preventShutdown=false
 		if (!status.isProgrammingMode() && !status.preventShutdown) {
 			shutdown();
 		}
@@ -296,16 +275,25 @@ public:
 		pump.off();					   // Turn off motor
 		shift.writeAllRegistersLow();  // Turn off all TPIC devices
 		shift.writeLatchOut();		   // Reverse latch valve direction
-		power.shutdown();			   // Turn off power
+		tm.writeToDirectory();
+		vm.writeToDirectory();
+		power.shutdown();
+		raise("SHUTDOWN");
 	}
 
-	void invalidateValvesForTask(const Task & task) {
+	void invalidateTask(Task & task) {
 		for (int i = task.valveOffset(); i < task.numberOfValves(); i++) {
 			vm.setValveFreeIfNotYetSampled(task.valves[i]);
 		}
+
+		task.valves.clear();
+		tm.markTaskAsCompleted(task.id);
 	}
 
 	void taskDidUpdate(const Task & task) override {
+	}
+
+	void taskDidDelete(int id) override {
 	}
 
 	void taskCollectionDidUpdate(const std::vector<Task> & tasks) override {

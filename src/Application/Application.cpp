@@ -10,23 +10,25 @@
 void Application::setupServerRouting() {
 	server.handlers.reserve(10);
 
+#ifndef DEBUG
 	// TODO: Respond with actual index file
-	// server.get("/", [this](Request & req, Response & res) {
-	// 	res.setHeader("Content-Encoding", "gzip");
-	// 	res.sendFile("index.gz", fileLoader);
-	// 	res.end();
-	// });
+	server.get("/", [this](Request & req, Response & res) {
+		res.setHeader("Content-Encoding", "gzip");
+		res.sendFile("index.gz", fileLoader);
+		res.end();
+	});
+#endif
 
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Get the current status
 	// ────────────────────────────────────────────────────────────────────────────────
-	server.get("/api/status", [this](Request & req, Response & res) {
-		StaticJsonDocument<Status::encoderSize()> response;
+	server.get("/api/status", [this](Request &, Response & res) {
+		StaticJsonDocument<Status::encodingSize()> response;
 		encodeJSON(status, response.to<JsonObject>());
 		response["utc"] = now();
 
 		KPStringBuilder<10> length(measureJson(response));
-		res.setHeader("Content-Length", length.c_str());
+		res.setHeader("Content-Length", length);
 		res.json(response);
 		res.end();
 	});
@@ -34,8 +36,8 @@ void Application::setupServerRouting() {
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Get a list of valve objects
 	// ────────────────────────────────────────────────────────────────────────────────
-	server.get("/api/valves", [this](Request & req, Response & res) {
-		StaticJsonDocument<ValveManager::encoderSize()> response;
+	server.get("/api/valves", [this](Request &, Response & res) {
+		StaticJsonDocument<ValveManager::encodingSize()> response;
 		encodeJSON(vm, response.to<JsonArray>());
 
 		KPStringBuilder<10> length(measureJson(response));
@@ -45,11 +47,14 @@ void Application::setupServerRouting() {
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
-	// Get a lit of task objects
+	// Get a list of task objects
 	// ────────────────────────────────────────────────────────────────────────────────
-	server.get("/api/tasks", [this](Request & req, Response & res) {
-		StaticJsonDocument<TaskManager::encoderSize()> response;
+	server.get("/api/tasks", [this](Request &, Response & res) {
+		StaticJsonDocument<TaskManager::encodingSize()> response;
 		encodeJSON(tm, response.to<JsonArray>());
+
+		KPStringBuilder<10> length(measureJson(response));
+		res.setHeader("Content-Length", length);
 		res.json(response);
 		res.end();
 	});
@@ -58,21 +63,19 @@ void Application::setupServerRouting() {
 	// Get task with name
 	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/get", [this](Request & req, Response & res) {
-		using namespace JsonKeys;
-		StaticJsonDocument<Task::encoderSize()> body;
+		StaticJsonDocument<Task::encodingSize()> body;
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encoderSize() + 500> response;
-		const char * name = body["name"];
-		const int index	  = tm.findTaskWithName(name);
+		StaticJsonDocument<Task::encodingSize() + 500> response;
+		int id = body[TaskKeys::ID];
 
-		if (index == -1) {
-			response["error"] = "Task not found";
-		} else {
+		if (tm.findTask(id)) {
 			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(tm.tasks[index], payload);
+			encodeJSON(tm.tasks[id], payload);
 			response["success"] = "Task found";
+		} else {
+			response["error"] = "Task not found";
 		}
 
 		res.json(response);
@@ -83,53 +86,48 @@ void Application::setupServerRouting() {
 	// Create a new task with name
 	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/create", [this](Request & req, Response & res) {
-		using namespace JsonKeys;
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encoderSize() + 500> response;
-		const char * name = body["name"];
-		const int index	  = tm.findTaskWithName(name);
+		StaticJsonDocument<Task::encodingSize() + 500> response;
+		const char * name = body[TaskKeys::NAME];
 
-		// Adding new task to task array and wrtie to file +
+		println("Creating Task..");
+
+		// Adding new task to task collection and write to file +
 		// sending http response as appropriate
-		if (index == -1) {
-			Task new_task(body.as<JsonObject>());
-			new_task.schedule = now() - 1;
-			tm.insert(new_task);
-			tm.writeTaskArrayToDirectory();
+		Task task = tm.createTask();
+		strcpy(task.name, name);
+		tm.insertTask(task, true);
 
-			// success response
-			KPStringBuilder<100> success("Successfully created ", name);
-			response["success"] = (char *) success.c_str();
+		// success response
+		KPStringBuilder<100> success("Successfully created ", name);
+		response["success"] = (char *) success.c_str();
 
-			// return task with partially filled fields
-			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(tm.tasks.back(), payload);
-		} else {
-			response["error"] = "Found task with the same name. Task name must be unique";
-		}
+		// return task with partially filled fields
+		JsonVariant payload = response.createNestedObject("payload");
+		encodeJSON(task, payload);
 
 		res.json(response);
 		res.end();
+		println("Returned Response");
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Update existing task with incoming data
 	// ────────────────────────────────────────────────────────────────────────────────
 	server.post("/api/task/save", [this](Request & req, Response & res) {
-		const size_t size = ProgramSettings::TASK_JSON_BUFFER_SIZE;
-		StaticJsonDocument<size> body;
+		StaticJsonDocument<Task::encodingSize()> body;
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encoderSize() + 500> response;
-		int index = tm.updateTaskWithData(body, response);
-		if (index != -1) {
-			println("Writing to directory");
-			tm.writeTaskArrayToDirectory();
-		}
+		StaticJsonDocument<Task::encodingSize() + 500> response;
+		// int index = tm.updateTaskWithData(body, response);
+		// if (index != -1) {
+		// 	println("Writing to directory");
+		// 	tm.writeToDirectory();
+		// }
 
 		res.json(response);
 		res.end();
@@ -143,25 +141,24 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encoderSize() + 500> response;
-		const char * name = body["name"];
-		const int index	  = tm.findTaskWithName(name);
-		if (index != -1) {
+		StaticJsonDocument<Task::encodingSize() + 500> response;
+		int id = body["name"];
+		if (tm.findTask(id)) {
 			//TODO: perform server validation
-			if (tm.tasks[index].numberOfValves() == 0) {
+			if (tm.tasks[id].numberOfValves() == 0) {
 				response["error"] = "Cannot schedule a task without an assigned valve";
 				goto send;
 			}
 
-			tm.setTaskStatus(index, TaskStatus::active);
-			tm.writeTaskArrayToDirectory();
+			// ...
+
+			tm.setTaskStatus(id, TaskStatus::active);
+			tm.writeToDirectory();
 			scheduleNextActiveTask();
 
 			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(tm.tasks[index], payload);
+			encodeJSON(tm.tasks[id], payload);
 			response["success"] = "Task has been scheduled";
-		} else {
-			response["error"] = "No Task with such name";
 		}
 
 	send:
@@ -177,21 +174,24 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encoderSize() + 500> response;
-		const char * name = body["name"];
-		const int index	  = tm.findTaskWithName(name);
+		StaticJsonDocument<Task::encodingSize() + 500> response;
+		int id = body["id"];
 
-		if (index != -1) {
-			tm.setTaskStatus(index, TaskStatus::inactive);
-			tm.writeTaskArrayToDirectory();
-			invalidateValvesForTask(tm.tasks[index]);
-			tm.tasks[index].markAsCompleted();
+		if (tm.findTask(id)) {
+			Task & task = tm.tasks[id];
+			if (currentTaskId == id) {
+				invalidateTask(task);
+				sm.transitionTo(StateName::STOP);
+			} else {
+				invalidateTask(task);
+				tm.writeToDirectory();
+			}
 
 			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(tm.tasks[index], payload);
-			response["success"] = "Task has been unscheduled";
+			encodeJSON(task, payload);
+			response["success"] = "Task is now inactive";
 		} else {
-			response["error"] = "No Task with such name";
+			response["error"] = "No task with such name";
 		}
 
 		res.json(response);
@@ -206,27 +206,21 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 
 		StaticJsonDocument<500> response;
-		const char * name = body["name"];
-		const int index	  = tm.findTaskWithName(name);
+		int id = body["id"];
 
-		// Task not found
-		if (index == -1) {
+		if (!tm.findTask(id)) {
 			response["error"] = "No task with this name";
 			goto send;
 		}
 
-		// Found task but status is active
-		if (tm.tasks[index].status) {
+		if (tm.tasks[id].status == TaskStatus::active) {
 			response["error"] = "Task currently have active status. Please deactivate before continue.";
 			goto send;
 		}
 
-		// If no error
-		if (!response.containsKey("error")) {
-			tm.removeTask(index);
-			tm.writeTaskArrayToDirectory();
-			response["success"] = "Task deleted";
-		}
+		tm.deleteTask(id);
+		tm.writeToDirectory();
+		response["success"] = "Task deleted";
 
 	send:
 		res.json(response);
@@ -239,19 +233,20 @@ void Application::setupServerRouting() {
 	server.post("/api/rtc/update", [this](Request & req, Response & res) {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
+
 		const time_t utc		 = body["utc"];
 		const int timezoneOffset = body["timezoneOffset"];
 
-		println("utc=", utc);
-		println("compileTime=", power.compileTime(timezoneOffset));
+		println("UTC=", utc);
+		println("Compile Time=", power.compileTime(timezoneOffset));
 
-		// Checking against compiled time + millis() (which should be behind UTC) prevents bogus value
+		// Checking against compiled time + millis() to prevents bogus value
 		StaticJsonDocument<100> response;
 		if (utc >= power.compileTime(timezoneOffset) + millisToSecs(millis())) {
 			response["success"] = "RTC updated";
 			power.set(utc);
 		} else {
-			response["error"] = "That doens't seem right. You sure about this?";
+			response["error"] = "That doesn't seem right. You sure about this?";
 		}
 
 		res.json(response);
@@ -344,7 +339,7 @@ void Application::commandReceived(const String & line) {
 		}
 
 		Match(0, "save") {
-			vm.writeValvesToDirectory();
+			vm.writeToDirectory();
 		}
 
 		Match(0, "print") {
@@ -375,7 +370,7 @@ void Application::commandReceived(const String & line) {
 		}
 
 		Match(0, "save") {
-			tm.writeTaskArrayToDirectory();
+			tm.writeToDirectory();
 			tm.loadTasksFromDirectory();
 			println(tm);
 		}
@@ -386,8 +381,8 @@ void Application::commandReceived(const String & line) {
 		}
 
 		Match(0, "clean") {
-			tm.removeIf([](const Task & task) { return task.status == TaskStatus::completed; });
-			tm.writeTaskArrayToDirectory();
+			tm.deleteIf([](const Task & task) { return task.status == TaskStatus::completed; });
+			tm.writeToDirectory();
 		}
 	}
 
@@ -402,13 +397,16 @@ void Application::commandReceived(const String & line) {
 	}
 
 	Match(0, "schedule") Match(1, "now") {
+		println("Schduling temp task");
 		Task task				= tm.createTask();
 		task.schedule			= now() + 5;
 		task.sampleTime			= 5;
 		task.deleteOnCompletion = true;
 		task.status				= TaskStatus::active;
-		tm.insert(task);
-		scheduleNextActiveTask();
+		tm.insertTask(task);
+		println(tm);
+		ScheduleStatus s = scheduleNextActiveTask();
+		println("Return Status: ", static_cast<int>(s));
 	}
 
 	MatchLine("mem") {
