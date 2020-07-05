@@ -5,8 +5,12 @@
 
 class ValveObserver : public KPObserver {
 public:
-	static const char * ObserverName() {
-		return "<Unnamed> Valve Observer";
+	const char * ObserverName() const {
+		return ValveObserverName();
+	}
+
+	virtual const char * ValveObserverName() const {
+		return "<Unnamed> valve observer";
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
@@ -14,7 +18,8 @@ public:
 	 *  
 	 *  @param valves Array of Valve objects
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	virtual void valveArrayDidUpdate(const std::vector<Valve> & valves) = 0;
+	virtual void
+	valveArrayDidUpdate(const std::vector<Valve> & valves) = 0;
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Subscribe to an event when a valve is updated

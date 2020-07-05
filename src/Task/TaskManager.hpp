@@ -35,10 +35,11 @@ public:
 	}
 
 	Task createTask() {
+		const auto timenow = now();
 		Task task;
 		task.id		   = generateTaskId();
-		task.createdAt = now();
-		task.schedule  = now();
+		task.createdAt = timenow;
+		task.schedule  = timenow;
 		return task;
 	}
 
@@ -205,11 +206,11 @@ public:
 	 *  @brief Insert task into TaskManager's internal data structure 
 	 *  
 	 *  @param task Task object to be inserted 
-	 *  @param forced Forced ID generation if task.id already exists
+	 *  @param forcedIdGeneration Forced ID generation if task.id already exists
 	 *  @return bool true on successful insertion, false otherwise
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	bool insertTask(Task & task, bool forced = false) {
-		if (forced) {
+	bool insertTask(Task & task, bool forcedIdGeneration = false) {
+		if (forcedIdGeneration) {
 			while (!tasks.insert({task.id, task}).second) {
 				task.id = random(RAND_MAX);
 			}
@@ -248,7 +249,7 @@ public:
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
-		println("Task size: ", tasks.size());
+		println("Number of tasks to write: ", tasks.size());
 
 		int i = 0;
 		for (auto & kv : tasks) {

@@ -45,15 +45,12 @@ public:
 	}
 
 private:
-	void valveArrayDidUpdate(const std::vector<Valve> & valves) override {
-		currentValve = -1;
-		for (const Valve & v : valves) {
-			if (v.status == ValveStatus::operating) {
-				currentValve = v.id;
-			}
+	const char * ValveObserverName() const override {
+		return "Status-Valve Observer";
+	}
 
-			this->valves[v.id] = v.status;
-		}
+	const char * KPStateMachineObserverName() const override {
+		return "Status-KPStateMachine Observer";
 	}
 
 	void valveDidUpdate(const Valve & valve) override {
@@ -63,8 +60,15 @@ private:
 		}
 	}
 
-	static const char * ObserverName() {
-		return "Status-StateMachineObserver";
+	void valveArrayDidUpdate(const std::vector<Valve> & valves) override {
+		currentValve = -1;
+		for (const Valve & v : valves) {
+			if (v.status == ValveStatus::operating) {
+				currentValve = v.id;
+			}
+
+			this->valves[v.id] = v.status;
+		}
 	}
 
 	void stateDidBegin(const KPState * current) override {
@@ -130,8 +134,8 @@ public:
 			   && dest[SENSOR_VOLUME].set(waterVolume)
 			   && dest[SENSOR_DEPTH].set(waterDepth)
 			   && dest[SENSOR_FLOW].set(waterFlow)
-			   && dest[CURRENT_TASK].set(currentStateName)
-			   && dest[CURRENT_STATE].set(currentTaskName);
+			   && dest[CURRENT_TASK].set(currentTaskName)
+			   && dest[CURRENT_STATE].set(currentStateName);
 	}
 
 #pragma endregion JSONENCODABLE

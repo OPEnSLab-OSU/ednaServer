@@ -100,6 +100,7 @@ void Application::setupServerRouting() {
 		Task task = tm.createTask();
 		strcpy(task.name, name);
 		tm.insertTask(task, true);
+		// tm.writeToDirectory(); // NOTE: Uncomment to save tasks
 
 		// success response
 		KPStringBuilder<100> success("Successfully created ", name);
@@ -111,7 +112,7 @@ void Application::setupServerRouting() {
 
 		res.json(response);
 		res.end();
-		println("Returned Response");
+		println("Returned response");
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -120,17 +121,29 @@ void Application::setupServerRouting() {
 	server.post("/api/task/save", [this](Request & req, Response & res) {
 		StaticJsonDocument<Task::encodingSize()> body;
 		deserializeJson(body, req.body);
+
+#ifdef DEBUG
 		serializeJsonPretty(body, Serial);
+#endif
+
+		Task incomingTask;
+		incomingTask.decodeJSON(body.as<JsonVariant>());
 
 		StaticJsonDocument<Task::encodingSize() + 500> response;
-		// int index = tm.updateTaskWithData(body, response);
-		// if (index != -1) {
-		// 	println("Writing to directory");
-		// 	tm.writeToDirectory();
-		// }
+		validateTaskForSaving(incomingTask, response);
+		if (response.containsKey("error")) {
+			goto send;
+		}
 
+		tm.tasks[incomingTask.id] = incomingTask;
+		tm.writeToDirectory();
+		response["success"] = "Task successfully saved";
+
+	send:
+		serializeJsonPretty(response, Serial);
 		res.json(response);
 		res.end();
+		println("Returned response");
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -357,6 +370,14 @@ void Application::commandReceived(const String & line) {
 			} else {
 				vm.init(config);
 			}
+		}
+
+		Match(0, "reset") {
+			for (int i = 0; i < config.numberOfValves; i++) {
+				vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
+			}
+
+			vm.writeToDirectory();
 		}
 	}
 

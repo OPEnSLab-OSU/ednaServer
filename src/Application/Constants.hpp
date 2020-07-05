@@ -2,6 +2,9 @@
 #define __k_str constexpr const char *
 #define __k_int constexpr int
 
+#define RED(x)	 "\033[31;1m" x "\033[0m"
+#define GREEN(x) "\n\033[32;1m" x "\033[0m"
+
 namespace TPICDevices {
 	__k_int AIR_VALVE	   = 2;
 	__k_int ALCHOHOL_VALVE = 3;
@@ -99,8 +102,8 @@ namespace StatusKeys {
 	__k_str SENSOR_VOLUME	= "waterVolume";
 	__k_str SENSOR_FLOW		= "waterFlow";
 	__k_str SENSOR_DEPTH	= "waterDepth";
-	__k_str CURRENT_TASK	= "currentTaskName";
-	__k_str CURRENT_STATE	= "currentStateName";
+	__k_str CURRENT_TASK	= "currentTask";
+	__k_str CURRENT_STATE	= "currentState";
 };	// namespace StatusKeys
 
 #undef __k_str

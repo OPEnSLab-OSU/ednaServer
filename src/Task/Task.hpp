@@ -130,7 +130,7 @@ public:
 			   && dst[CREATED_AT].set(createdAt)
 			   && dst[SCHEDULE].set(schedule)
 			   && dst[FLUSH_TIME].set(flushTime)
-			   && dst[FLUSH_TIME].set(flushVolume)
+			   && dst[FLUSH_VOLUME].set(flushVolume)
 			   && dst[SAMPLE_TIME].set(sampleTime)
 			   && dst[SAMPLE_PRESSURE].set(samplePressure)
 			   && dst[SAMPLE_VOLUME].set(sampleVolume)

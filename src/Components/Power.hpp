@@ -29,6 +29,7 @@
 
 #include "Application/Constants.hpp"
 
+
 //
 // ────────────────────────────────────────────────────────────────────────────────────────── I ──────────
 //   :::::: P O W E R   M A N A G E M E N T   W I T H   R T C : :  :   :    :     :        :          :
@@ -55,6 +56,7 @@ public:
 	// ────────────────────────────────────────────────────────────────────────────────
 	void onInterrupt(std::function<void()> callbcak) {
 		interruptCallback = callbcak;
+		// const char * a	  = RED("asdf");
 	}
 
 	void setupRTC() {
@@ -111,9 +113,9 @@ public:
 		for (;; delay(5000)) {
 			Wire.requestFrom(RTC_ADDR, 1, false);  // false: don't release I2C line
 			if (Wire.read() == -1) {
-				println("\n\033[31;1mRTC Not Connected\033[0m");
+				println(RED("RTC not connected"));
 			} else {
-				println("\n\033[32;1mRTC Connected\033[0m");
+				println(GREEN("RTC connected"));
 				break;
 			}
 		}

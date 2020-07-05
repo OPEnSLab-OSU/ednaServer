@@ -5,8 +5,12 @@
 
 class TaskObserver : public KPObserver {
 public:
-	static const char * ObserverName() {
-		return "TaskListner";
+	const char * ObserverName() const {
+		return TaskObserverName();
+	}
+
+	virtual const char * TaskObserverName() const {
+		return "<Unnamed> Task Observer";
 	}
 
 	virtual void taskDidUpdate(const Task & task)						  = 0;

@@ -87,6 +87,14 @@ public:
 	int currentTaskId = 0;
 
 private:
+	const char * KPSerialInputObserverName() const override {
+		return "Application-KPSerialInput Observer";
+	}
+
+	const char * TaskObserverName() const override {
+		return "Application-Task Observer";
+	}
+
 	void develop() {
 		while (!Serial) {
 			delay(100);
@@ -100,7 +108,7 @@ private:
 		develop();	// NOTE: Remove in production
 
 		// Here we add and initialize the power module first. This allows us to get the
-		// actual time from the RTC for random number generation
+		// actual time from the RTC for random task id generation
 		addComponent(power);
 		randomSeed(now());
 
@@ -131,7 +139,7 @@ private:
 		sm.registerState(StateDry(), StateName::DRY);
 		sm.registerState(StatePreserve(), StateName::PRESERVE);
 
-		// Load configuration from file and initialize status object
+		// Load configuration from file and initialize config then status object
 		JsonFileLoader loader;
 		loader.load(config.configFilepath, config);
 		status.init(config);
@@ -212,8 +220,8 @@ public:
 					invalidateTask(task);
 					if (status.currentStateName != StateName::STOP) {
 						sm.transitionTo(StateName::STOP);
-					} else {
 					}
+
 					continue;
 				}
 
@@ -253,6 +261,21 @@ public:
 
 		currentTaskId = 0;
 		return ScheduleStatus::noActiveTask;
+	}
+
+	void validateTaskForSaving(const Task & task, JsonDocument & response) {
+		if (task.status == 1) {
+			response["error"] = "Task is current active";
+			return;
+		}
+
+		if (!tm.findTask(task.id)) {
+			response["error"] = "Task not found: invalid task id";
+			return;
+		}
+	}
+
+	void validateTaskForScheduling(const Task & task) {
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────

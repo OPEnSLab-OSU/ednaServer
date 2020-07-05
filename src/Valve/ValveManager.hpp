@@ -33,7 +33,10 @@ public:
 		for (size_t i = 0; i < valves.size(); i++) {
 			valves[i].id = i;
 			valves[i].setStatus(ValveStatus::Code(config.valves[i]));
+			println(ValveStatus::Code(config.valves[i]));
 		}
+
+		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 
 	void setValveStatus(int id, ValveStatus status) {
