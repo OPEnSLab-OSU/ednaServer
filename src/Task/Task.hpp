@@ -36,8 +36,8 @@ public:
 
 	std::vector<uint8_t> valves;
 
-private:
-	int m_valveOffset = 0;
+public:
+	int valveOffsetStart = 0;
 
 public:
 	Task()					 = default;
@@ -48,11 +48,11 @@ public:
 		decodeJSON(data);
 	}
 
-	int valveOffset() const {
-		return m_valveOffset;
+	int getValveOffsetStart() const {
+		return valveOffsetStart;
 	}
 
-	int numberOfValves() const {
+	int getNumberOfValves() const {
 		return valves.size();
 	}
 
@@ -62,11 +62,11 @@ public:
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Get the Current Valve ID
-	 *  
+	 *
 	 *  @return int -1 if no more valve, otherwise returns the valve number
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	int getCurrentValveId() const {
-		return (valveOffset() >= numberOfValves()) ? -1 : valves[valveOffset()];
+		return (getValveOffsetStart() >= getNumberOfValves()) ? -1 : valves[getValveOffsetStart()];
 	}
 
 #pragma region JSONDECODABLE
@@ -94,7 +94,7 @@ public:
 			JsonArray valve_array = source[VALVES].as<JsonArray>();
 			valves.resize(valve_array.size());
 			copyArray(valve_array, valves.data(), valve_array.size());
-			m_valveOffset = source[VALVES_OFFSET];
+			valveOffsetStart = source[VALVES_OFFSET];
 		}
 
 		id			   = source[ID];
@@ -123,21 +123,14 @@ public:
 
 	bool encodeJSON(const JsonVariant & dst) const override {
 		using namespace TaskKeys;
-		return dst[ID].set(id)
-			   && dst[NAME].set((char *) name)
-			   && dst[NOTES].set((char *) notes)
-			   && dst[STATUS].set(status)
-			   && dst[CREATED_AT].set(createdAt)
-			   && dst[SCHEDULE].set(schedule)
-			   && dst[FLUSH_TIME].set(flushTime)
-			   && dst[FLUSH_VOLUME].set(flushVolume)
-			   && dst[SAMPLE_TIME].set(sampleTime)
-			   && dst[SAMPLE_PRESSURE].set(samplePressure)
-			   && dst[SAMPLE_VOLUME].set(sampleVolume)
-			   && dst[DRY_TIME].set(dryTime)
-			   && dst[PRESERVE_TIME].set(preserveTime)
+		return dst[ID].set(id) && dst[NAME].set((char *) name) && dst[NOTES].set((char *) notes)
+			   && dst[STATUS].set(status) && dst[CREATED_AT].set(createdAt)
+			   && dst[SCHEDULE].set(schedule) && dst[FLUSH_TIME].set(flushTime)
+			   && dst[FLUSH_VOLUME].set(flushVolume) && dst[SAMPLE_TIME].set(sampleTime)
+			   && dst[SAMPLE_PRESSURE].set(samplePressure) && dst[SAMPLE_VOLUME].set(sampleVolume)
+			   && dst[DRY_TIME].set(dryTime) && dst[PRESERVE_TIME].set(preserveTime)
 			   && dst[TIME_BETWEEN].set(timeBetween)
-			   && dst[VALVES_OFFSET].set(valveOffset())
+			   && dst[VALVES_OFFSET].set(getValveOffsetStart())
 			   && dst[DELETE].set(deleteOnCompletion)
 			   && copyArray(valves.data(), valves.size(), dst.createNestedArray(VALVES));
 	}

@@ -17,6 +17,10 @@ void StateStop::enter(KPStateMachine & sm) {
 	app.tm.writeToDirectory();
 
 	sm.transitionTo(StateName::IDLE);
+	app.currentTaskId			= 0;
+	app.status.currentValve		= -1;
+	ScheduleStatus returnedCode = app.scheduleNextActiveTask();
+	println("Stop Scheduling returned code: ", static_cast<int>(returnedCode));
 }
 
 void StatePreserve::enter(KPStateMachine & sm) {
@@ -30,9 +34,7 @@ void StatePreserve::enter(KPStateMachine & sm) {
 	app.shift.write();
 	app.pump.on();
 
-	setTimeCondition(time, [&]() {
-		sm.transitionTo(StateName::STOP);
-	});
+	setTimeCondition(time, [&]() { sm.transitionTo(StateName::STOP); });
 }
 
 void StateDry::enter(KPStateMachine & sm) {
@@ -45,9 +47,7 @@ void StateDry::enter(KPStateMachine & sm) {
 	app.shift.write();
 	app.pump.on();
 
-	setTimeCondition(time, [&]() {
-		sm.transitionTo(StateName::PRESERVE);
-	});
+	setTimeCondition(time, [&]() { sm.transitionTo(StateName::PRESERVE); });
 }
 
 void StateSample::enter(KPStateMachine & sm) {
@@ -61,7 +61,8 @@ void StateSample::enter(KPStateMachine & sm) {
 	app.shift.write();
 	app.pump.on();
 
-	// This condition will be evaluated repeatedly until true then the callback will be executed once
+	// This condition will be evaluated repeatedly until true then the callback will be executed
+	// once
 	auto const condition = [&]() {
 		return timeSinceLastTransition() >= secsToMillis(time) || app.status.pressure >= pressure;
 	};
@@ -80,7 +81,5 @@ void StateFlush::enter(KPStateMachine & sm) {
 	app.shift.write();
 	app.pump.on();
 
-	setTimeCondition(time, [&]() {
-		sm.transitionTo(StateName::SAMPLE);
-	});
+	setTimeCondition(time, [&]() { sm.transitionTo(StateName::SAMPLE); });
 }

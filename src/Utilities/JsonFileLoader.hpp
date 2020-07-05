@@ -51,15 +51,20 @@ public:
 		case DeserializationError::Ok:
 			break;
 		case DeserializationError::NoMemory: {
-			KPStringBuilder<120> message("Decoder (", decoder.decoderName(), "): ", filepath, " size exeecds the buffer limit.");
+			KPStringBuilder<120> message(decoder.decoderName(),
+				" decoder: size exeecds the buffer limit whlie decoding ",
+				filepath);
 			raise(message);
 		} break;
 		default:
-			KPStringBuilder<200> message("Decoder (", decoder.decoderName(), "): ", filepath, " deserialization failed -> ", error.c_str());
+			KPStringBuilder<120> message(decoder.decoderName(),
+				" decoder: ",
+				error.c_str(),
+				" while decoding ",
+				filepath);
 			raise(message);
 		}
 
-		// the status message
 		println();
 		println("Finished loading from ", filepath, " in ", millis() - start, " ms");
 		println("Json size: ", doc.memoryUsage(), " bytes");
@@ -72,7 +77,9 @@ public:
 		StaticJsonDocument<Encoder::encodingSize()> doc;
 		JsonVariant dest = doc.template to<JsonVariant>();
 		if (!encoder.encodeJSON(dest)) {
-			KPStringBuilder<120> message("Encoder (", encoder.encoderName(), "): JSON object size exceeds the buffer limit.");
+			KPStringBuilder<120> message("Encoder (",
+				encoder.encoderName(),
+				"): JSON object size exceeds the buffer limit.");
 			raise(Error(message));
 		}
 
@@ -89,7 +96,6 @@ public:
 		serializeJson(src, file);
 		file.close();
 
-		// the status message
 		println();
 		println("Finished writing to ", filepath, " in ", millis() - start, " ms");
 		println("Json size: ", src.memoryUsage(), " bytes");

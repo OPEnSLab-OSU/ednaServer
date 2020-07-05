@@ -50,21 +50,15 @@ enum class ScheduleStatus {
 	onSchedule,
 };
 
-class Application : public KPController,
-					public KPSerialInputObserver,
-					public TaskObserver {
+class Application : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
 	void setupServerRouting();
 	void commandReceived(const String & line) override;
 
 public:
-	KPServer server{"web-server",
-		"eDNA-test",
-		"password"};
+	KPServer server{"web-server", "eDNA-test", "password"};
 
-	Pump pump{"pump",
-		HardwarePins::MOTOR_FORWARD,
-		HardwarePins::MOTOR_REVERSE};
+	Pump pump{"pump", HardwarePins::MOTOR_FORWARD, HardwarePins::MOTOR_REVERSE};
 
 	ShiftRegister shift{"shift-register",
 		32,
@@ -72,8 +66,7 @@ public:
 		HardwarePins::SHFT_REG_CLOCK,
 		HardwarePins::SHFT_REG_LATCH};
 
-	KPFileLoader fileLoader{"file-loader",
-		HardwarePins::SD_CARD};
+	KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
 
 	KPStateMachine sm{"state-machine"};
 	Power power{"power"};
@@ -121,9 +114,7 @@ private:
 		// Broadcast the WIFI signal as soon as possible
 		addComponent(server);
 		server.begin();
-		run(0, [this]() {
-			setupServerRouting();
-		});
+		run(0, [this]() { setupServerRouting(); });
 
 		addComponent(sm);
 		addComponent(fileLoader);
@@ -155,14 +146,16 @@ private:
 		tm.loadTasksFromDirectory(config.taskFolder);
 
 		// Schedule task if any then wait in IDLE
-		scheduleNextActiveTask();
+		ScheduleStatus returnedCode = scheduleNextActiveTask();
+		println("Scheduling returned code: ", static_cast<int>(returnedCode));
 		sm.transitionTo(StateName::IDLE);
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
 			println("\033[1;32mRTC Interrupted!\033[0m");
 			power.disarmAlarms();
-			scheduleNextActiveTask();
+			ScheduleStatus returnedCode = scheduleNextActiveTask();
+			println("Scheduling returned code: ", static_cast<int>(returnedCode));
 		});
 
 		runForever(2000, "mem", []() { printFreeRam(); });
@@ -170,15 +163,14 @@ private:
 
 public:
 	ValveBlock currentValveNumberToBlock() {
-		return {
-			shift.toRegisterIndex(status.currentValve) + 1,
+		return {shift.toRegisterIndex(status.currentValve) + 1,
 			shift.toPinIndex(status.currentValve)};
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Decouple state machine from task object. This is where task data gets
 	 *  transfered to states' parameters
-	 *  
+	 *
 	 *  @param task Task object containing states' parameters
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void transferTaskDataToStateParameters(const Task & task) {
@@ -200,7 +192,7 @@ public:
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Get the earliest upcoming task and schedule it
-	 *  
+	 *
 	 *  @return true if task is successfully scheduled.
 	 *  @return false if task is either missed schedule or no active task available.
 	 *  ──────────────────────────────────────────────────────────────────────────── */
@@ -230,7 +222,7 @@ public:
 
 			// Missed schedule
 			if (time_now >= task.schedule) {
-				println("MISSED SCHEDULE");
+				println(RED("Missed schedule"));
 				invalidateTask(task);
 				tm.writeToDirectory();
 				continue;
@@ -242,14 +234,14 @@ public:
 				TimedAction delayTaskExecution;
 				delayTaskExecution.name		= "delayTaskExecution";
 				delayTaskExecution.interval = secsToMillis(task.schedule - time_now);
-				delayTaskExecution.callback = [this]() {
-					sm.transitionTo(StateName::FLUSH);
-				};
+				delayTaskExecution.callback = [this]() { sm.transitionTo(StateName::FLUSH); };
 
 				run(delayTaskExecution);
 				transferTaskDataToStateParameters(task);
 				status.preventShutdown = true;
 				currentTaskId		   = id;
+				vm.setValveStatus(task.valves[task.valveOffsetStart], ValveStatus::operating);
+				println("Executing task in", task.schedule - time_now, "seconds");
 				return ScheduleStatus::inOperation;
 			}
 
@@ -275,12 +267,11 @@ public:
 		}
 	}
 
-	void validateTaskForScheduling(const Task & task) {
-	}
+	void validateTaskForScheduling(const Task & task) {}
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Runs after the setup and initialization of all components
-	 *  
+	 *
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void update() override {
 		KPController::update();
@@ -292,7 +283,7 @@ public:
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Turn off the motor, shut off the pins and power off the system
-	 *  
+	 *
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void shutdown() {
 		pump.off();					   // Turn off motor
@@ -305,7 +296,7 @@ public:
 	}
 
 	void invalidateTask(Task & task) {
-		for (int i = task.valveOffset(); i < task.numberOfValves(); i++) {
+		for (int i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
 			vm.setValveFreeIfNotYetSampled(task.valves[i]);
 		}
 
@@ -313,12 +304,13 @@ public:
 		tm.markTaskAsCompleted(task.id);
 	}
 
-	void taskDidUpdate(const Task & task) override {
-	}
+	void taskDidUpdate(const Task & task) override {}
 
 	void taskDidDelete(int id) override {
+		if (currentTaskId == id) {
+			currentTaskId = 0;
+		}
 	}
 
-	void taskCollectionDidUpdate(const std::vector<Task> & tasks) override {
-	}
+	void taskCollectionDidUpdate(const std::vector<Task> & tasks) override {}
 };

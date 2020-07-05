@@ -23,8 +23,7 @@ public:
 	// std::vector<Task> tasks;
 	const char * taskFolder = nullptr;
 
-	TaskManager()
-		: KPComponent("TaskManager") {}
+	TaskManager() : KPComponent("TaskManager") {}
 
 	void init(Config & config) {
 		taskFolder = config.taskFolder;
@@ -52,11 +51,16 @@ public:
 			return false;
 		}
 
-		auto & task	  = tasks[id];
+		auto & task = tasks[id];
+		println(GREEN("Task Time betwen: "), task.timeBetween);
 		task.schedule = now() + std::max(task.timeBetween, 5);
-		if (++task.m_valveOffset >= task.numberOfValves()) {
+		if (++task.valveOffsetStart >= task.getNumberOfValves()) {
 			return markTaskAsCompleted(id);
 		}
+
+		// for (int i = task.valveOffsetStart; i < task.getNumberOfValves(); i++) {
+		// 	println(task.valves[i]);
+		// }
 
 		return true;
 	}
@@ -83,6 +87,7 @@ public:
 		}
 
 		auto & task = tasks[id];
+		task.valves.clear();
 		if (task.deleteOnCompletion) {
 			println("DELETED: ", id);
 			deleteTask(id);
@@ -124,7 +129,7 @@ public:
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Load all tasks object from the specified directory in the SD card
-	 *  
+	 *
 	 *  @param _dir Path to tasks directory (default=~/tasks)
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void loadTasksFromDirectory(const char * _dir = nullptr) {
@@ -148,41 +153,9 @@ public:
 		}
 	}
 
-	// Performe identity check and update the task
-	// int updateTaskWithData(JsonDocument & data, JsonDocument & response) {
-	// 	serializeJsonPretty(data, Serial);
-
-	// 	using namespace JsonKeys;
-	// 	int index = findTaskWithName(data[TASK_NAME]);
-	// 	if (index == -1) {
-	// 		response["error"] = "No task with such name";
-	// 		return -1;
-	// 	}
-
-	// 	// Check there is a task with newName then
-	// 	// replaces the name with new name if none is found
-	// 	if (data.containsKey(TASK_NEW_NAME)) {
-	// 		if (findTaskWithName(data[TASK_NEW_NAME]) == -1) {
-	// 			data[TASK_NAME] = data[TASK_NEW_NAME];
-	// 		} else {
-	// 			KPStringBuilder<64> error("Task with name ", data[TASK_NEW_NAME].as<char *>(), " already exist");
-	// 			response["error"] = (char *) error.c_str();
-	// 			return -1;
-	// 		}
-	// 	}
-
-	// 	JsonVariant payload = response.createNestedObject("payload");
-	// 	tasks[index]		= Task(data.as<JsonObject>());
-	// 	tasks[index].encodeJSON(payload);
-
-	// 	KPStringBuilder<100> success("Saved", data[TASK_NAME].as<char *>());
-	// 	response["success"] = (char *) success.c_str();
-	// 	return index;
-	// }
-
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Get the Active Task Ids sorted by their schedules (<)
-	 *  
+	 *
 	 *  @return std::vector<int> list of ids
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	std::vector<int> getActiveSortedTaskIds() {
@@ -203,9 +176,9 @@ public:
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Insert task into TaskManager's internal data structure 
-	 *  
-	 *  @param task Task object to be inserted 
+	 *  @brief Insert task into TaskManager's internal data structure
+	 *
+	 *  @param task Task object to be inserted
 	 *  @param forcedIdGeneration Forced ID generation if task.id already exists
 	 *  @return bool true on successful insertion, false otherwise
 	 *  ──────────────────────────────────────────────────────────────────────────── */
@@ -223,7 +196,7 @@ public:
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Update the index file containing info about tasks
-	 *  
+	 *
 	 *  @param _dir Path to tasks directory (default=~/tasks)
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void updateIndexFile(const char * _dir = nullptr) {
@@ -240,7 +213,7 @@ public:
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Write task array to SD directory
-	 *  
+	 *
 	 *  @param _dir Path to tasks directory (default=~/tasks)
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void writeToDirectory(const char * _dir = nullptr) {

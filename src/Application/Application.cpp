@@ -155,23 +155,40 @@ void Application::setupServerRouting() {
 		serializeJsonPretty(body, Serial);
 
 		StaticJsonDocument<Task::encodingSize() + 500> response;
-		int id = body["name"];
+		int id = body[TaskKeys::ID];
 		if (tm.findTask(id)) {
-			//TODO: perform server validation
-			if (tm.tasks[id].numberOfValves() == 0) {
+			// TODO: perform server validation
+			Task & task = tm.tasks[id];
+			if (task.getNumberOfValves() == 0) {
 				response["error"] = "Cannot schedule a task without an assigned valve";
 				goto send;
 			}
 
-			// ...
+			if (task.schedule <= now() + 3) {
+				response["erorr"] = "Must be in the future";
+				goto send;
+			}
 
+			for (int v : task.valves) {
+				if (vm.valves[v].status == ValveStatus::sampled) {
+					KPStringBuilder<100> error("Valve ", v, " has already been sampled");
+					response["error"] = error;
+					goto send;
+				}
+			}
+
+			task.valveOffsetStart = 0;
 			tm.setTaskStatus(id, TaskStatus::active);
 			tm.writeToDirectory();
-			scheduleNextActiveTask();
+			ScheduleStatus returnedCode = scheduleNextActiveTask();
+			println("Scheduling returned code: ", static_cast<int>(returnedCode));
 
 			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(tm.tasks[id], payload);
+			encodeJSON(task, payload);
 			response["success"] = "Task has been scheduled";
+		} else {
+			KPStringBuilder<100> error("Task not found", id);
+			response["error"] = error;
 		}
 
 	send:
@@ -204,7 +221,8 @@ void Application::setupServerRouting() {
 			encodeJSON(task, payload);
 			response["success"] = "Task is now inactive";
 		} else {
-			response["error"] = "No task with such name";
+			KPStringBuilder<100> error("Task not found with id: ", id);
+			response["error"] = error;
 		}
 
 		res.json(response);
@@ -227,7 +245,8 @@ void Application::setupServerRouting() {
 		}
 
 		if (tm.tasks[id].status == TaskStatus::active) {
-			response["error"] = "Task currently have active status. Please deactivate before continue.";
+			response["error"] = "Task currently have active status. "
+								"Please deactivate before continue.";
 			goto send;
 		}
 
@@ -257,9 +276,9 @@ void Application::setupServerRouting() {
 		StaticJsonDocument<100> response;
 		if (utc >= power.compileTime(timezoneOffset) + millisToSecs(millis())) {
 			response["success"] = "RTC updated";
-			power.set(utc);
+			power.set(utc + 1);
 		} else {
-			response["error"] = "That doesn't seem right. You sure about this?";
+			response["error"] = "That doesn't seem right.";
 		}
 
 		res.json(response);
@@ -269,9 +288,8 @@ void Application::setupServerRouting() {
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Emergency stop
 	// ────────────────────────────────────────────────────────────────────────────────
-	server.get("/stop", [this](Request & req, Response & res) {
-		sm.transitionTo(StateName::STOP);
-	});
+	server.get("/stop",
+		[this](Request & req, Response & res) { sm.transitionTo(StateName::STOP); });
 }
 
 //
@@ -414,7 +432,8 @@ void Application::commandReceived(const String & line) {
 
 	MatchLine("schedule") {
 		println("Scheduling task...");
-		scheduleNextActiveTask();
+		ScheduleStatus returnedCode = scheduleNextActiveTask();
+		println("Scheduling returned code: ", static_cast<int>(returnedCode));
 	}
 
 	Match(0, "schedule") Match(1, "now") {
@@ -426,8 +445,8 @@ void Application::commandReceived(const String & line) {
 		task.status				= TaskStatus::active;
 		tm.insertTask(task);
 		println(tm);
-		ScheduleStatus s = scheduleNextActiveTask();
-		println("Return Status: ", static_cast<int>(s));
+		ScheduleStatus returnedCode = scheduleNextActiveTask();
+		println("Scheduling returned code: ", static_cast<int>(returnedCode));
 	}
 
 	MatchLine("mem") {
