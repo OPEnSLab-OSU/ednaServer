@@ -29,16 +29,17 @@
 
 #include "Application/Constants.hpp"
 
+#define RTC_ADDR 0x68
 
 //
-// ────────────────────────────────────────────────────────────────────────────────────────── I ──────────
-//   :::::: P O W E R   M A N A G E M E N T   W I T H   R T C : :  :   :    :     :        :          :
-// ────────────────────────────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────── I ──────────
+//   :::::: P O W E R   M A N A G E M E N T : :  :   :    :     :        :          :
+// ──────────────────────────────────────────────────────────────────────────────────
 //
-// DS3232RTC Library already know the address internally but we need this to check
-// if RTC is connected
+// DS3232RTC Library already know the address internally but we define it again here the
+// to check for connection
 //
-#define RTC_ADDR 0x68
+
 extern volatile unsigned long rtcInterruptStart;
 extern volatile bool alarmTriggered;
 extern void rtc_isr();
@@ -48,15 +49,10 @@ public:
 	DS3232RTC rtc;
 	std::function<void()> interruptCallback;
 
-	Power(const char * name)
-		: KPComponent(name), rtc(false) {}
+	Power(const char * name) : KPComponent(name), rtc(false) {}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Set interrupt callback
-	// ────────────────────────────────────────────────────────────────────────────────
 	void onInterrupt(std::function<void()> callbcak) {
 		interruptCallback = callbcak;
-		// const char * a	  = RED("asdf");
 	}
 
 	void setupRTC() {
@@ -85,9 +81,10 @@ public:
 		pinMode(HardwarePins::POWER_MODULE, OUTPUT);
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Runtime update loop. Check if RTC has been triggered.
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Runtime update loop. Check if RTC has been triggered.
+
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void update() override {
 		if (!alarmTriggered || !interruptCallback) {
 			return;
@@ -103,10 +100,11 @@ public:
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Wait for RTC to connect. This is done by checking if the return byte
-	 *  from the RTC is -1. In two complement's signed interger, all bits high means
-	 *  -1.Since, I2C for DS3231 is active low, this means that the RTC is not
-	 *  connected
+	 *  Wait for RTC to connect.
+	 *
+	 *  This is done by checking if the return byte from the RTC is -1. In two
+	 *  complement's signed interger, all bits high means -1.Since, I2C for DS3231 is
+	 *  active low, this means that the RTC is not connected
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void waitForConnection() {
 		Wire.begin();
@@ -123,27 +121,30 @@ public:
 		Wire.end();
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Signal the power module to cut power from the system
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Signal the power module to cut power from the system
+	 *
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void shutdown() {
 		digitalWrite(HardwarePins::POWER_MODULE, HIGH);
 		delay(20);
 		digitalWrite(HardwarePins::POWER_MODULE, LOW);
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Set alarms registers to a known value and clear any prev alarms
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Set alarms registers to a known value and clear any prev alarms
+	 *
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void resetAlarms() {
 		rtc.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
 		rtc.setAlarm(ALM2_MATCH_DATE, 0, 0, 0, 1);
 		disarmAlarms();
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Clear previous alarms and disable interrupts
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Clear previous alarms and disable interrupts
+	 *
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void disarmAlarms() {
 		rtc.alarm(ALARM_1);
 		rtc.alarm(ALARM_2);
@@ -151,10 +152,11 @@ public:
 		rtc.alarmInterrupt(ALARM_2, false);
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Bring the chip to the low power mode.
-	// External interrupt is required to wake the device and resume operation
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Bring the chip to the low power mode.
+	 *
+	 *  External interrupt is required to wake the device and resume operation
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void sleepForever() {
 		println();
 		println("Going to sleep...");
@@ -170,19 +172,22 @@ public:
 		printCurrentTime();
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Put the chip into the low power state for specified number of seconds
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Put the chip into the low power state for specified number of seconds
+	 *
+	 *  @param seconds How long in seconds
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void sleepFor(unsigned long seconds) {
 		setTimeout(seconds, true);
 		sleepForever();
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Schedule alarm for specified number of seconds from now.
-	// @param usingInterrupt:
-	//     A flag controlling whether to trigger the interrupt service routine
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Schedule alarm for specified number of seconds from now
+	 *
+	 *  @param seconds How long until alarm
+	 *  @param usingInterrupt If true, the rtc fires interrupt at HardwarePins::RTC_INTERRUPT
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void setTimeout(unsigned long seconds, bool usingInterrupt) {
 		TimeElements future;
 		breakTime(rtc.get() + seconds, future);
@@ -194,16 +199,21 @@ public:
 		}
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Schedule RTC alarm given TimeElements
-	// @param future:
-	//     Must be in the future, otherwise this method does nothing
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Schedule RTC alarm given TimeElements
+	 *
+	 *  @param future Must be in the future, otherwise this method does nothing
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void scheduleNextAlarm(TimeElements future) {
 		unsigned long utc = makeTime(future);
 		scheduleNextAlarm(utc);
 	}
 
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Schedule RTC alarm given utc
+	 *
+	 *  @param utc Must be in the future, otherwise this method does nothing
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void scheduleNextAlarm(unsigned long utc) {
 		unsigned long timestamp = now();
 		if (utc < timestamp) {
@@ -214,9 +224,11 @@ public:
 		setTimeout(utc - timestamp, true);
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Set RTC time and internal timer of the Time library
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Set RTC time and internal timer of the Time library
+	 *
+	 *  @param seconds
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void set(unsigned long seconds) {
 		println("Setting RTC Time...");
 		printTime(seconds);
@@ -225,9 +237,11 @@ public:
 		rtc.set(seconds);  // Set time for RTC
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Print time to console formatted as YYYY.MM.DD @ hh:mm:ss
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Print time to console formatted as YYYY.MM.DD @ hh:mm:ss
+	 *
+	 *  @param seconds
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void printTime(unsigned long seconds) {
 		char message[64];
 		sprintf(message,
@@ -250,9 +264,12 @@ public:
 		printTime(rtc.get(), offset);
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Convert compiled timestrings to seconds since 1 Jan 1970
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Convert compiled timestrings to seconds since 1 Jan 1970
+	 *
+	 *  @param offsetMinutes Minutes to offset time b (default: 0)
+	 *  @return time_t Time in seconds since 1 Jan 1970
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	time_t compileTime(int offsetMinutes = 0) {
 		const char * date	= __DATE__;
 		const char * time	= __TIME__;
@@ -278,7 +295,8 @@ public:
 			breakTime(t, tm);
 		}
 
+		// Add FUDGE factor to allow for time to compile
 		constexpr time_t FUDGE = 10;
-		return t + FUDGE;  //Add FUDGE factor to allow for time to compile
+		return t + FUDGE;
 	}
 };

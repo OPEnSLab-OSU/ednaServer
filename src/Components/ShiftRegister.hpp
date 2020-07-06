@@ -26,21 +26,22 @@
 class ShiftRegister : public KPComponent {
 public:
 	const int capacityPerRegister = 8;
-	const int capacity;
 	const int registersCount;
 
-	int dataPin	 = 0;
-	int clockPin = 0;
-	int latchPin = 0;
+	const int dataPin;
+	const int clockPin;
+	const int latchPin;
 
 	int8_t * registers;
 	BitOrder bitOrder = MSBFIRST;
 
 public:
-	ShiftRegister(const char * name, int capacity, int data, int clock, int latch)
+	ShiftRegister(const char * name, int registerCount, int data, int clock, int latch)
 		: KPComponent(name),
-		  capacity(capacity),
-		  registersCount(capacity / capacityPerRegister) {
+		  registersCount(registerCount),
+		  dataPin(data),
+		  clockPin(clock),
+		  latchPin(latch) {
 		registers = new int8_t[registersCount]();
 		setRegisterPins(data, clock, latch);
 	}
@@ -49,35 +50,43 @@ public:
 		writeAllRegistersLow();
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Helper converting 1D pin index to register index
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Set all given pins to output mode. The registers should be hooked up
+	 *  in daisy chain mode.
+	 *
+	 *  @param data Data pin
+	 *  @param clock Clock pin
+	 *  @param latch Latch pin
+	 *  ──────────────────────────────────────────────────────────────────────────── */
+	void setRegisterPins(int data, int clock, int latch) {
+		pinMode(dataPin, OUTPUT);
+		pinMode(clockPin, OUTPUT);
+		pinMode(latchPin, OUTPUT);
+	}
+
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Helper converting 1D pin number to register index.
+	 *
+	 *  @param pinNumber Pin number (ex: 0,1,2,...,23)
+	 *  @return int Index of the register containing this pin
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	int toRegisterIndex(int pinNumber) const {
 		return pinNumber / capacityPerRegister;
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Helper converting 1D pin index to pin index
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Helper converting 1D pin number to the pin index of the register containing this
+	 *  pin
+	 *
+	 *  @param pinNumber Pin number (ex: 0,1,2,...,23)
+	 *  @return int Index of the pin
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	int toPinIndex(int pinNumber) const {
 		return pinNumber % capacityPerRegister;
 	}
 
 	std::pair<int, int> toRegisterAndPinIndices(int pinNumber) const {
 		return {toRegisterIndex(pinNumber), toPinIndex(pinNumber)};
-	}
-
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Set the hardware pins of the shift registers. The registers should be hooked up
-	// in daisy chain mode.
-	// ────────────────────────────────────────────────────────────────────────────────
-	void setRegisterPins(int data, int clock, int latch) {
-		dataPin	 = data;
-		clockPin = clock;
-		latchPin = latch;
-		pinMode(dataPin, OUTPUT);
-		pinMode(clockPin, OUTPUT);
-		pinMode(latchPin, OUTPUT);
 	}
 
 	void setAllRegistersLow() {
@@ -92,9 +101,13 @@ public:
 		}
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Set individual pin of the register high/low given the register index
-	// ────────────────────────────────────────────────────────────────────────────────s
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Set individual pin of the register high/low given the register index
+	 *
+	 *  @param registerIndex Index of the register
+	 *  @param pinIndex Index of the pin
+	 *  @param signal HIGH or LOW
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void setRegister(int registerIndex, int pinIndex, bool signal) {
 		if (registerIndex >= registersCount || pinIndex >= capacityPerRegister) {
 			return;
@@ -107,20 +120,24 @@ public:
 		}
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Set invidual pin of the register high/low
-	// ────────────────────────────────────────────────────────────────────────────────
-	void setPin(int index, bool signal) {
-		if (index < 0 || index >= capacity) {
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Set invidual pin of the register high/low
+	 *
+	 *  @param number Pin number
+	 *  @param signal HIGH or LOW
+	 *  ──────────────────────────────────────────────────────────────────────────── */
+	void setPin(int number, bool signal) {
+		if (number < 0 || number >= registersCount * capacityPerRegister) {
 			return;
 		}
 
-		setRegister(toRegisterIndex(index), toPinIndex(index), signal);
+		setRegister(toRegisterIndex(number), toPinIndex(number), signal);
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Shiftout each byte in the register array in reverse order
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Shiftout each byte in the register array in reverse order
+	 *
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void write() {
 		digitalWrite(latchPin, LOW);
 		for (int i = registersCount - 1; i >= 0; i--) {
@@ -149,10 +166,12 @@ public:
 		write();
 	}
 
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Turn on a single pin where the rest is low
-	// One-hot: https://en.wikipedia.org/wiki/One-hot
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Turn on a single pin while keeping the rest low
+	 *
+	 *  @param pinNumber
+	 *  @ref One-hot: https://en.wikipedia.org/wiki/One-hot
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void writeOneHot(int pinNumber) {
 		if (toRegisterIndex(pinNumber) >= registersCount) {
 			return;
@@ -164,9 +183,12 @@ public:
 	}
 
 private:
-	// ────────────────────────────────────────────────────────────────────────────────
-	// Convenient methods for working with latch valve
-	// ────────────────────────────────────────────────────────────────────────────────
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Convenient methods for working with latch valve. Please one of the convenient
+	 *  methods instead. See writeLatchIn() and writeLatchOut()
+	 *
+	 *  @param controlPin Control pin
+	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void writeLatch(bool controlPin) {
 		setPin(controlPin, HIGH);
 		write();
