@@ -172,7 +172,7 @@ public:
 		auto & sample	= *sm.getState<StateSample>(StateName::SAMPLE);
 		sample.time		= task.sampleTime;
 		sample.pressure = task.samplePressure;
-		sample.volume	= task.flushVolume;
+		sample.volume	= task.sampleVolume;
 
 		auto & dry = *sm.getState<StateDry>(StateName::DRY);
 		dry.time   = task.dryTime;
@@ -270,7 +270,7 @@ public:
 		}
 
 		if (task.schedule <= now() + 3) {
-			response["erorr"] = "Must be in the future";
+			response["error"] = "Must be in the future";
 			return;
 		}
 

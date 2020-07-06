@@ -33,7 +33,7 @@ namespace HardwarePins {
 namespace ProgramSettings {
 	__k_str CONFIG_FILE_PATH		  = "config.js";
 	__k_int SD_FILE_NAME_LENGTH		  = 13;
-	__k_int CONFIG_JSON_BUFFER_SIZE	  = 500;
+	__k_int CONFIG_JSON_BUFFER_SIZE	  = 800;
 	__k_int STATUS_JSON_BUFFER_SIZE	  = 800;
 	__k_int TASK_JSON_BUFFER_SIZE	  = 800;
 	__k_int TASKREF_JSON_BUFFER_SIZE  = 50;

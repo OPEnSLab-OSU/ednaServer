@@ -6,10 +6,9 @@
 namespace StateName {
 	constexpr const char * IDLE		= "idle-state";
 	constexpr const char * STOP		= "stop-state";
-	constexpr const char * DECON	= "decon-state";
 	constexpr const char * PRESERVE = "preserve-state";
 	constexpr const char * DRY		= "dry-state";
-	constexpr const char * SAMPLE	= "clean-state";
+	constexpr const char * SAMPLE	= "sample-state";
 	constexpr const char * FLUSH	= "flush-state";
 };	// namespace StateName
 
