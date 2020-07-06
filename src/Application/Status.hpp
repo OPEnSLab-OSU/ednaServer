@@ -1,8 +1,10 @@
 #pragma once
-#include <KPFoundation.hpp>
-#include <Application/Config.hpp>
 #include <array>
 
+#include <KPFoundation.hpp>
+#include <KPState.hpp>
+
+#include <Application/Config.hpp>
 #include <Utilities/JsonFileLoader.hpp>
 #include <Valve/ValveStatus.hpp>
 #include <Valve/ValveObserver.hpp>
@@ -36,7 +38,7 @@ public:
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Initialize status from user config
-	 *  
+	 *
 	 *  @param config Config object containing meta data of the system
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void init(Config & config) {
@@ -54,41 +56,40 @@ private:
 	}
 
 	void valveDidUpdate(const Valve & valve) override {
-		valves[valve.id] = valve.status;
+		if (valve.id == currentValve && valve.status == ValveStatus::sampled) {
+			currentValve = -1;
+		}
+
 		if (valve.status == ValveStatus::operating) {
 			currentValve = valve.id;
 		}
+
+		valves[valve.id] = valve.status;
 	}
 
 	void valveArrayDidUpdate(const std::vector<Valve> & valves) override {
 		currentValve = -1;
 		for (const Valve & v : valves) {
-			if (v.status == ValveStatus::operating) {
-				currentValve = v.id;
-			}
-
-			this->valves[v.id] = v.status;
+			valveDidUpdate(v);
 		}
 	}
 
 	void stateDidBegin(const KPState * current) override {
 		currentStateName = current->getName();
-		println(currentStateName);
 	}
 
 public:
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Override_Mode_Pin is connected to an external switch which is active low.
 	 *  Override_Mode_Pin is connected to an external switch which is active low.
-	 * 
+	 *
 	 *  @return bool true if machine is in programming mode, false otherwise
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	static bool isProgrammingMode() {
-#ifdef DEBUG
-		return true;
-#else
+#ifdef LIVE
 		return analogRead(HardwarePins::SHUTDOWN_OVERRIDE) <= 100;
 #endif
+		return true;
 	}
 
 #pragma region JSONDECODABLE
@@ -101,10 +102,10 @@ public:
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief May be used to resume operation in future versions. For now, 
+	 *  @brief May be used to resume operation in future versions. For now,
 	 *  status file is used to save valves status for next startup.
-	 * 
-	 *  @param source 
+	 *
+	 *  @param source
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void decodeJSON(const JsonVariant & source) override {
 		const JsonArrayConst & source_valves = source[StatusKeys::VALVES].as<JsonArrayConst>();
@@ -127,15 +128,17 @@ public:
 		JsonArray doc_valves = dest.createNestedArray(VALVES);
 		copyArray(valves.data(), valves.size(), doc_valves);
 
-		return dest[VALVES_COUNT].set(valves.size())
-			   && dest[SENSOR_PRESSURE].set(pressure)
-			   && dest[SENSOR_TEMP].set(temperature)
-			   && dest[SENSOR_BARO].set(barometric)
-			   && dest[SENSOR_VOLUME].set(waterVolume)
-			   && dest[SENSOR_DEPTH].set(waterDepth)
-			   && dest[SENSOR_FLOW].set(waterFlow)
-			   && dest[CURRENT_TASK].set(currentTaskName)
-			   && dest[CURRENT_STATE].set(currentStateName);
+		// clang-format off
+		return dest[VALVES_COUNT].set(valves.size()) 
+			&& dest[SENSOR_PRESSURE].set(pressure)
+			&& dest[SENSOR_TEMP].set(temperature) 
+			&& dest[SENSOR_BARO].set(barometric)
+			&& dest[SENSOR_VOLUME].set(waterVolume) 
+			&& dest[SENSOR_DEPTH].set(waterDepth)
+			&& dest[SENSOR_FLOW].set(waterFlow) 
+			&& dest[CURRENT_TASK].set(currentTaskName)
+			&& dest[CURRENT_STATE].set(currentStateName);
+		// clang-format on
 	}
 
 #pragma endregion JSONENCODABLE

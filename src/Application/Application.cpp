@@ -7,17 +7,19 @@
 // ──────────────────────────────────────────────────────────────────────────
 //
 
-void Application::setupServerRouting() {
-	server.handlers.reserve(10);
+void sendJsonResponse(Response & res, JsonDocument & response) {
+	res.json(response);
+	res.end();
+}
 
-#ifndef DEBUG
-	// TODO: Respond with actual index file
+void Application::setupServerRouting() {
+	server.handlers.reserve(12);
+
 	server.get("/", [this](Request & req, Response & res) {
 		res.setHeader("Content-Encoding", "gzip");
 		res.sendFile("index.gz", fileLoader);
 		res.end();
 	});
-#endif
 
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Get the current status
@@ -30,7 +32,7 @@ void Application::setupServerRouting() {
 		KPStringBuilder<10> length(measureJson(response));
 		res.setHeader("Content-Length", length);
 		res.json(response);
-		res.end();
+		res.end(); 
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -67,9 +69,9 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encodingSize() + 500> response;
 		int id = body[TaskKeys::ID];
 
+		StaticJsonDocument<Task::encodingSize() + 500> response;
 		if (tm.findTask(id)) {
 			JsonVariant payload = response.createNestedObject("payload");
 			encodeJSON(tm.tasks[id], payload);
@@ -90,29 +92,27 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encodingSize() + 500> response;
 		const char * name = body[TaskKeys::NAME];
 
-		println("Creating Task..");
-
-		// Adding new task to task collection and write to file +
-		// sending http response as appropriate
+		// Create and add new task to manager
 		Task task = tm.createTask();
 		strcpy(task.name, name);
 		tm.insertTask(task, true);
-		// tm.writeToDirectory(); // NOTE: Uncomment to save tasks
 
-		// success response
+		// NOTE: Uncomment to save task. Not sure if this is necessary here
+		// tm.writeToDirectory();
+
+		// Success response
+		StaticJsonDocument<Task::encodingSize() + 500> response;
 		KPStringBuilder<100> success("Successfully created ", name);
-		response["success"] = (char *) success.c_str();
+		response["success"] = success;
 
-		// return task with partially filled fields
+		// Return task with partially filled fields
 		JsonVariant payload = response.createNestedObject("payload");
 		encodeJSON(task, payload);
 
 		res.json(response);
 		res.end();
-		println("Returned response");
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -121,29 +121,28 @@ void Application::setupServerRouting() {
 	server.post("/api/task/save", [this](Request & req, Response & res) {
 		StaticJsonDocument<Task::encodingSize()> body;
 		deserializeJson(body, req.body);
-
-#ifdef DEBUG
 		serializeJsonPretty(body, Serial);
-#endif
 
+		// Prarse incomming payload
 		Task incomingTask;
 		incomingTask.decodeJSON(body.as<JsonVariant>());
 
+		// Validate
 		StaticJsonDocument<Task::encodingSize() + 500> response;
 		validateTaskForSaving(incomingTask, response);
 		if (response.containsKey("error")) {
-			goto send;
+			sendJsonResponse(res, response);
+			return;
 		}
 
+		// Save
 		tm.tasks[incomingTask.id] = incomingTask;
 		tm.writeToDirectory();
-		response["success"] = "Task successfully saved";
 
-	send:
-		serializeJsonPretty(response, Serial);
+		// Respond
+		response["success"] = "Task successfully saved";
 		res.json(response);
 		res.end();
-		println("Returned response");
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -154,44 +153,27 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		StaticJsonDocument<Task::encodingSize() + 500> response;
 		int id = body[TaskKeys::ID];
-		if (tm.findTask(id)) {
-			// TODO: perform server validation
-			Task & task = tm.tasks[id];
-			if (task.getNumberOfValves() == 0) {
-				response["error"] = "Cannot schedule a task without an assigned valve";
-				goto send;
-			}
 
-			if (task.schedule <= now() + 3) {
-				response["erorr"] = "Must be in the future";
-				goto send;
-			}
-
-			for (int v : task.valves) {
-				if (vm.valves[v].status == ValveStatus::sampled) {
-					KPStringBuilder<100> error("Valve ", v, " has already been sampled");
-					response["error"] = error;
-					goto send;
-				}
-			}
-
-			task.valveOffsetStart = 0;
-			tm.setTaskStatus(id, TaskStatus::active);
-			tm.writeToDirectory();
-			ScheduleStatus returnedCode = scheduleNextActiveTask();
-			println("Scheduling returned code: ", static_cast<int>(returnedCode));
-
-			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(task, payload);
-			response["success"] = "Task has been scheduled";
-		} else {
-			KPStringBuilder<100> error("Task not found", id);
-			response["error"] = error;
+		StaticJsonDocument<Task::encodingSize() + 500> response;
+		validateTaskForScheduling(id, response);
+		if (response.containsKey("error")) {
+			sendJsonResponse(res, response);
+			return;
 		}
 
-	send:
+		Task & task			  = tm.tasks[id];
+		task.valveOffsetStart = 0;
+		tm.setTaskStatus(task.id, TaskStatus::active);
+		tm.writeToDirectory();
+
+		JsonVariant payload = response.createNestedObject("payload");
+		encodeJSON(task, payload);
+
+		ScheduleReturnCode code = scheduleNextActiveTask();
+		println(code.description());
+
+		response["success"] = "Task has been scheduled";
 		res.json(response);
 		res.end();
 	});
@@ -204,26 +186,27 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
+		int id = body[TaskKeys::ID];
+
 		StaticJsonDocument<Task::encodingSize() + 500> response;
-		int id = body["id"];
-
-		if (tm.findTask(id)) {
-			Task & task = tm.tasks[id];
-			if (currentTaskId == id) {
-				invalidateTask(task);
-				sm.transitionTo(StateName::STOP);
-			} else {
-				invalidateTask(task);
-				tm.writeToDirectory();
-			}
-
-			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(task, payload);
-			response["success"] = "Task is now inactive";
-		} else {
-			KPStringBuilder<100> error("Task not found with id: ", id);
-			response["error"] = error;
+		if (!tm.findTask(id)) {
+			response["error"] = "Task not found";
+			sendJsonResponse(res, response);
+			return;
 		}
+
+		Task & task = tm.tasks[id];
+		if (currentTaskId == task.id) {
+			invalidateTaskAndFreeUpValves(task);
+			sm.transitionTo(StateName::STOP);
+		} else {
+			invalidateTaskAndFreeUpValves(task);
+			tm.writeToDirectory();
+		}
+
+		JsonVariant payload = response.createNestedObject("payload");
+		encodeJSON(task, payload);
+		response["success"] = "Task is now inactive";
 
 		res.json(response);
 		res.end();
@@ -236,9 +219,9 @@ void Application::setupServerRouting() {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 
-		StaticJsonDocument<500> response;
 		int id = body["id"];
 
+		StaticJsonDocument<500> response;
 		if (!tm.findTask(id)) {
 			response["error"] = "No task with this name";
 			goto send;
@@ -268,13 +251,17 @@ void Application::setupServerRouting() {
 
 		const time_t utc		 = body["utc"];
 		const int timezoneOffset = body["timezoneOffset"];
+		const auto compileTime	 = power.compileTime(timezoneOffset);
 
-		println("UTC=", utc);
-		println("Compile Time=", power.compileTime(timezoneOffset));
+#ifdef DEBUG
+		println("Received UTC: ", utc);
+		println("Current RTC time: ", now());
+		println("Time at compilation: ", compileTime);
+#endif
 
 		// Checking against compiled time + millis() to prevents bogus value
 		StaticJsonDocument<100> response;
-		if (utc >= power.compileTime(timezoneOffset) + millisToSecs(millis())) {
+		if (utc >= compileTime + millisToSecs(millis())) {
 			response["success"] = "RTC updated";
 			power.set(utc + 1);
 		} else {
@@ -432,8 +419,7 @@ void Application::commandReceived(const String & line) {
 
 	MatchLine("schedule") {
 		println("Scheduling task...");
-		ScheduleStatus returnedCode = scheduleNextActiveTask();
-		println("Scheduling returned code: ", static_cast<int>(returnedCode));
+		println(scheduleNextActiveTask().description());
 	}
 
 	Match(0, "schedule") Match(1, "now") {
@@ -444,9 +430,7 @@ void Application::commandReceived(const String & line) {
 		task.deleteOnCompletion = true;
 		task.status				= TaskStatus::active;
 		tm.insertTask(task);
-		println(tm);
-		ScheduleStatus returnedCode = scheduleNextActiveTask();
-		println("Scheduling returned code: ", static_cast<int>(returnedCode));
+		println(scheduleNextActiveTask().description());
 	}
 
 	MatchLine("mem") {

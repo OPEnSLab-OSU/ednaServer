@@ -58,10 +58,6 @@ public:
 			return markTaskAsCompleted(id);
 		}
 
-		// for (int i = task.valveOffsetStart; i < task.getNumberOfValves(); i++) {
-		// 	println(task.valves[i]);
-		// }
-
 		return true;
 	}
 
@@ -144,13 +140,17 @@ public:
 		loader.load(indexFilepath, indexFile);
 
 		// Decode each task object into memory
-		int count = indexFile["count"];
+		int count  = indexFile["count"];
+		auto start = millis();
 		for (int i = 0; i < count; i++) {
 			KPStringBuilder<32> filepath(dir, "/task-", i, ".js");
 			Task task;
 			loader.load(filepath, task);
 			tasks.insert({task.id, task});
 		}
+
+		println(GREEN("Task Manager"), " finished reading in ", millis() - start, " ms\n");
+		// updateObservers(&TaskObserver::taskCollectionDidUpdate, tasks.begin());
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────

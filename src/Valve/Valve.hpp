@@ -12,9 +12,7 @@
 // ────────────────────────────────────────────────────────────
 //
 
-struct Valve : public JsonEncodable,
-			   public JsonDecodable,
-			   public Printable {
+struct Valve : public JsonEncodable, public JsonDecodable, public Printable {
 public:
 	int id	   = ValveStatus::unavailable;
 	int status = ValveStatus::unavailable;
@@ -25,8 +23,8 @@ public:
 	Valve & operator=(const Valve &) = default;
 
 	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Explicit construction of a new Valve object from JSON data
-	 *  
+	 *  Explicit construction of a new Valve object from JSON data
+	 *
 	 *  @param data Data in form of ArduinoJson's JsonObject
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	explicit Valve(const JsonObject & data) {
@@ -68,10 +66,11 @@ public:
 
 	bool encodeJSON(const JsonVariant & dst) const override {
 		using namespace ValveKeys;
+		// clang-format off
 		return dst[ID].set(id)
-			   && dst[GROUP].set((char *) group)
+			   && dst[GROUP].set(group)
 			   && dst[STATUS].set(status);
-	}
+	}  // clang-format on
 
 #pragma endregion
 #pragma region PRINTABLE

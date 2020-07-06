@@ -123,17 +123,25 @@ public:
 
 	bool encodeJSON(const JsonVariant & dst) const override {
 		using namespace TaskKeys;
-		return dst[ID].set(id) && dst[NAME].set((char *) name) && dst[NOTES].set((char *) notes)
-			   && dst[STATUS].set(status) && dst[CREATED_AT].set(createdAt)
-			   && dst[SCHEDULE].set(schedule) && dst[FLUSH_TIME].set(flushTime)
-			   && dst[FLUSH_VOLUME].set(flushVolume) && dst[SAMPLE_TIME].set(sampleTime)
-			   && dst[SAMPLE_PRESSURE].set(samplePressure) && dst[SAMPLE_VOLUME].set(sampleVolume)
-			   && dst[DRY_TIME].set(dryTime) && dst[PRESERVE_TIME].set(preserveTime)
-			   && dst[TIME_BETWEEN].set(timeBetween)
-			   && dst[VALVES_OFFSET].set(getValveOffsetStart())
-			   && dst[DELETE].set(deleteOnCompletion)
-			   && copyArray(valves.data(), valves.size(), dst.createNestedArray(VALVES));
-	}
+		// clang-format off
+		return dst[ID].set(id) 
+			&& dst[NAME].set(name) 
+			&& dst[NOTES].set(notes)
+			&& dst[STATUS].set(status) 
+			&& dst[CREATED_AT].set(createdAt)
+			&& dst[SCHEDULE].set(schedule) 
+			&& dst[FLUSH_TIME].set(flushTime)
+			&& dst[FLUSH_VOLUME].set(flushVolume)
+			&& dst[SAMPLE_TIME].set(sampleTime)
+			&& dst[SAMPLE_PRESSURE].set(samplePressure) 
+			&& dst[SAMPLE_VOLUME].set(sampleVolume)
+			&& dst[DRY_TIME].set(dryTime) 
+			&& dst[PRESERVE_TIME].set(preserveTime)
+			&& dst[TIME_BETWEEN].set(timeBetween) 
+			&& dst[VALVES_OFFSET].set(getValveOffsetStart())
+			&& dst[DELETE].set(deleteOnCompletion)
+			&& copyArray(valves.data(), valves.size(), dst.createNestedArray(VALVES));
+	}  // clang-format on
 
 	size_t printTo(Print & printer) const override {
 		StaticJsonDocument<encodingSize()> doc;

@@ -7,30 +7,24 @@
 #include <KPStateMachine.hpp>
 #include <Action.hpp>
 
-#include <Procedures/Main.hpp>
-
 #include <Application/Config.hpp>
 #include <Application/Constants.hpp>
 #include <Application/Status.hpp>
+#include <Application/ScheduleReturnCode.hpp>
 
 #include <Components/Pump.hpp>
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
+
+#include <Procedures/Main.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
 
 #include <Task/Task.hpp>
 #include <Task/TaskManager.hpp>
+
 #include <Utilities/JsonEncodableDecodable.hpp>
-
-#define PRINT_MODE(mode, x)                        \
-	PrintConfig::setPrintVerbose(Verbosity::mode); \
-	x;                                             \
-	PrintConfig::setDefaultVerbose()
-
-#define PRINT_REGION_DEBUG PrintConfig::setPrintVerbose(Verbosity::debug);
-#define PRINT_DEFAULT	   PrintConfig::setDefaultVerbose();
 
 extern void printDirectory(File dir, int numTabs);
 inline bool checkForConnection(uint8_t addr) {
@@ -44,12 +38,6 @@ struct ValveBlock {
 	const int pinIndex;
 };
 
-enum class ScheduleStatus {
-	noActiveTask,
-	inOperation,
-	onSchedule,
-};
-
 class Application : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
 	void setupServerRouting();
@@ -58,22 +46,29 @@ private:
 public:
 	KPServer server{"web-server", "eDNA-test", "password"};
 
-	Pump pump{"pump", HardwarePins::MOTOR_FORWARD, HardwarePins::MOTOR_REVERSE};
+	Pump pump{
+		"pump",
+		HardwarePins::MOTOR_FORWARD,
+		HardwarePins::MOTOR_REVERSE,
+	};
 
 	ShiftRegister shift{"shift-register",
-		32,
+		4,
 		HardwarePins::SHFT_REG_DATA,
 		HardwarePins::SHFT_REG_CLOCK,
 		HardwarePins::SHFT_REG_LATCH};
 
-	KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
+	KPFileLoader fileLoader{
+		"file-loader",
+		HardwarePins::SD_CARD,
+	};
 
-	KPStateMachine sm{"state-machine"};
 	Power power{"power"};
 
 	Config config{ProgramSettings::CONFIG_FILE_PATH};
 	Status status;
 
+	KPStateMachine sm{"state-machine"};
 	ValveManager vm;
 	TaskManager tm;
 
@@ -88,26 +83,24 @@ private:
 		return "Application-Task Observer";
 	}
 
-	void develop() {
-		while (!Serial) {
-			delay(100);
-		};
-	}
-
 	void setup() override {
 		KPSerialInput::sharedInstance().addObserver(this);
-
 		Serial.begin(115200);
-		develop();	// NOTE: Remove in production
 
+#ifndef RELEASE
+		while (!Serial) {};
+#endif
 		// Here we add and initialize the power module first. This allows us to get the
 		// actual time from the RTC for random task id generation
 		addComponent(power);
 		randomSeed(now());
 
 		PRINT_REGION_DEBUG
+		println();
+		println("==================================================");
 		println("DEBUG MODE");
 		println("Default print verbosity is ", static_cast<int>(PrintConfig::defaultPrintVerbose));
+		println("==================================================");
 		PRINT_DEFAULT
 
 		// Register components
@@ -145,20 +138,18 @@ private:
 		tm.addObserver(this);
 		tm.loadTasksFromDirectory(config.taskFolder);
 
-		// Schedule task if any then wait in IDLE
-		ScheduleStatus returnedCode = scheduleNextActiveTask();
-		println("Scheduling returned code: ", static_cast<int>(returnedCode));
+		// Wait in IDLE
 		sm.transitionTo(StateName::IDLE);
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
-			println("\033[1;32mRTC Interrupted!\033[0m");
-			power.disarmAlarms();
-			ScheduleStatus returnedCode = scheduleNextActiveTask();
-			println("Scheduling returned code: ", static_cast<int>(returnedCode));
+			println(GREEN("RTC Interrupted!"));
+			println(scheduleNextActiveTask().description());
 		});
 
+#ifdef DEBUG
 		runForever(2000, "mem", []() { printFreeRam(); });
+#endif
 	}
 
 public:
@@ -196,63 +187,62 @@ public:
 	 *  @return true if task is successfully scheduled.
 	 *  @return false if task is either missed schedule or no active task available.
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	ScheduleStatus scheduleNextActiveTask(bool shouldInvalidateCurrentTask = false) {
-		std::vector<int> taskIds = tm.getActiveSortedTaskIds();
-		if (taskIds.empty()) {
-			return ScheduleStatus::noActiveTask;
-		}
-
-		for (auto id : taskIds) {
-			auto & task		= tm.tasks[id];
+	ScheduleReturnCode scheduleNextActiveTask(bool shouldStopCurrentTask = false) {
+		for (auto id : tm.getActiveSortedTaskIds()) {
+			Task & task		= tm.tasks[id];
 			time_t time_now = now();
 
-			if (id == currentTaskId) {
-				if (time_now >= task.schedule && shouldInvalidateCurrentTask) {
+			if (currentTaskId == id) {
+				// NOTE: Check logic here. Maybe not be correct yet
+				if (shouldStopCurrentTask) {
 					cancel("delayTaskExecution");
-					invalidateTask(task);
 					if (status.currentStateName != StateName::STOP) {
 						sm.transitionTo(StateName::STOP);
 					}
 
 					continue;
+				} else {
+					return ScheduleReturnCode::operating;
 				}
-
-				return ScheduleStatus::inOperation;
 			}
 
-			// Missed schedule
 			if (time_now >= task.schedule) {
+				// Missed schedule
 				println(RED("Missed schedule"));
-				invalidateTask(task);
-				tm.writeToDirectory();
+				invalidateTaskAndFreeUpValves(task);
 				continue;
 			}
 
-			// Wake up between 10 secs of the actual schedule time
-			// Prepare an action and return status=operating
 			if (time_now >= task.schedule - 10) {
+				// Wake up between 10 secs of the actual schedule time
+				// Prepare an action to execute at exact time
+				const auto timeUntil = task.schedule - time_now;
+
 				TimedAction delayTaskExecution;
 				delayTaskExecution.name		= "delayTaskExecution";
-				delayTaskExecution.interval = secsToMillis(task.schedule - time_now);
+				delayTaskExecution.interval = secsToMillis(timeUntil);
 				delayTaskExecution.callback = [this]() { sm.transitionTo(StateName::FLUSH); };
 
+				// async, will be execute later
 				run(delayTaskExecution);
 				transferTaskDataToStateParameters(task);
-				status.preventShutdown = true;
-				currentTaskId		   = id;
-				vm.setValveStatus(task.valves[task.valveOffsetStart], ValveStatus::operating);
-				println("Executing task in", task.schedule - time_now, "seconds");
-				return ScheduleStatus::inOperation;
-			}
 
-			// Wake up before any task
-			status.preventShutdown = false;
-			power.scheduleNextAlarm(task.schedule - 5);
-			return ScheduleStatus::onSchedule;
+				currentTaskId		   = id;
+				status.preventShutdown = true;
+				vm.setValveStatus(task.valves[task.valveOffsetStart], ValveStatus::operating);
+
+				println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
+				return ScheduleReturnCode::operating;
+			} else {
+				// Wake up before not due to alarm, reschedule anyway
+				status.preventShutdown = false;
+				power.scheduleNextAlarm(task.schedule - 8);	 // 3 < x < 10
+				return ScheduleReturnCode::scheduled;
+			}
 		}
 
 		currentTaskId = 0;
-		return ScheduleStatus::noActiveTask;
+		return ScheduleReturnCode::unavailable;
 	}
 
 	void validateTaskForSaving(const Task & task, JsonDocument & response) {
@@ -267,7 +257,31 @@ public:
 		}
 	}
 
-	void validateTaskForScheduling(const Task & task) {}
+	void validateTaskForScheduling(int id, JsonDocument & response) {
+		if (!tm.findTask(id)) {
+			response["error"] = "Task not found";
+			return;
+		}
+
+		Task & task = tm.tasks[id];
+		if (task.getNumberOfValves() == 0) {
+			response["error"] = "Cannot schedule a task without an assigned valve";
+			return;
+		}
+
+		if (task.schedule <= now() + 3) {
+			response["erorr"] = "Must be in the future";
+			return;
+		}
+
+		for (int v : task.valves) {
+			if (vm.valves[v].status == ValveStatus::sampled) {
+				KPStringBuilder<100> error("Valve ", v, " has already been sampled");
+				response["error"] = error;
+				return;
+			}
+		}
+	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Runs after the setup and initialization of all components
@@ -295,7 +309,7 @@ public:
 		raise("SHUTDOWN");
 	}
 
-	void invalidateTask(Task & task) {
+	void invalidateTaskAndFreeUpValves(Task & task) {
 		for (int i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
 			vm.setValveFreeIfNotYetSampled(task.valves[i]);
 		}

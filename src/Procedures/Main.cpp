@@ -1,7 +1,10 @@
 #include <Application/Application.hpp>
 #include <Procedures/Main.hpp>
 
-void StateIdle::enter(KPStateMachine & sm) {}
+void StateIdle::enter(KPStateMachine & sm) {
+	Application & app = *static_cast<Application *>(sm.controller);
+	println(app.scheduleNextActiveTask().description());
+}
 
 void StateStop::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
@@ -16,11 +19,9 @@ void StateStop::enter(KPStateMachine & sm) {
 	app.tm.advanceTask(currentTaskId);
 	app.tm.writeToDirectory();
 
+	app.currentTaskId		= 0;
+	app.status.currentValve = -1;
 	sm.transitionTo(StateName::IDLE);
-	app.currentTaskId			= 0;
-	app.status.currentValve		= -1;
-	ScheduleStatus returnedCode = app.scheduleNextActiveTask();
-	println("Stop Scheduling returned code: ", static_cast<int>(returnedCode));
 }
 
 void StatePreserve::enter(KPStateMachine & sm) {

@@ -69,8 +69,9 @@ public:
 		setTime(rtc.get());
 
 		// Print out the current time
-		println("RTC startup time: ");
+		print("RTC startup time: ");
 		printCurrentTime();
+		println();
 	}
 
 	void setup() override {
@@ -238,29 +239,27 @@ public:
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
-	 *  Print time to console formatted as YYYY.MM.DD @ hh:mm:ss
+	 *  Print time to console formatted as YYYY/MM/DD hh:mm:ss GMT +/- offset
 	 *
-	 *  @param seconds
+	 *  @param utc Unix epoch
+	 *  @param offset Offset in time zone
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void printTime(unsigned long seconds) {
+	void printTime(unsigned long utc, int offset = 0) {
 		char message[64];
+		utc = utc + (offset * 60 * 60);
 		sprintf(message,
-			"%u.%u.%u @ %02u:%02u:%02u",
-			year(seconds),
-			month(seconds),
-			day(seconds),
-			hour(seconds),
-			minute(seconds),
-			second(seconds));
-		println(message);
-	}
-
-	void printTime(unsigned long seconds, int offset) {
-		printTime(seconds + (offset * 60 * 60));
+			"%u/%u/%u %02u:%02u:%02u GMT %+d",
+			year(utc),
+			month(utc),
+			day(utc),
+			hour(utc),
+			minute(utc),
+			second(utc),
+			offset);
+		print(message);
 	}
 
 	void printCurrentTime(int offset = 0) {
-		print("Current Time: ");
 		printTime(rtc.get(), offset);
 	}
 
