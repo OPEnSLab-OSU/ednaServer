@@ -8,12 +8,14 @@
 #include <Utilities/JsonFileLoader.hpp>
 #include <Valve/ValveStatus.hpp>
 #include <Valve/ValveObserver.hpp>
+#include <Components/SensorArrayObserver.hpp>
 
 class Status : public JsonDecodable,
 			   public JsonEncodable,
 			   public Printable,
 			   public KPStateMachineObserver,
-			   public ValveObserver {
+			   public ValveObserver,
+			   public SensorArrayObserver {
 public:
 	std::vector<int> valves;
 	int currentValve = -1;
@@ -55,6 +57,10 @@ private:
 		return "Status-KPStateMachine Observer";
 	}
 
+	const char * SensorManagerObserverName() const override {
+		return "Status-SensorArray Observer";
+	}
+
 	void valveDidUpdate(const Valve & valve) override {
 		if (valve.id == currentValve && valve.status == ValveStatus::sampled) {
 			currentValve = -1;
@@ -76,6 +82,11 @@ private:
 
 	void stateDidBegin(const KPState * current) override {
 		currentStateName = current->getName();
+	}
+
+	void pressureSensorDidUpdate(std::pair<float, float> values) override {
+		println("Pressure: ", values.first);
+		println("Temperature: ", values.second);
 	}
 
 public:
