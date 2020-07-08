@@ -14,9 +14,11 @@
 #include <Components/Pump.hpp>
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
+#include <Components/SensorArray.hpp>
 
 #include <Procedures/MainStateMachine.hpp>
 #include <Procedures/BallStateMachine.hpp>
+#include <Procedures/NewStateMachine.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -61,6 +63,8 @@ public:
 	ValveManager vm;
 	TaskManager tm;
 
+	SensorArray sensors{"sensor-array"};
+
 	int currentTaskId = 0;
 
 private:
@@ -104,6 +108,8 @@ private:
 		addComponent(fileLoader);
 		addComponent(shift);
 		addComponent(pump);
+		addComponent(sensors);
+		sensors.addObserver(status);
 		sm.addObserver(status);
 
 		// Load configuration from file and initialize config then status object
