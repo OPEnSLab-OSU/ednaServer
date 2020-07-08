@@ -303,6 +303,4 @@ private:
 			currentTaskId = 0;
 		}
 	}
-
-	void taskCollectionDidUpdate(const std::vector<Task> & tasks) override {}
 };

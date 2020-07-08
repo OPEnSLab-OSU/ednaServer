@@ -20,7 +20,6 @@ public:
 	CollectionType tasks;
 
 public:
-	// std::vector<Task> tasks;
 	const char * taskFolder = nullptr;
 
 	TaskManager() : KPComponent("TaskManager") {}

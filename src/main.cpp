@@ -27,7 +27,10 @@ void printDirectory(File dir, int numTabs) {
 	}
 }
 
-Application app;
+namespace {
+	Application app;
+}
+
 void setup() {
 	Runtime::setInitialAppController(app);
 }
