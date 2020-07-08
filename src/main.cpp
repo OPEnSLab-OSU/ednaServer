@@ -27,27 +27,6 @@ void printDirectory(File dir, int numTabs) {
 	}
 }
 
-class TestApplication : public KPController {
-public:
-	void develop() {
-		while (!Serial) {
-			delay(100);
-		}
-	}
-
-	void setup() override {
-		Serial.begin(115200);
-		develop();	// NOTE: Remove in production
-		runForever(1000, "test", []() {
-			println("TESTING...");
-		});
-
-		run(10000, []() {
-			cancel("test");
-		});
-	}
-} test_app;
-
 Application app;
 void setup() {
 	Runtime::setInitialAppController(app);
@@ -55,7 +34,5 @@ void setup() {
 
 void loop() {
 	Runtime::update();
-	KPSerialInput::sharedInstance().update();
-	ActionScheduler::sharedInstance().update();
 }
 #endif

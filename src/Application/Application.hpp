@@ -15,8 +15,8 @@
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
 
-#include <Procedures/Main.hpp>
 #include <Procedures/MainStateMachine.hpp>
+#include <Procedures/BallStateMachine.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -34,6 +34,7 @@ private:
 	void commandReceived(const String & line) override;
 
 public:
+	KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
 	KPServer server{"web-server", "eDNA-test", "password"};
 
 	Pump pump{
@@ -42,23 +43,21 @@ public:
 		HardwarePins::MOTOR_REVERSE,
 	};
 
+	const int numberOfShiftRegisters = 4;
 	ShiftRegister shift{"shift-register",
-						4,
+						numberOfShiftRegisters,
 						HardwarePins::SHFT_REG_DATA,
 						HardwarePins::SHFT_REG_CLOCK,
 						HardwarePins::SHFT_REG_LATCH};
-
-	KPFileLoader fileLoader{
-		"file-loader",
-		HardwarePins::SD_CARD,
-	};
 
 	Power power{"power"};
 
 	Config config{ProgramSettings::CONFIG_FILE_PATH};
 	Status status;
 
-	MainStateMachine sm;
+	// MainStateMachine sm;
+	BallStateMachine sm;
+
 	ValveManager vm;
 	TaskManager tm;
 
@@ -93,17 +92,18 @@ private:
 		println("==================================================");
 		PRINT_DEFAULT
 
-		// Register components
-		// Broadcast the WIFI signal as soon as possible
+		// Register server and broadcast the WIFI signal as soon as possible
 		addComponent(server);
 		server.begin();
-		run(0, [this]() { setupServerRouting(); });
+		setupServerRouting();
 
+		// Register the rest of the components
+		addComponent(KPSerialInput::sharedInstance());
+		addComponent(ActionScheduler::sharedInstance());
 		addComponent(sm);
 		addComponent(fileLoader);
 		addComponent(shift);
 		addComponent(pump);
-
 		sm.addObserver(status);
 
 		// Load configuration from file and initialize config then status object
@@ -199,10 +199,9 @@ public:
 				delayTaskExecution.name		= "delayTaskExecution";
 				delayTaskExecution.interval = secsToMillis(timeUntil);
 				delayTaskExecution.callback = [this]() { sm.begin(); };
+				run(delayTaskExecution);  // async, will be execute later
 
-				// async, will be execute later
-				run(delayTaskExecution);
-				// transferTaskDataToStateParameters(task);
+				sm.transferTaskDataToStateParameters(task);
 
 				currentTaskId		   = id;
 				status.preventShutdown = true;
