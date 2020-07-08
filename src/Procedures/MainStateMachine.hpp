@@ -1,4 +1,4 @@
-#include <Procedures/StateMachine.hpp>
+#include <Components/StateMachine.hpp>
 #include <Procedures/Main.hpp>
 
 class MainStateMachine : public StateMachine {

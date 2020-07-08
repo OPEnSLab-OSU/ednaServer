@@ -1,10 +1,11 @@
 AccessModifierOffset: -4
-AlignAfterOpenBracket: DontAlign
+AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: true
 AlignConsecutiveMacros: true
 AlignOperands: false
 AllowAllArgumentsOnNextLine: false
-AllowAllConstructorInitializersOnNextLine: true
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
@@ -14,11 +15,12 @@ AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: MultiLine
 BasedOnStyle: Google
 BinPackArguments: false
-BinPackParameters: true
+BinPackParameters: false
 BreakBeforeBinaryOperators: All
-BreakBeforeTernaryOperators: true
 BreakBeforeBraces: Attach
+BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
 BreakStringLiterals: true
 ColumnLimit: 100
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
@@ -33,7 +35,7 @@ Language: Cpp
 NamespaceIndentation: All
 PointerAlignment: Middle
 SortIncludes: false
-SpaceAfterCStyleCast: false
+SpaceAfterCStyleCast: true
 Standard: c++11
 TabWidth: 4
 UseTab: Always
