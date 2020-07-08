@@ -1,5 +1,4 @@
 #include <Application/Application.hpp>
-#include <array>
 
 //
 // ──────────────────────────────────────────────────────────────── I ──────────
@@ -32,7 +31,7 @@ void Application::setupServerRouting() {
 		KPStringBuilder<10> length(measureJson(response));
 		res.setHeader("Content-Length", length);
 		res.json(response);
-		res.end(); 
+		res.end();
 	});
 
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -198,7 +197,7 @@ void Application::setupServerRouting() {
 		Task & task = tm.tasks[id];
 		if (currentTaskId == task.id) {
 			invalidateTaskAndFreeUpValves(task);
-			sm.transitionTo(StateName::STOP);
+			sm.stop();
 		} else {
 			invalidateTaskAndFreeUpValves(task);
 			tm.writeToDirectory();
@@ -275,8 +274,7 @@ void Application::setupServerRouting() {
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Emergency stop
 	// ────────────────────────────────────────────────────────────────────────────────
-	server.get("/stop",
-		[this](Request & req, Response & res) { sm.transitionTo(StateName::STOP); });
+	server.get("/stop", [this](Request & req, Response & res) { sm.stop(); });
 }
 
 //
@@ -429,6 +427,7 @@ void Application::commandReceived(const String & line) {
 		task.sampleTime			= 5;
 		task.deleteOnCompletion = true;
 		task.status				= TaskStatus::active;
+		task.valves.push_back(0);
 		tm.insertTask(task);
 		println(scheduleNextActiveTask().description());
 	}

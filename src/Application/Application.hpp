@@ -4,7 +4,6 @@
 #include <KPFileLoader.hpp>
 #include <KPSerialInput.hpp>
 #include <KPServer.hpp>
-#include <KPStateMachine.hpp>
 #include <Action.hpp>
 
 #include <Application/Config.hpp>
@@ -17,6 +16,7 @@
 #include <Components/Power.hpp>
 
 #include <Procedures/Main.hpp>
+#include <Procedures/MainStateMachine.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -27,16 +27,6 @@
 #include <Utilities/JsonEncodableDecodable.hpp>
 
 extern void printDirectory(File dir, int numTabs);
-inline bool checkForConnection(uint8_t addr) {
-	Wire.begin();
-	Wire.requestFrom(addr, 1);
-	return (Wire.read() != -1);
-}
-
-struct ValveBlock {
-	const int regIndex;
-	const int pinIndex;
-};
 
 class Application : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
@@ -53,10 +43,10 @@ public:
 	};
 
 	ShiftRegister shift{"shift-register",
-		4,
-		HardwarePins::SHFT_REG_DATA,
-		HardwarePins::SHFT_REG_CLOCK,
-		HardwarePins::SHFT_REG_LATCH};
+						4,
+						HardwarePins::SHFT_REG_DATA,
+						HardwarePins::SHFT_REG_CLOCK,
+						HardwarePins::SHFT_REG_LATCH};
 
 	KPFileLoader fileLoader{
 		"file-loader",
@@ -68,7 +58,7 @@ public:
 	Config config{ProgramSettings::CONFIG_FILE_PATH};
 	Status status;
 
-	KPStateMachine sm{"state-machine"};
+	MainStateMachine sm;
 	ValveManager vm;
 	TaskManager tm;
 
@@ -114,14 +104,7 @@ private:
 		addComponent(shift);
 		addComponent(pump);
 
-		// Register states
 		sm.addObserver(status);
-		sm.registerState(StateIdle(), StateName::IDLE);
-		sm.registerState(StateStop(), StateName::STOP);
-		sm.registerState(StateFlush(), StateName::FLUSH);
-		sm.registerState(StateSample(), StateName::SAMPLE);
-		sm.registerState(StateDry(), StateName::DRY);
-		sm.registerState(StatePreserve(), StateName::PRESERVE);
 
 		// Load configuration from file and initialize config then status object
 		JsonFileLoader loader;
@@ -139,7 +122,7 @@ private:
 		tm.loadTasksFromDirectory(config.taskFolder);
 
 		// Wait in IDLE
-		sm.transitionTo(StateName::IDLE);
+		sm.idle();
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
@@ -153,32 +136,26 @@ private:
 	}
 
 public:
-	ValveBlock currentValveNumberToBlock() {
-		return {shift.toRegisterIndex(status.currentValve) + 1,
-			shift.toPinIndex(status.currentValve)};
+	/** ────────────────────────────────────────────────────────────────────────────
+	 *  Convenient method for working with latch valve. Leaving the hardware
+	 *  implementer to decide what is "normal" direction.
+	 *
+	 *  @param controlPin Control pin
+	 *  ──────────────────────────────────────────────────────────────────────────── */
+	void writeIntakeValve(ValveDirection direction = ValveDirection::normal) {
+		int controlPin = 0, reversePin = 1;
+		if (direction == ValveDirection::normal) {
+			std::swap(controlPin, reversePin);
+		}
+
+		shift.setPin(controlPin, HIGH);
+		shift.setPin(reversePin, LOW);
+		shift.write();
 	}
 
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Decouple state machine from task object. This is where task data gets
-	 *  transfered to states' parameters
-	 *
-	 *  @param task Task object containing states' parameters
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void transferTaskDataToStateParameters(const Task & task) {
-		auto & flush = *sm.getState<StateFlush>(StateName::FLUSH);
-		flush.time	 = task.flushTime;
-		flush.volume = task.flushVolume;
-
-		auto & sample	= *sm.getState<StateSample>(StateName::SAMPLE);
-		sample.time		= task.sampleTime;
-		sample.pressure = task.samplePressure;
-		sample.volume	= task.sampleVolume;
-
-		auto & dry = *sm.getState<StateDry>(StateName::DRY);
-		dry.time   = task.dryTime;
-
-		auto & preserve = *sm.getState<StatePreserve>(StateName::PRESERVE);
-		preserve.time	= task.preserveTime;
+	ValveBlock currentValveNumberToBlock() {
+		return {shift.toRegisterIndex(status.currentValve) + 1,
+				shift.toPinIndex(status.currentValve)};
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
@@ -196,8 +173,8 @@ public:
 				// NOTE: Check logic here. Maybe not be correct yet
 				if (shouldStopCurrentTask) {
 					cancel("delayTaskExecution");
-					if (status.currentStateName != StateName::STOP) {
-						sm.transitionTo(StateName::STOP);
+					if (status.currentStateName != sm.stopStateName) {
+						sm.stop();
 					}
 
 					continue;
@@ -221,11 +198,11 @@ public:
 				TimedAction delayTaskExecution;
 				delayTaskExecution.name		= "delayTaskExecution";
 				delayTaskExecution.interval = secsToMillis(timeUntil);
-				delayTaskExecution.callback = [this]() { sm.transitionTo(StateName::FLUSH); };
+				delayTaskExecution.callback = [this]() { sm.begin(); };
 
 				// async, will be execute later
 				run(delayTaskExecution);
-				transferTaskDataToStateParameters(task);
+				// transferTaskDataToStateParameters(task);
 
 				currentTaskId		   = id;
 				status.preventShutdown = true;
@@ -300,9 +277,10 @@ public:
 	 *
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void shutdown() {
-		pump.off();					   // Turn off motor
-		shift.writeAllRegistersLow();  // Turn off all TPIC devices
-		shift.writeLatchOut();		   // Reverse latch valve direction
+		pump.off();									// Turn off motor
+		shift.writeAllRegistersLow();				// Turn off all TPIC devices
+		writeIntakeValve(ValveDirection::reverse);	// Reverse intake valve
+
 		tm.writeToDirectory();
 		vm.writeToDirectory();
 		power.shutdown();
@@ -318,6 +296,7 @@ public:
 		tm.markTaskAsCompleted(task.id);
 	}
 
+private:
 	void taskDidUpdate(const Task & task) override {}
 
 	void taskDidDelete(int id) override {

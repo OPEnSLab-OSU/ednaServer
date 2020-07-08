@@ -8,6 +8,13 @@
 #define PRINT_REGION_DEBUG PrintConfig::setPrintVerbose(Verbosity::debug);
 #define PRINT_DEFAULT	   PrintConfig::setDefaultVerbose();
 
+enum class ValveDirection { normal, reverse };
+
+struct ValveBlock {
+	const int regIndex;
+	const int pinIndex;
+};
+
 namespace TPICDevices {
 	__k_int AIR_VALVE	   = 2;
 	__k_int ALCHOHOL_VALVE = 3;

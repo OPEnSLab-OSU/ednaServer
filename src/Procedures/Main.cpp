@@ -1,16 +1,34 @@
 #include <Application/Application.hpp>
 #include <Procedures/Main.hpp>
 
-void StateIdle::enter(KPStateMachine & sm) {
+namespace {
+	void writeLatch(bool controlPin, ShiftRegister & shift) {
+		shift.setPin(controlPin, HIGH);
+		shift.write();
+		delay(80);
+		shift.setPin(controlPin, LOW);
+		shift.write();
+	}
+
+	void writeLatchIn(ShiftRegister & shift) {
+		writeLatch(0, shift);
+	}
+
+	void writeLatchOut(ShiftRegister & shift) {
+		writeLatch(1, shift);
+	}
+}  // namespace
+
+void Main::StateIdle::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 	println(app.scheduleNextActiveTask().description());
 }
 
-void StateStop::enter(KPStateMachine & sm) {
+void Main::StateStop::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 	app.pump.off();
 	app.shift.writeAllRegistersLow();
-	app.shift.writeLatchOut();
+	writeLatchOut(app.shift);
 
 	app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
 	app.vm.writeToDirectory();
@@ -24,11 +42,11 @@ void StateStop::enter(KPStateMachine & sm) {
 	sm.transitionTo(StateName::IDLE);
 }
 
-void StatePreserve::enter(KPStateMachine & sm) {
+void Main::StatePreserve::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 	ValveBlock vBlock = app.currentValveNumberToBlock();
 
-	app.shift.writeLatchOut();
+	writeLatchOut(app.shift);
 	app.shift.writeAllRegistersLow();
 	app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
 	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
@@ -38,8 +56,11 @@ void StatePreserve::enter(KPStateMachine & sm) {
 	setTimeCondition(time, [&]() { sm.transitionTo(StateName::STOP); });
 }
 
-void StateDry::enter(KPStateMachine & sm) {
-	Application & app = *static_cast<Application *>(sm.controller);
+void Main::StateDry::enter(KPStateMachine & sm) {
+	Application & app  = *static_cast<Application *>(sm.controller);
+	Task & currentTask = app.tm.tasks[app.currentTaskId];
+	time			   = currentTask.dryTime;
+
 	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	app.shift.setAllRegistersLow();
@@ -51,13 +72,17 @@ void StateDry::enter(KPStateMachine & sm) {
 	setTimeCondition(time, [&]() { sm.transitionTo(StateName::PRESERVE); });
 }
 
-void StateSample::enter(KPStateMachine & sm) {
-	Application & app = *static_cast<Application *>(sm.controller);
+void Main::StateSample::enter(KPStateMachine & sm) {
+	Application & app  = *static_cast<Application *>(sm.controller);
+	Task & currentTask = app.tm.tasks[app.currentTaskId];
+	time			   = currentTask.sampleTime;
+	pressure		   = currentTask.samplePressure;
+
 	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	// We set the latch valve to intake mode, turn on the filter valve, then the pump
 	app.shift.setAllRegistersLow();
-	app.shift.writeLatchIn();
+	writeLatchIn(app.shift);
 	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);	// Filter valve
 	app.shift.write();
 	app.pump.on();
@@ -69,15 +94,17 @@ void StateSample::enter(KPStateMachine & sm) {
 	};
 
 	setCondition(condition, [&]() {
-		app.shift.writeLatchOut();
+		writeLatchOut(app.shift);
 		sm.transitionTo(StateName::DRY);
 	});
 }
 
-void StateFlush::enter(KPStateMachine & sm) {
+void Main::StateFlush::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
+	time			  = app.tm.tasks[app.currentTaskId].flushTime;
+
 	app.shift.setAllRegistersLow();
-	app.shift.writeLatchIn();
+	writeLatchIn(app.shift);
 	app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
 	app.shift.write();
 	app.pump.on();

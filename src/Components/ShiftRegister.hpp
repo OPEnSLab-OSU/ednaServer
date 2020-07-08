@@ -181,28 +181,4 @@ public:
 		setPin(pinNumber, HIGH);
 		write();
 	}
-
-private:
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  Convenient methods for working with latch valve. Please one of the convenient
-	 *  methods instead. See writeLatchIn() and writeLatchOut()
-	 *
-	 *  @param controlPin Control pin
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void writeLatch(bool controlPin) {
-		setPin(controlPin, HIGH);
-		write();
-		delay(80);
-		setPin(controlPin, LOW);
-		write();
-	}
-
-public:
-	void writeLatchIn() {
-		writeLatch(0);
-	}
-
-	void writeLatchOut() {
-		writeLatch(1);
-	}
 };
