@@ -41,14 +41,14 @@ public:
 	unsigned char enabled			  = false;
 	unsigned char updated			  = false;
 	unsigned long timeSinceLastUpdate = 0;
-	float updateFreq				  = 2;
+	float updateFreqHz				  = 2;
 
 	void updateSensor() {
 		if (!enabled) {
 			return;
 		}
 
-		if ((millis() - timeSinceLastUpdate) >= 1 / updateFreq) {
+		if ((millis() - timeSinceLastUpdate) >= 1000 / updateFreqHz) {
 			this->underlying().update();
 			updated				= true;
 			timeSinceLastUpdate = millis();
@@ -59,14 +59,15 @@ public:
 		if (updated) {
 			updated = false;
 			return true;
+		} else {
+			return false;
 		}
-
-		return false;
 	}
 };
 
 class PressureSensor : public I2CSensor<PressureSensor> {
-	SSC pressureSensor{PSAddr};
+	SSC ps{PSAddr};
+	PressureSensor(PressureSensor & rhs) = delete;
 
 public:
 	void setup() {
@@ -74,32 +75,31 @@ public:
 			enabled = true;
 		}
 
-		pressureSensor.setMinRaw(1638);
-		pressureSensor.setMaxRaw(14745);
-		pressureSensor.setMinPressure(0);
-		pressureSensor.setMaxPressure(30);
-		pressureSensor.start();
+		ps.setMinRaw(1638);
+		ps.setMaxRaw(14745);
+		ps.setMinPressure(0);
+		ps.setMaxPressure(30);
+		ps.start();
 	};
 
 	void update() {
-		pressureSensor.update();
+		ps.update();
 	}
 
 public:
 	std::pair<float, float> getValue() {
-		return {pressureSensor.pressure(), pressureSensor.temperature()};
+		return {ps.pressure(), ps.temperature()};
 	}
 };
 
 class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
-private:
+public:
 	using KPComponent::KPComponent;
 	PressureSensor ps;
 
 	void setup() override {
 		ps.setup();
-		ps.updateFreq = 2;
-
+		ps.updateFreqHz = 2;
 		println(ps.enabled ? GREEN("Pressure sensor connected")
 						   : RED("Pressure sensor not connected"));
 	}

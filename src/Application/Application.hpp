@@ -18,6 +18,7 @@
 
 #include <Procedures/MainStateMachine.hpp>
 #include <Procedures/BallStateMachine.hpp>
+#include <Procedures/NewStateMachine.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>

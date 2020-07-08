@@ -85,8 +85,11 @@ private:
 	}
 
 	void pressureSensorDidUpdate(std::pair<float, float> values) override {
-		println("Pressure: ", values.first);
-		println("Temperature: ", values.second);
+		println(GREEN("Pressure: "), values.first);
+		println(GREEN("Temperature: "), values.second);
+
+		pressure	= values.first;
+		temperature = values.second;
 	}
 
 public:
