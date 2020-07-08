@@ -33,7 +33,7 @@ protected:
 
 template <typename SensorType>
 class I2CSensor : public Crtp<SensorType> {
-protected:
+private:
 	friend SensorType;
 	I2CSensor() {}
 
@@ -70,6 +70,8 @@ class PressureSensor : public I2CSensor<PressureSensor> {
 	PressureSensor(PressureSensor & rhs) = delete;
 
 public:
+	PressureSensor() = default;
+
 	void setup() {
 		if (checkForConnection(PSAddr)) {
 			enabled = true;

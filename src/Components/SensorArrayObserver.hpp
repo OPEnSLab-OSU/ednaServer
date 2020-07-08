@@ -6,6 +6,6 @@ public:
 		return SensorManagerObserverName();
 	}
 
-	virtual const char * SensorManagerObserverName() const				 = 0;
-	virtual void pressureSensorDidUpdate(std::pair<float, float> values) = 0;
+	virtual const char * SensorManagerObserverName() const						 = 0;
+	virtual void pressureSensorDidUpdate(const std::pair<float, float> & values) = 0;
 };

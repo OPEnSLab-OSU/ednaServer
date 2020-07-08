@@ -84,7 +84,7 @@ private:
 		currentStateName = current->getName();
 	}
 
-	void pressureSensorDidUpdate(std::pair<float, float> values) override {
+	void pressureSensorDidUpdate(const std::pair<float, float> & values) override {
 		println(GREEN("Pressure: "), values.first);
 		println(GREEN("Temperature: "), values.second);
 
