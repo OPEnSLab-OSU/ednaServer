@@ -46,11 +46,8 @@ public:
 	};
 
 	const int numberOfShiftRegisters = 4;
-	ShiftRegister shift{"shift-register",
-						numberOfShiftRegisters,
-						HardwarePins::SHFT_REG_DATA,
-						HardwarePins::SHFT_REG_CLOCK,
-						HardwarePins::SHFT_REG_LATCH};
+	ShiftRegister shift{"shift-register", numberOfShiftRegisters, HardwarePins::SHFT_REG_DATA,
+						HardwarePins::SHFT_REG_CLOCK, HardwarePins::SHFT_REG_LATCH};
 
 	Power power{"power"};
 
@@ -289,7 +286,7 @@ public:
 		tm.writeToDirectory();
 		vm.writeToDirectory();
 		power.shutdown();
-		raise("SHUTDOWN");
+		// raise("SHUTDOWN");
 	}
 
 	void invalidateTaskAndFreeUpValves(Task & task) {

@@ -9,7 +9,9 @@ public:
 	const int control2;
 
 	Pump(const char * name, int control1, int control2)
-		: KPComponent(name), control1(control1), control2(control2) {
+		: KPComponent(name),
+		  control1(control1),
+		  control2(control2) {
 		pinMode(control1, OUTPUT);
 		pinMode(control2, OUTPUT);
 		off();

@@ -12,8 +12,8 @@ public:
 				return true;
 			}
 
-			raise(Error("FileLoader: path already exists but "
-						"not directory please remove the file"));
+			// raise(Error("FileLoader: path already exists but "
+			// "not directory please remove the file"));
 		}
 
 		// folder doesn't exist

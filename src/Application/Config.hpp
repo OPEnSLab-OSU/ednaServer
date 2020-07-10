@@ -15,9 +15,7 @@
 // NOTE: This object is intended to be read-only and mirrors actual data in the
 // config file
 // ────────────────────────────────────────────────────────────────────────────────
-class Config : public JsonDecodable,
-			   public JsonEncodable,
-			   public Printable {
+class Config : public JsonDecodable, public JsonEncodable, public Printable {
 public:
 	int valveUpperBound;
 	int numberOfValves;
@@ -33,13 +31,11 @@ public:
 	bool shutdownOverride = true;
 
 public:
-	Config()			   = delete;
-	Config(const Config &) = delete;
-	Config & operator=(const Config &) = delete;
+	// Config()			   = delete;
+	// Config(const Config &) = delete;
+	// Config & operator=(const Config &) = delete;
 
-	explicit Config(const char * configFilepath)
-		: configFilepath(configFilepath) {
-	}
+	explicit Config(const char * configFilepath) : configFilepath(configFilepath) {}
 
 	static const char * decoderName() {
 		return "Config";
@@ -60,12 +56,12 @@ public:
 		for (int freeValveId : config_valves) {
 			if (freeValveId < 0) {
 				KPStringBuilder<120> message("Config: ", freeValveId, " < 0 ");
-				raise(Error(message));
+				// raise(Error(message));
 			}
 
 			if (freeValveId > valveUpperBound) {
 				KPStringBuilder<120> message("Config: ", freeValveId, " > ", valveUpperBound);
-				raise(Error(message));
+				// raise(Error(message));
 			} else {
 				valves[freeValveId] = 1;
 			}
@@ -93,11 +89,10 @@ public:
 		JsonArray array_array = dest.createNestedArray(VALVES_FREE);
 		copyArray(valves, array_array);
 
-		return dest[VALVE_UPPER_BOUND].set(valveUpperBound)
-			   && dest[FILE_LOG].set((char *) logFile)
-			   && dest[FILE_STATUS].set((char *) statusFile)
-			   && dest[FOLDER_TASK].set((char *) taskFolder)
-			   && dest[FOLDER_VALVE].set((char *) valveFolder);
+		return dest[VALVE_UPPER_BOUND].set(valveUpperBound) && dest[FILE_LOG].set((char *) logFile)
+			&& dest[FILE_STATUS].set((char *) statusFile)
+			&& dest[FOLDER_TASK].set((char *) taskFolder)
+			&& dest[FOLDER_VALVE].set((char *) valveFolder);
 	}
 #pragma endregion
 #pragma region PRINTABLE

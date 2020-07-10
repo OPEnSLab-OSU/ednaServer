@@ -247,15 +247,8 @@ public:
 	void printTime(unsigned long utc, int offset = 0) {
 		char message[64];
 		utc = utc + (offset * 60 * 60);
-		sprintf(message,
-			"%u/%u/%u %02u:%02u:%02u GMT %+d",
-			year(utc),
-			month(utc),
-			day(utc),
-			hour(utc),
-			minute(utc),
-			second(utc),
-			offset);
+		sprintf(message, "%u/%u/%u %02u:%02u:%02u GMT %+d", year(utc), month(utc), day(utc),
+				hour(utc), minute(utc), second(utc), offset);
 		print(message);
 	}
 

@@ -19,9 +19,7 @@ public:
 		missed
 	} _code;
 
-	ValveStatus(Code code)
-		: _code(code) {
-	}
+	ValveStatus(Code code) : _code(code) {}
 
 	Code code() const {
 		return _code;

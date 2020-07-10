@@ -34,9 +34,9 @@ public:
 	bool isFull			 = false;
 	bool preventShutdown = false;
 
-	Status()			   = default;
-	Status(const Status &) = delete;
-	Status & operator=(const Status &) = delete;
+	Status() = default;
+	// Status(const Status &) = delete;
+	// Status & operator=(const Status &) = delete;
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Initialize status from user config

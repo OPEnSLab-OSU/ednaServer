@@ -17,9 +17,7 @@ public:
 		missed		// 3
 	} _code;
 
-	TaskStatus(Code code)
-		: _code(code) {
-	}
+	TaskStatus(Code code) : _code(code) {}
 
 	Code code() const {
 		return _code;

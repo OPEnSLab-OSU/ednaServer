@@ -305,8 +305,8 @@ public:
 #define MatchLine(s) if (line == s)
 #define Match(x, s)	 if (parts[x] == s)
 #define HasValue(x)	 if (parts[x])
-#define BeginParsing(line)             \
-	StringParser parser(line.c_str()); \
+#define BeginParsing(line)                                                                         \
+	StringParser parser(line.c_str());                                                             \
 	auto & parts = parser.parts;
 
 void Application::commandReceived(const String & line) {

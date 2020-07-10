@@ -167,9 +167,8 @@ public:
 			}
 		}
 
-		std::sort(result.begin(), result.end(), [this](int a, int b) {
-			return tasks[a].schedule < tasks[b].schedule;
-		});
+		std::sort(result.begin(), result.end(),
+				  [this](int a, int b) { return tasks[a].schedule < tasks[b].schedule; });
 
 		return result;
 	}

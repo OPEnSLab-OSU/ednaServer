@@ -20,7 +20,7 @@ public:
 		case scheduled:
 			return "Task scheduled for execution";
 		default:
-			raise("Unknown case: ScheduleReturnCode::description");
+			// raise("Unknown case: ScheduleReturnCode::description");
 			return "";
 		}
 	}
@@ -34,7 +34,7 @@ public:
 		case scheduled:
 			return "scheduled";
 		default:
-			raise("Unknown case: ScheduleReturnCode::description");
+			// raise("Unknown case: ScheduleReturnCode::description");
 			return "";
 		}
 	}

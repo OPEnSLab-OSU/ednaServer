@@ -1,5 +1,6 @@
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
+AlignEscapedNewlines: Right
 AlignConsecutiveAssignments: true
 AlignConsecutiveMacros: true
 AlignOperands: false
@@ -14,9 +15,9 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
 BasedOnStyle: Google
-BinPackArguments: false
-BinPackParameters: false
-BreakBeforeBinaryOperators: All
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: Attach
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon

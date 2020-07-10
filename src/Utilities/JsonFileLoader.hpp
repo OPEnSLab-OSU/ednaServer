@@ -10,7 +10,7 @@ public:
 		File file = SD.open(filepath, FILE_READ);
 		if (!file) {
 			KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
-			println(Error(message));
+			// println(Error(message));
 			return;
 		}
 
@@ -31,7 +31,7 @@ public:
 		File file = SD.open(filepath, FILE_READ);
 		if (!file) {
 			KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
-			println(Error(message));
+			// println(Error(message));
 			return;
 		}
 
@@ -52,17 +52,14 @@ public:
 			break;
 		case DeserializationError::NoMemory: {
 			KPStringBuilder<120> message(decoder.decoderName(),
-				" decoder: size exeecds the buffer limit whlie decoding ",
-				filepath);
-			raise(message);
+										 " decoder: size exeecds the buffer limit whlie decoding ",
+										 filepath);
+			// raise(message);
 		} break;
 		default:
-			KPStringBuilder<120> message(decoder.decoderName(),
-				" decoder: ",
-				error.c_str(),
-				" while decoding ",
-				filepath);
-			raise(message);
+			KPStringBuilder<120> message(decoder.decoderName(), " decoder: ", error.c_str(),
+										 " while decoding ", filepath);
+			// raise(message);
 		}
 
 		println();
@@ -77,10 +74,9 @@ public:
 		StaticJsonDocument<Encoder::encodingSize()> doc;
 		JsonVariant dest = doc.template to<JsonVariant>();
 		if (!encoder.encodeJSON(dest)) {
-			KPStringBuilder<120> message("Encoder (",
-				encoder.encoderName(),
-				"): JSON object size exceeds the buffer limit.");
-			raise(Error(message));
+			KPStringBuilder<120> message("Encoder (", encoder.encoderName(),
+										 "): JSON object size exceeds the buffer limit.");
+			// raise(Error(message));
 		}
 
 		save(filepath, doc);
