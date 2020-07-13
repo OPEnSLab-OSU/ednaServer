@@ -37,7 +37,7 @@ namespace Main {
 
 	class StateSample : public KPState {
 	public:
-		unsigned long time = 150;
+		unsigned long time = 15;
 		float pressure	   = 8;
 		float volume	   = 1000;
 		void enter(KPStateMachine & sm) override;
@@ -45,7 +45,7 @@ namespace Main {
 
 	class StateFlush : public KPState {
 	public:
-		unsigned long time = 150;
+		unsigned long time = 15;
 		float pressure	   = 8;
 		float volume	   = 1000;
 		void enter(KPStateMachine & sm) override;

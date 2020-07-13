@@ -1,6 +1,80 @@
 
 #include <Application/Application.hpp>
 
+namespace {
+	void writeBallValveOn(ShiftRegister & shift) {
+		shift.setPin(1, HIGH);
+		shift.setPin(0, LOW);
+		shift.write();
+	}
+
+	void writeBallValveOff(ShiftRegister & shift) {
+		shift.setPin(0, HIGH);
+		shift.setPin(1, LOW);
+		shift.write();
+	}
+}  // namespace
+
+void New::AirFlush::enter(KPStateMachine & sm) {
+	Application & app = *static_cast<Application *>(sm.controller);
+	app.shift.writeAllRegistersLow();
+	app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
+	app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+	app.shift.write();
+	app.pump.on();
+
+	setTimeCondition(15000, [&]() { sm.transitionTo(StateName::STOP); });
+}
+
+void New::Preserve::enter(KPStateMachine & sm) {
+	Application & app = *static_cast<Application *>(sm.controller);
+	ValveBlock vBlock = app.currentValveNumberToBlock();
+
+	app.shift.writeAllRegistersLow();
+	app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
+	app.shift.write();
+	app.pump.on();
+
+	setTimeCondition(time, [&]() { sm.transitionTo(StateName::AIR_FLUSH); });
+}
+
+void New::Dry::enter(KPStateMachine & sm) {
+	Application & app = *static_cast<Application *>(sm.controller);
+	ValveBlock vBlock = app.currentValveNumberToBlock();
+
+	app.shift.setAllRegistersLow();
+	writeBallValveOff(app.shift);
+	app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
+	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
+	app.shift.write();
+	app.pump.on();
+
+	setTimeCondition(10, [&]() { sm.transitionTo(StateName::PRESERVE); });
+}
+
+void New::Sample::enter(KPStateMachine & sm) {
+	Application & app = *static_cast<Application *>(sm.controller);
+	ValveBlock vBlock = app.currentValveNumberToBlock();
+
+	// We set the latch valve to intake mode, turn on the filter valve, then the pump
+	app.shift.setAllRegistersLow();
+	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);	// Filter valve
+	app.shift.write();
+	app.pump.on();
+
+	// This condition will be evaluated repeatedly until true then the callback will be executed
+	// once
+	auto const condition = [&]() {
+		return timeSinceLastTransition() >= secsToMillis(time) || app.status.pressure >= pressure;
+	};
+
+	setCondition(condition, [&]() {
+		// writeLatchOut(app.shift);
+		sm.transitionTo(StateName::OFFSHOOT_CLEAN_2);
+	});
+}
+
 void New::OffshootClean::enter(KPStateMachine & sm) {
 	auto & app				= *static_cast<Application *>(sm.controller);
 	const int valveId		= app.status.currentValve;
@@ -8,46 +82,18 @@ void New::OffshootClean::enter(KPStateMachine & sm) {
 	const int pinIndex		= app.shift.toPinIndex(valveId);
 
 	app.shift.setAllRegistersLow();	 // Reset shift registers
-	// app.shift.writeLatchOut();
 	app.shift.setRegister(registerIndex, pinIndex, HIGH);
 	app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
 	app.shift.write();
 	app.pump.on();
 
-	setTimeCondition(cleanTime, [&]() { sm.transitionTo(StateName::FLUSH3); });
-};
-
-void New::OffshootPreload::enter(KPStateMachine & sm) {
-	// Intake valve is opened and the motor is runnning ...
-	// Turnoff only the flush valve
-	auto & app = *static_cast<Application *>(sm.controller);
-	app.shift.setPin(TPICDevices::FLUSH_VALVE, LOW);
-
-	// Reserving space for 25 state conditions for performance
-	reserve(25);
-
-	for (int i = 0; i < app.config.numberOfValves; i++) {
-		setTimeCondition(i * preloadTime, [&app, i]() {
-			if (i > 0) {  // Turn off the previous valve
-				const auto prevRegPin = app.shift.toRegisterAndPinIndices(i - 1);
-				app.shift.setRegister(prevRegPin.first + 1, prevRegPin.second, LOW);
-			}
-
-			const auto regPin = app.shift.toRegisterAndPinIndices(i);
-			app.shift.setRegister(regPin.first + 1, regPin.second, HIGH);
-			app.shift.write();
-		});
-	};
-
-	// Transition to the next state after the last valve
-	setTimeCondition(app.config.numberOfValves * preloadTime,
-					 [&]() { sm.transitionTo(StateName::FLUSH2); });
+	setTimeCondition(cleanTime, [&]() { sm.transitionTo(nextStateName); });
 };
 
 void New::Flush::enter(KPStateMachine & sm) {
 	auto & app = *static_cast<Application *>(sm.controller);
 	app.shift.setAllRegistersLow();
-	// app.shift.writeLatchIn();
+	writeBallValveOn(app.shift);
 	app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
 	app.shift.write();
 	app.pump.on();

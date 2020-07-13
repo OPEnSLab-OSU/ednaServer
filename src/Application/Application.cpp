@@ -20,6 +20,19 @@ void Application::setupServerRouting() {
 		res.end();
 	});
 
+	server.get("/api/preload", [this](Request &, Response & res) {
+		StaticJsonDocument<300> response;
+		if (compare(Preload::StateName::IDLE, preloadSM.getCurrentState()->getName())) {
+			beginPreloadingProcedure();
+			response["success"] = "Begin preloading water";
+		} else {
+			response["error"] = "Preloading water is already in operation";
+		}
+
+		res.json(response);
+		res.end();
+	});
+
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Get the current status
 	// ────────────────────────────────────────────────────────────────────────────────
@@ -283,144 +296,28 @@ void Application::setupServerRouting() {
 // ──────────────────────────────────────────────────────────────────────────────
 //
 
-class StringParser {
+class Parser {
 public:
-	char buffer[256];
-	std::array<KPString, 16> parts;
-
-	StringParser(const char * line) {
-		strcpy(buffer, line);
-		parse();
+	int selector = 0;
+	Parser & at(int pos) {
+		return *this;
 	}
 
-	void parse() {
-		auto it = parts.begin();
-		*it		= strtok(buffer, " ");
-		while (it != parts.end()) {
-			*(++it) = strtok(NULL, " ");
-		}
-	}
+	template <typename T>
+	Parser & addCase(std::function<void(T)>) {}
 };
 
-#define MatchLine(s) if (line == s)
-#define Match(x, s)	 if (parts[x] == s)
-#define HasValue(x)	 if (parts[x])
-#define BeginParsing(line)                                                                         \
-	StringParser parser(line.c_str());                                                             \
-	auto & parts = parser.parts;
+void Application::commandReceived(const char * input) {
+	KPString line{input};
 
-void Application::commandReceived(const String & line) {
-	JsonFileLoader loader;
-	BeginParsing(line);
+	println("input: ", line);
 
-	Match(0, "test") {
-		Match(1, "1") {
-			println("It works");
-		}
+	if (line == "status read") {
+	} else if (line == "status save") {
+	} else if (line == "status print") {
 	}
 
-	Match(1, "status") {
-		Match(0, "read") {
-			loader.load(config.statusFile, status);
-		}
-
-		Match(0, "save") {
-			loader.save(config.statusFile, status);
-		}
-
-		Match(0, "print") {
-			println(status);
-		}
-
-		return;
-	}
-
-	Match(1, "config") {
-		Match(0, "load") {
-			loader.load(config.configFilepath, config);
-		}
-
-		Match(0, "print") {
-			println(config);
-		}
-	}
-
-	Match(1, "sd") Match(0, "print") {
-		printDirectory(SD.open("/"), 0);
-	}
-
-	Match(1, "valves") {
-		Match(0, "load") {
-			vm.loadValvesFromDirectory();
-		}
-
-		Match(0, "save") {
-			vm.writeToDirectory();
-		}
-
-		Match(0, "print") {
-			for (size_t i = 0; i < vm.valves.size(); i++) {
-				println(vm.valves[i]);
-			}
-		}
-
-		Match(0, "free") {
-			if (parts[2]) {
-				int valveNumber = atoi(parts[2]);
-				if (valveNumber >= 0 && valveNumber < config.valveUpperBound) {
-					vm.setValveStatus(valveNumber, ValveStatus::free);
-				}
-			} else {
-				vm.init(config);
-			}
-		}
-
-		Match(0, "reset") {
-			for (int i = 0; i < config.numberOfValves; i++) {
-				vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
-			}
-
-			vm.writeToDirectory();
-		}
-	}
-
-	Match(0, "update") Match(1, "rtc") {
-		power.set(power.compileTime());
-	}
-
-	Match(1, "tasks") {
-		Match(0, "print") {
-			println(tm);
-		}
-
-		Match(0, "save") {
-			tm.writeToDirectory();
-			tm.loadTasksFromDirectory();
-			println(tm);
-		}
-
-		Match(0, "clear") {
-			tm.tasks.clear();
-			tm.updateIndexFile();
-		}
-
-		Match(0, "clean") {
-			tm.deleteIf([](const Task & task) { return task.status == TaskStatus::completed; });
-			tm.writeToDirectory();
-		}
-	}
-
-	MatchLine("clear alarm") {
-		println("Reseting alarm...");
-		power.resetAlarms();
-	}
-
-	MatchLine("schedule") {
-		println("Scheduling task...");
-		println(scheduleNextActiveTask().description());
-	}
-
-	Match(0, "schedule") Match(1, "now") {
+	if (line == "schedule now") {
 		println("Schduling temp task");
 		Task task				= tm.createTask();
 		task.schedule			= now() + 5;
@@ -432,9 +329,19 @@ void Application::commandReceived(const String & line) {
 		println(scheduleNextActiveTask().description());
 	}
 
-	MatchLine("mem") {
+	if (line == "reset valves") {
+		for (int i = 0; i < config.numberOfValves; i++) {
+			vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
+		}
+
+		vm.writeToDirectory();
+	}
+
+	if (line == "mem") {
 		println(free_ram());
 	}
+
+	if (line == "preload") {
+		beginPreloadingProcedure();
+	};
 }
-#undef match
-#undef hasValue

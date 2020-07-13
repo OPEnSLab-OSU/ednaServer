@@ -6,13 +6,14 @@ namespace New {
 	namespace StateName {
 		constexpr const char * IDLE				= "idle-state";
 		constexpr const char * STOP				= "stop-state";
+		constexpr const char * OFFSHOOT_CLEAN_1 = "offshoot-clean-1-state";
+		constexpr const char * OFFSHOOT_CLEAN_2 = "offshoot-clean-2-state";
 		constexpr const char * PRESERVE			= "preserve-state";
-		constexpr const char * OFFSHOOT_CLEAN	= "offshoot-clean-state";
-		constexpr const char * OFFSHOOT_PRELOAD = "offshoot-preload-state";
+		constexpr const char * DRY				= "dry-state";
+		constexpr const char * AIR_FLUSH		= "airflush-state";
 		constexpr const char * SAMPLE			= "sample-state";
-		constexpr const char * FLUSH3			= "flush-state-3";
-		constexpr const char * FLUSH2			= "flush-state-2";
-		constexpr const char * FLUSH1			= "flush-state-1";
+		constexpr const char * FLUSH2			= "flush-state-2-state";
+		constexpr const char * FLUSH1			= "flush-state-1-state";
 	};	// namespace StateName
 
 	class Stop : public KPState {
@@ -27,18 +28,34 @@ namespace New {
 
 	class Sample : public KPState {
 	public:
+		unsigned long time = 150;
+		float pressure	   = 8;
+		float volume	   = 1000;
+		void enter(KPStateMachine & sm) override;
+	};
+
+	class Dry : public KPState {
+	public:
+		unsigned long time = 0;
+		void enter(KPStateMachine & sm) override;
+	};
+
+	class AirFlush : public KPState {
+	public:
+		void enter(KPStateMachine & sm) override;
+	};
+
+	class Preserve : public KPState {
+	public:
+		unsigned long time = 0;
 		void enter(KPStateMachine & sm) override;
 	};
 
 	class OffshootClean : public KPState {
 	public:
-		int cleanTime = 2000;
-		void enter(KPStateMachine & sm) override;
-	};
-
-	class OffshootPreload : public KPState {
-	public:
-		int preloadTime = 2000;
+		int cleanTime			   = 2000;
+		const char * nextStateName = nullptr;
+		OffshootClean(const char * name) : nextStateName(name) {}
 		void enter(KPStateMachine & sm) override;
 	};
 

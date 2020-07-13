@@ -19,6 +19,7 @@
 #include <Procedures/MainStateMachine.hpp>
 #include <Procedures/BallStateMachine.hpp>
 #include <Procedures/NewStateMachine.hpp>
+#include <Procedures/PreloadStateMachine.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -33,7 +34,7 @@ extern void printDirectory(File dir, int numTabs);
 class Application : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
 	void setupServerRouting();
-	void commandReceived(const String & line) override;
+	void commandReceived(const char * line) override;
 
 public:
 	KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
@@ -56,6 +57,7 @@ public:
 
 	// MainStateMachine sm;
 	BallStateMachine sm;
+	PreloadStateMachine preloadSM;
 
 	ValveManager vm;
 	TaskManager tm;
@@ -101,13 +103,12 @@ private:
 		// Register the rest of the components
 		addComponent(KPSerialInput::sharedInstance());
 		addComponent(ActionScheduler::sharedInstance());
-		addComponent(sm);
+
 		addComponent(fileLoader);
 		addComponent(shift);
 		addComponent(pump);
 		addComponent(sensors);
 		sensors.addObserver(status);
-		sm.addObserver(status);
 
 		// Load configuration from file and initialize config then status object
 		JsonFileLoader loader;
@@ -124,7 +125,12 @@ private:
 		tm.addObserver(this);
 		tm.loadTasksFromDirectory(config.taskFolder);
 
+		addComponent(preloadSM);
+		preloadSM.idle();
+
 		// Wait in IDLE
+		addComponent(sm);
+		sm.addObserver(status);
 		sm.idle();
 
 		// RTC Interrupt callback
@@ -134,11 +140,19 @@ private:
 		});
 
 #ifdef DEBUG
-		runForever(2000, "mem", []() { printFreeRam(); });
+		// runForever(2000, "mem", []() { printFreeRam(); });
 #endif
 	}
 
 public:
+	bool compare(const char * lhs, const char * rhs) {
+		return strcmp(lhs, rhs) == 0;
+	}
+
+	void beginPreloadingProcedure() {
+		println("Begin preloading");
+		preloadSM.begin();
+	}
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  Convenient method for working with latch valve. Leaving the hardware
 	 *  implementer to decide what is "normal" direction.

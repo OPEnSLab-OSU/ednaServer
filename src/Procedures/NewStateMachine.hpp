@@ -4,18 +4,22 @@
 class NewStateMachine : public StateMachine {
 public:
 	NewStateMachine()
-		: StateMachine(New::StateName::FLUSH1, New::StateName::STOP, New::StateName::IDLE) {}
+		: StateMachine("new-state-machine", New::StateName::FLUSH1, New::StateName::STOP,
+					   New::StateName::IDLE) {}
 
 	void setup() override {
 		using namespace New;
 		registerState(Idle(), StateName::IDLE);
 		registerState(Stop(), StateName::STOP);
-		registerState(Flush(StateName::OFFSHOOT_PRELOAD), StateName::FLUSH1);
-		registerState(OffshootPreload(), StateName::OFFSHOOT_PRELOAD);
-		registerState(Flush(StateName::OFFSHOOT_CLEAN), StateName::FLUSH2);
-		registerState(OffshootClean(), StateName::OFFSHOOT_CLEAN);
-		registerState(Flush(StateName::SAMPLE), StateName::FLUSH3);
+
+		registerState(Flush(StateName::OFFSHOOT_CLEAN_1), StateName::FLUSH1);
+		registerState(OffshootClean(StateName::FLUSH2), StateName::OFFSHOOT_CLEAN_1);
+		registerState(Flush(StateName::SAMPLE), StateName::FLUSH2);
 		registerState(Sample(), StateName::SAMPLE);
+		registerState(OffshootClean(StateName::DRY), StateName::OFFSHOOT_CLEAN_2);
+		registerState(Dry(), StateName::DRY);
+		registerState(Preserve(), StateName::PRESERVE);
+		registerState(AirFlush(), StateName::AIR_FLUSH);
 	}
 
 	virtual void transferTaskDataToStateParameters(const Task & task) {

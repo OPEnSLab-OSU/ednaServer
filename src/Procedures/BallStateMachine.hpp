@@ -4,7 +4,8 @@
 class BallStateMachine : public StateMachine {
 public:
 	BallStateMachine()
-		: StateMachine(Ball::StateName::FLUSH, Ball::StateName::STOP, Ball::StateName::IDLE) {}
+		: StateMachine("ball-state-machine", Ball::StateName::FLUSH, Ball::StateName::STOP,
+					   Ball::StateName::IDLE) {}
 
 	void setup() override {
 		using namespace Ball;

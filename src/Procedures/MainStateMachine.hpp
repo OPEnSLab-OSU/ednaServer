@@ -4,7 +4,8 @@
 class MainStateMachine : public StateMachine {
 public:
 	MainStateMachine()
-		: StateMachine(Main::StateName::FLUSH, Main::StateName::STOP, Main::StateName::IDLE) {}
+		: StateMachine("main-state-machine", Main::StateName::FLUSH, Main::StateName::STOP,
+					   Main::StateName::IDLE) {}
 
 	void setup() override {
 		using namespace Main;

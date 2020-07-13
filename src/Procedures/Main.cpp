@@ -57,10 +57,7 @@ void Main::StatePreserve::enter(KPStateMachine & sm) {
 }
 
 void Main::StateDry::enter(KPStateMachine & sm) {
-	Application & app  = *static_cast<Application *>(sm.controller);
-	Task & currentTask = app.tm.tasks[app.currentTaskId];
-	time			   = currentTask.dryTime;
-
+	Application & app = *static_cast<Application *>(sm.controller);
 	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	app.shift.setAllRegistersLow();
@@ -73,11 +70,7 @@ void Main::StateDry::enter(KPStateMachine & sm) {
 }
 
 void Main::StateSample::enter(KPStateMachine & sm) {
-	Application & app  = *static_cast<Application *>(sm.controller);
-	Task & currentTask = app.tm.tasks[app.currentTaskId];
-	time			   = currentTask.sampleTime;
-	pressure		   = currentTask.samplePressure;
-
+	Application & app = *static_cast<Application *>(sm.controller);
 	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	// We set the latch valve to intake mode, turn on the filter valve, then the pump

@@ -9,9 +9,9 @@ public:
 	const char * stopStateName	= nullptr;
 	const char * idleStateName	= nullptr;
 
-	StateMachine(const char * entryStateName, const char * stopStateName,
+	StateMachine(const char * name, const char * entryStateName, const char * stopStateName,
 				 const char * idleStateName)
-		: KPStateMachine("controlled-state-machine"),
+		: KPStateMachine(name),
 		  entryStateName(entryStateName),
 		  stopStateName(stopStateName),
 		  idleStateName(idleStateName) {}
