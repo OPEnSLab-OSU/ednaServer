@@ -19,7 +19,7 @@
 #include <Procedures/MainStateMachine.hpp>
 #include <Procedures/BallStateMachine.hpp>
 #include <Procedures/NewStateMachine.hpp>
-#include <Procedures/PreloadStateMachine.hpp>
+#include <Procedures/HyperFlushStateMachine.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -56,8 +56,8 @@ public:
 	Status status;
 
 	// MainStateMachine sm;
-	BallStateMachine sm;
-	PreloadStateMachine preloadSM;
+	NewStateMachine sm;
+	HyperFlushStateMachine hyperFlushStateController;
 
 	ValveManager vm;
 	TaskManager tm;
@@ -125,8 +125,8 @@ private:
 		tm.addObserver(this);
 		tm.loadTasksFromDirectory(config.taskFolder);
 
-		addComponent(preloadSM);
-		preloadSM.idle();
+		addComponent(hyperFlushStateController);
+		hyperFlushStateController.idle();
 
 		// Wait in IDLE
 		addComponent(sm);
@@ -149,8 +149,20 @@ public:
 		return strcmp(lhs, rhs) == 0;
 	}
 
+	void writeBallValveOn() {
+		shift.setPin(0, HIGH);
+		shift.setPin(1, LOW);
+		shift.write();
+	}
+
+	void writeBallValveOff() {
+		shift.setPin(1, HIGH);
+		shift.setPin(0, LOW);
+		shift.write();
+	}
+
 	void beginPreloadingProcedure() {
-		preloadSM.begin();
+		hyperFlushStateController.begin();
 	}
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  Convenient method for working with latch valve. Leaving the hardware
@@ -172,6 +184,11 @@ public:
 	ValveBlock currentValveNumberToBlock() {
 		return {shift.toRegisterIndex(status.currentValve) + 1,
 				shift.toPinIndex(status.currentValve)};
+	}
+
+	int currentValveIdToPin() {
+		// Skip the first register
+		return status.currentValve + shift.capacityPerRegister;
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────

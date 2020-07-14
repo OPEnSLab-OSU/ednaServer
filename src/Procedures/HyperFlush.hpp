@@ -2,7 +2,7 @@
 #pragma once
 #include <KPState.hpp>
 
-namespace Preload {
+namespace HyperFlush {
 	namespace StateName {
 		constexpr const char * IDLE				= "idle-state";
 		constexpr const char * STOP				= "stop-state";
@@ -30,4 +30,4 @@ namespace Preload {
 	public:
 		void enter(KPStateMachine & sm) override;
 	};
-}  // namespace Preload
+}  // namespace HyperFlush

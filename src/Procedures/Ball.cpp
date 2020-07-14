@@ -1,20 +1,6 @@
 #include <Application/Application.hpp>
 #include <Procedures/Ball.hpp>
 
-namespace {
-	void writeBallValveOn(ShiftRegister & shift) {
-		shift.setPin(0, HIGH);
-		shift.setPin(1, LOW);
-		shift.write();
-	}
-
-	void writeBallValveOff(ShiftRegister & shift) {
-		shift.setPin(1, HIGH);
-		shift.setPin(0, LOW);
-		shift.write();
-	}
-}  // namespace
-
 void Ball::StateIdle::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 	println(app.scheduleNextActiveTask().description());
@@ -24,7 +10,7 @@ void Ball::StateStop::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 	app.pump.off();
 	app.shift.writeAllRegistersLow();
-	writeBallValveOff(app.shift);
+	app.writeBallValveOff();
 
 	app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
 	app.vm.writeToDirectory();
@@ -43,7 +29,7 @@ void Ball::StatePreserve::enter(KPStateMachine & sm) {
 	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	app.shift.writeAllRegistersLow();
-	writeBallValveOff(app.shift);
+	app.writeBallValveOff();
 	app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
 	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
 	app.shift.write();
@@ -57,7 +43,7 @@ void Ball::StateDry::enter(KPStateMachine & sm) {
 	ValveBlock vBlock = app.currentValveNumberToBlock();
 
 	app.shift.setAllRegistersLow();
-	writeBallValveOff(app.shift);
+	app.writeBallValveOff();
 	app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
 	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
 	app.shift.write();
@@ -72,7 +58,7 @@ void Ball::StateSample::enter(KPStateMachine & sm) {
 
 	// We set the latch valve to intake mode, turn on the filter valve, then the pump
 	app.shift.setAllRegistersLow();
-	writeBallValveOn(app.shift);
+	app.writeBallValveOn();
 	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
 	app.shift.write();
 	app.pump.on();
@@ -90,7 +76,7 @@ void Ball::StateFlush::enter(KPStateMachine & sm) {
 	Application & app = *static_cast<Application *>(sm.controller);
 
 	app.shift.setAllRegistersLow();
-	writeBallValveOn(app.shift);
+	app.writeBallValveOn();
 	app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
 	app.shift.write();
 	app.pump.on();

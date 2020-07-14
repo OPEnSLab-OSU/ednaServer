@@ -53,7 +53,7 @@ namespace New {
 
 	class OffshootClean : public KPState {
 	public:
-		int cleanTime			   = 2000;
+		int cleanTime			   = 2;
 		const char * nextStateName = nullptr;
 		OffshootClean(const char * name) : nextStateName(name) {}
 		void enter(KPStateMachine & sm) override;
@@ -62,6 +62,9 @@ namespace New {
 	class Flush : public KPState {
 	public:
 		const char * nextStateName = nullptr;
+		unsigned long time		   = 0;
+		unsigned long pressure	   = 0;
+		unsigned long volume	   = 0;
 		Flush(const char * name) : nextStateName(name) {}
 		void enter(KPStateMachine & sm) override;
 	};

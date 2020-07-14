@@ -23,21 +23,25 @@ public:
 	}
 
 	virtual void transferTaskDataToStateParameters(const Task & task) {
-		// using namespace Ball;
-		// auto & flush = *getState<StateFlush>(StateName::FLUSH);
-		// flush.time	 = task.flushTime;
-		// flush.volume = task.flushVolume;
+		using namespace New;
+		auto & flush1 = *getState<Flush>(StateName::FLUSH1);
+		flush1.time	  = task.flushTime;
+		flush1.volume = task.flushVolume;
 
-		// auto & sample	= *getState<StateSample>(StateName::SAMPLE);
-		// sample.time		= task.sampleTime;
-		// sample.pressure = task.samplePressure;
-		// sample.volume	= task.sampleVolume;
+		auto & flush2 = *getState<Flush>(StateName::FLUSH2);
+		flush2.time	  = task.flushTime;
+		flush2.volume = task.flushVolume;
 
-		// auto & dry = *getState<StateDry>(StateName::DRY);
-		// dry.time   = task.dryTime;
+		auto & sample	= *getState<Sample>(StateName::SAMPLE);
+		sample.time		= task.sampleTime;
+		sample.pressure = task.samplePressure;
+		sample.volume	= task.sampleVolume;
 
-		// auto & preserve = *getState<StatePreserve>(StateName::PRESERVE);
-		// preserve.time	= task.preserveTime;
-		// println("Transferring data to states");
+		auto & dry = *getState<Dry>(StateName::DRY);
+		dry.time   = task.dryTime;
+
+		auto & preserve = *getState<Preserve>(StateName::PRESERVE);
+		preserve.time	= task.preserveTime;
+		println("Transferring data to states");
 	}
 };

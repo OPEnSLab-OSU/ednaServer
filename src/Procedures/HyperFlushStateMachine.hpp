@@ -1,14 +1,14 @@
 #include <Components/StateMachine.hpp>
-#include <Procedures/Preload.hpp>
+#include <Procedures/HyperFlush.hpp>
 
-class PreloadStateMachine : public StateMachine {
+class HyperFlushStateMachine : public StateMachine {
 public:
-	PreloadStateMachine()
-		: StateMachine("preload-state-machine", Preload::StateName::FLUSH, Preload::StateName::STOP,
-					   Preload::StateName::IDLE) {}
+	HyperFlushStateMachine()
+		: StateMachine("preload-state-machine", HyperFlush::StateName::FLUSH,
+					   HyperFlush::StateName::STOP, HyperFlush::StateName::IDLE) {}
 
 	void setup() override {
-		using namespace Preload;
+		using namespace HyperFlush;
 		registerState(Idle(), StateName::IDLE);
 		registerState(Stop(), StateName::STOP);
 		registerState(Flush(), StateName::FLUSH);

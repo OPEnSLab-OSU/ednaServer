@@ -22,7 +22,8 @@ void Application::setupServerRouting() {
 
 	server.get("/api/preload", [this](Request &, Response & res) {
 		StaticJsonDocument<300> response;
-		if (compare(Preload::StateName::IDLE, preloadSM.getCurrentState()->getName())) {
+		if (compare(HyperFlush::StateName::IDLE,
+					hyperFlushStateController.getCurrentState()->getName())) {
 			beginPreloadingProcedure();
 			response["success"] = "Begin preloading water";
 		} else {
