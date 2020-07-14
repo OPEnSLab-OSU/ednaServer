@@ -22,14 +22,19 @@ namespace TPICDevices {
 };	// namespace TPICDevices
 
 namespace HardwarePins {
-	__k_int POWER_MODULE	  = A0;
-	__k_int RTC_INTERRUPT	  = 12;	 // A1 is eDNA, 12 for HYPNOS
+	__k_int POWER_MODULE = A0;
+#ifdef LIVE
+	// A1 is eDNA, 12 for HYPNOS
+	__k_int RTC_INTERRUPT = A1;
+#else
+	__k_int RTC_INTERRUPT = 12;
+#endif
 	__k_int BATTERY_VOLTAGE	  = A2;
 	__k_int ANALOG_SENSOR_1	  = A3;
 	__k_int ANALOG_SENSOR_2	  = A4;
 	__k_int SHUTDOWN_OVERRIDE = A5;
-	__k_int MOTOR_FORWARD	  = 5;
-	__k_int MOTOR_REVERSE	  = 6;
+	__k_int MOTOR_REVERSE	  = 5;
+	__k_int MOTOR_FORWARD	  = 6;
 	__k_int SHFT_REG_LATCH	  = 9;
 	__k_int SD_CARD			  = 10;
 	__k_int SHFT_REG_CLOCK	  = 11;
