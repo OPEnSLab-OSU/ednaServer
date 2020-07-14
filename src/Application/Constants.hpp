@@ -16,6 +16,8 @@ struct ValveBlock {
 };
 
 namespace TPICDevices {
+	__k_int INTAKE_POS	   = 0;
+	__k_int INTAKE_NEG	   = 1;
 	__k_int AIR_VALVE	   = 2;
 	__k_int ALCHOHOL_VALVE = 3;
 	__k_int FLUSH_VALVE	   = 5;

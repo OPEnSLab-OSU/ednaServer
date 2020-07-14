@@ -3,14 +3,14 @@
 
 namespace {
 	void writeBallValveOn(ShiftRegister & shift) {
-		shift.setPin(1, HIGH);
-		shift.setPin(0, LOW);
+		shift.setPin(0, HIGH);
+		shift.setPin(1, LOW);
 		shift.write();
 	}
 
 	void writeBallValveOff(ShiftRegister & shift) {
-		shift.setPin(0, HIGH);
-		shift.setPin(1, LOW);
+		shift.setPin(1, HIGH);
+		shift.setPin(0, LOW);
 		shift.write();
 	}
 }  // namespace
@@ -73,12 +73,12 @@ void Ball::StateSample::enter(KPStateMachine & sm) {
 	// We set the latch valve to intake mode, turn on the filter valve, then the pump
 	app.shift.setAllRegistersLow();
 	writeBallValveOn(app.shift);
-	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);	// Filter valve
+	app.shift.setRegister(vBlock.regIndex, vBlock.pinIndex, HIGH);
 	app.shift.write();
 	app.pump.on();
 
-	// This condition will be evaluated repeatedly until true then the callback will be executed
-	// once
+	// This condition will be evaluated repeatedly until true
+	// then the callback will be executed once
 	auto const condition = [&]() {
 		return timeSinceLastTransition() >= secsToMillis(time) || app.status.pressure >= pressure;
 	};

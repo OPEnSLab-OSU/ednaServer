@@ -150,7 +150,6 @@ public:
 	}
 
 	void beginPreloadingProcedure() {
-		println("Begin preloading");
 		preloadSM.begin();
 	}
 	/** ────────────────────────────────────────────────────────────────────────────
