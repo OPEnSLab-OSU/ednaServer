@@ -22,7 +22,7 @@ namespace Preload {
 
 	class OffshootPreload : public KPState {
 	public:
-		int preloadTime = 10;
+		int preloadTime = 5;
 		void enter(KPStateMachine & sm) override;
 	};
 

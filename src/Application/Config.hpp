@@ -1,11 +1,9 @@
 #pragma once
 
 #include <KPFoundation.hpp>
-#include <KPDataStoreInterface.hpp>
+
 #include <Application/Constants.hpp>
 #include <Utilities/JsonFileLoader.hpp>
-
-#include <ArduinoJson.h>
 
 //
 // ──────────────────────────────────────────────────── I ──────────
@@ -13,22 +11,20 @@
 // ──────────────────────────────────────────────────────────────
 //
 // NOTE: This object is intended to be read-only and mirrors actual data in the
-// config file
+// config file + some userful logic
 // ────────────────────────────────────────────────────────────────────────────────
 class Config : public JsonDecodable, public JsonEncodable, public Printable {
 public:
-	int valveUpperBound;
-	int numberOfValves;
-	int valves[ProgramSettings::MAX_VALVES]{0};
+	bool shutdownOverride		= true;
+	const char * configFilepath = nullptr;
+	signed char valveUpperBound = 0;
+	signed char numberOfValves	= 0;
 
-	const char * configFilepath;
-
-	char logFile[ProgramSettings::SD_FILE_NAME_LENGTH]{0};
-	char statusFile[ProgramSettings::SD_FILE_NAME_LENGTH]{0};
-	char taskFolder[ProgramSettings::SD_FILE_NAME_LENGTH]{0};
-	char valveFolder[ProgramSettings::SD_FILE_NAME_LENGTH]{0};
-
-	bool shutdownOverride = true;
+	signed char availableValves[ProgramSettings::MAX_VALVES] = {0};
+	char logFile[ProgramSettings::SD_FILE_NAME_LENGTH]		 = {0};
+	char statusFile[ProgramSettings::SD_FILE_NAME_LENGTH]	 = {0};
+	char taskFolder[ProgramSettings::SD_FILE_NAME_LENGTH]	 = {0};
+	char valveFolder[ProgramSettings::SD_FILE_NAME_LENGTH]	 = {0};
 
 public:
 	// Config()			   = delete;
@@ -55,15 +51,15 @@ public:
 		JsonArrayConst config_valves = source[VALVES_FREE].as<JsonArrayConst>();
 		for (int freeValveId : config_valves) {
 			if (freeValveId < 0) {
-				KPStringBuilder<120> message("Config: ", freeValveId, " < 0 ");
-				// raise(Error(message));
+				KPStringBuilder<120> error("Config: ", freeValveId, " < 0 ");
+				halt(TRACE, error);
 			}
 
 			if (freeValveId > valveUpperBound) {
-				KPStringBuilder<120> message("Config: ", freeValveId, " > ", valveUpperBound);
-				// raise(Error(message));
+				KPStringBuilder<120> error("Config: ", freeValveId, " > ", valveUpperBound);
+				halt(TRACE, error);
 			} else {
-				valves[freeValveId] = 1;
+				availableValves[freeValveId] = 1;
 			}
 		}
 
@@ -85,14 +81,12 @@ public:
 	bool encodeJSON(const JsonVariant & dest) const override {
 		using namespace ConfigKeys;
 
-		// -> valves
 		JsonArray array_array = dest.createNestedArray(VALVES_FREE);
-		copyArray(valves, array_array);
+		copyArray(availableValves, array_array);
 
 		return dest[VALVE_UPPER_BOUND].set(valveUpperBound) && dest[FILE_LOG].set((char *) logFile)
-			&& dest[FILE_STATUS].set((char *) statusFile)
-			&& dest[FOLDER_TASK].set((char *) taskFolder)
-			&& dest[FOLDER_VALVE].set((char *) valveFolder);
+			&& dest[FILE_STATUS].set(statusFile) && dest[FOLDER_TASK].set(taskFolder)
+			&& dest[FOLDER_VALVE].set(valveFolder);
 	}
 #pragma endregion
 #pragma region PRINTABLE

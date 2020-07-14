@@ -309,12 +309,16 @@ public:
 
 void Application::commandReceived(const char * input) {
 	KPString line{input};
+	println("----- ", line);
 
-	println("input: ", line);
+	if (line == "read status") {
+	} else if (line == "save status") {
+	} else if (line == "print status") {
+		println(status);
+	}
 
-	if (line == "status read") {
-	} else if (line == "status save") {
-	} else if (line == "status print") {
+	if (line == "print config") {
+		println(config);
 	}
 
 	if (line == "schedule now") {
@@ -331,7 +335,7 @@ void Application::commandReceived(const char * input) {
 
 	if (line == "reset valves") {
 		for (int i = 0; i < config.numberOfValves; i++) {
-			vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
+			vm.setValveStatus(i, ValveStatus::Code(config.availableValves[i]));
 		}
 
 		vm.writeToDirectory();

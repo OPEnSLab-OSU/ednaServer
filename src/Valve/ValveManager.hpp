@@ -18,7 +18,8 @@
 class ValveManager : public JsonEncodable, public KPSubject<ValveObserver> {
 public:
 	std::vector<Valve> valves;
-	const char * valveFolder = nullptr;
+	const char * valveFolder   = nullptr;
+	size_t numberOfValvesInUse = 0;
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  Initialize ValveManager with the config object. This method sets
@@ -31,11 +32,17 @@ public:
 		valves.resize(config.numberOfValves);
 
 		for (size_t i = 0; i < valves.size(); i++) {
-			valves[i].id = i;
-			valves[i].setStatus(ValveStatus::Code(config.valves[i]));
+			int valveAvailability = config.availableValves[i];
+			ValveStatus status	  = ValveStatus::Code(valveAvailability ? valveAvailability : -1);
+			valves[i].id		  = i;
+			valves[i].setStatus(status);
+
+			if (status != ValveStatus::unavailable) {
+				numberOfValvesInUse++;
+			}
 
 			PRINT_REGION_DEBUG
-			println(config.valves[i]);
+			println(status);
 			PRINT_DEFAULT
 		}
 
@@ -93,9 +100,11 @@ public:
 
 		unsigned long start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
-			KPStringBuilder<32> filename("valve-", i, ".js");
-			KPStringBuilder<64> filepath(dir, "/", filename);
-			loader.load(filepath, valves[i]);
+			if (valves[i].status != ValveStatus::unavailable) {
+				KPStringBuilder<32> filename("valve-", i, ".js");
+				KPStringBuilder<64> filepath(dir, "/", filename);
+				loader.load(filepath, valves[i]);
+			}
 		}
 
 		println(GREEN("Valve Manager"), " finished reading in ", millis() - start, " ms\n");
@@ -116,9 +125,11 @@ public:
 
 		unsigned long start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
-			KPStringBuilder<32> filename("valve-", i, ".js");
-			KPStringBuilder<64> filepath(dir, "/", filename);
-			loader.save(filepath, valves[i]);
+			if (valves[i].status != ValveStatus::unavailable) {
+				KPStringBuilder<32> filename("valve-", i, ".js");
+				KPStringBuilder<64> filepath(dir, "/", filename);
+				loader.save(filepath, valves[i]);
+			}
 		}
 
 		PrintConfig::setPrintVerbose(Verbosity::debug);
