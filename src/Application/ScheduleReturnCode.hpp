@@ -34,7 +34,7 @@ public:
 		case scheduled:
 			return "scheduled";
 		default:
-			// raise("Unknown case: ScheduleReturnCode::description");
+			halt(TRACE, "Unknown case: ScheduleReturnCode::description");
 			return "";
 		}
 	}

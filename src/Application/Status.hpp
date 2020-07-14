@@ -92,6 +92,14 @@ private:
 		temperature = values.second;
 	}
 
+	void baro1DidUpdate(const std::pair<float, float> & values) override {
+		barometric = values.first;
+	}
+
+	void baro2DidUpdate(const std::pair<float, float> & values) override {
+		waterDepth = values.first;
+	}
+
 public:
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief Override_Mode_Pin is connected to an external switch which is active low.

@@ -4,6 +4,7 @@
 #include <Components/SensorArrayObserver.hpp>
 
 #include <SSC.h>
+#include <SparkFun_MS5803_I2C.h>
 
 #define PSAddr 0x08
 #define FSAddr 0x07
@@ -38,10 +39,11 @@ private:
 	I2CSensor() {}
 
 public:
+	float updateFreqHz				  = 2;
+	unsigned long timeSinceLastUpdate = 0;
+	unsigned char addr				  = 0;
 	unsigned char enabled			  = false;
 	unsigned char updated			  = false;
-	unsigned long timeSinceLastUpdate = 0;
-	float updateFreqHz				  = 2;
 
 	void updateSensor() {
 		if (!enabled) {
@@ -66,38 +68,63 @@ public:
 };
 
 class PressureSensor : public I2CSensor<PressureSensor> {
-	SSC ps{PSAddr};
-	PressureSensor(PressureSensor & rhs) = delete;
+	SSC sensor;
 
 public:
-	PressureSensor() = default;
+	PressureSensor(PressureSensor & rhs) = delete;
+	PressureSensor(unsigned char addr) : sensor{addr} {
+		this->addr = addr;
+	}
 
 	void setup() {
-		if (checkForConnection(PSAddr)) {
-			enabled = true;
+		enabled = checkForConnection(addr);
+		if (enabled) {
+			sensor.setMinRaw(1638);
+			sensor.setMaxRaw(14745);
+			sensor.setMinPressure(0);
+			sensor.setMaxPressure(30);
+			sensor.start();
 		}
-
-		ps.setMinRaw(1638);
-		ps.setMaxRaw(14745);
-		ps.setMinPressure(0);
-		ps.setMaxPressure(30);
-		ps.start();
 	};
 
 	void update() {
-		ps.update();
+		sensor.update();
 	}
 
 public:
 	std::pair<float, float> getValue() {
-		return {ps.pressure(), ps.temperature()};
+		return {sensor.pressure(), sensor.temperature()};
+	}
+};
+
+class BaroSensor : public I2CSensor<BaroSensor> {
+	MS5803 sensor;
+
+public:
+	BaroSensor(ms5803_addr addr) : sensor(addr) {
+		this->addr = addr;
+	}
+
+	void setup() {
+		enabled = checkForConnection(addr);
+		if (enabled) {
+			sensor.begin();
+		}
+	}
+
+	void update() {}
+
+	std::pair<float, float> getValue() {
+		return {sensor.getPressure(ADC_4096), sensor.getTemperature(CELSIUS, ADC_4096)};
 	}
 };
 
 class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
 	using KPComponent::KPComponent;
-	PressureSensor ps;
+	PressureSensor ps{PSAddr};
+	BaroSensor baro1{ADDRESS_HIGH};
+	BaroSensor baro2{ADDRESS_LOW};
 
 	void setup() override {
 		ps.setup();
@@ -107,7 +134,7 @@ public:
 	}
 
 	void updatePs() {
-		if (ps.enabled == false) {
+		if (!ps.enabled) {
 			return;
 		}
 
@@ -118,7 +145,33 @@ public:
 		ps.updateSensor();
 	}
 
+	void updateBaro1() {
+		if (!baro1.enabled) {
+			return;
+		}
+
+		if (baro1.didUpdate()) {
+			updateObservers(&SensorArrayObserver::baro1DidUpdate, baro1.getValue());
+		}
+
+		baro1.updateSensor();
+	}
+
+	void updateBaro2() {
+		if (!baro2.enabled) {
+			return;
+		}
+
+		if (baro2.didUpdate()) {
+			updateObservers(&SensorArrayObserver::baro2DidUpdate, baro2.getValue());
+		}
+
+		baro2.updateSensor();
+	}
+
 	void update() override {
 		updatePs();
+		updateBaro1();
+		updateBaro2();
 	}
 };
