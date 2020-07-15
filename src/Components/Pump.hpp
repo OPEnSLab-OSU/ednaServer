@@ -17,10 +17,10 @@ public:
 		off();
 	}
 
-	void on(ValveDirection dir = ValveDirection::normal) {
+	void on(Direction dir = Direction::normal) {
 		delay(20);
-		analogWrite(control1, dir == ValveDirection::normal ? 255 : 0);
-		analogWrite(control2, dir == ValveDirection::normal ? 0 : 255);
+		analogWrite(control1, dir == Direction::normal ? 255 : 0);
+		analogWrite(control2, dir == Direction::normal ? 0 : 255);
 	}
 
 	void off() {
@@ -29,9 +29,9 @@ public:
 		delay(20);
 	}
 
-	void pwm(float duty_cycle, ValveDirection dir = ValveDirection::normal) {
+	void pwm(float duty_cycle, Direction dir = Direction::normal) {
 		uint8_t intensity = constrain(duty_cycle, 0, 1) * 255;
-		analogWrite(dir == ValveDirection::normal ? control1 : control2, intensity);
-		analogWrite(dir == ValveDirection::normal ? control2 : control1, 0);
+		analogWrite(dir == Direction::normal ? control1 : control2, intensity);
+		analogWrite(dir == Direction::normal ? control2 : control1, 0);
 	}
 };

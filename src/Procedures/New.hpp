@@ -36,12 +36,13 @@ namespace New {
 
 	class Dry : public KPState {
 	public:
-		unsigned long time = 0;
+		unsigned long time = 10;
 		void enter(KPStateMachine & sm) override;
 	};
 
 	class AirFlush : public KPState {
 	public:
+		unsigned long time = 15;
 		void enter(KPStateMachine & sm) override;
 	};
 
@@ -53,18 +54,16 @@ namespace New {
 
 	class OffshootClean : public KPState {
 	public:
-		int cleanTime			   = 2;
 		const char * nextStateName = nullptr;
-		OffshootClean(const char * name) : nextStateName(name) {}
+		unsigned long time		   = 5;
+		OffshootClean(const char * name, int time) : nextStateName(name), time(time) {}
 		void enter(KPStateMachine & sm) override;
 	};
 
 	class Flush : public KPState {
 	public:
 		const char * nextStateName = nullptr;
-		unsigned long time		   = 0;
-		unsigned long pressure	   = 0;
-		unsigned long volume	   = 0;
+		unsigned long time		   = 10;
 		Flush(const char * name) : nextStateName(name) {}
 		void enter(KPStateMachine & sm) override;
 	};

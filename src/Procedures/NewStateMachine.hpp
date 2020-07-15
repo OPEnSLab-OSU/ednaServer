@@ -13,10 +13,10 @@ public:
 		registerState(Stop(), StateName::STOP);
 
 		registerState(Flush(StateName::OFFSHOOT_CLEAN_1), StateName::FLUSH1);
-		registerState(OffshootClean(StateName::FLUSH2), StateName::OFFSHOOT_CLEAN_1);
+		registerState(OffshootClean(StateName::FLUSH2, 5), StateName::OFFSHOOT_CLEAN_1);
 		registerState(Flush(StateName::SAMPLE), StateName::FLUSH2);
 		registerState(Sample(), StateName::SAMPLE);
-		registerState(OffshootClean(StateName::DRY), StateName::OFFSHOOT_CLEAN_2);
+		registerState(OffshootClean(StateName::DRY, 10), StateName::OFFSHOOT_CLEAN_2);
 		registerState(Dry(), StateName::DRY);
 		registerState(Preserve(), StateName::PRESERVE);
 		registerState(AirFlush(), StateName::AIR_FLUSH);
@@ -26,11 +26,9 @@ public:
 		using namespace New;
 		auto & flush1 = *getState<Flush>(StateName::FLUSH1);
 		flush1.time	  = task.flushTime;
-		flush1.volume = task.flushVolume;
 
 		auto & flush2 = *getState<Flush>(StateName::FLUSH2);
 		flush2.time	  = task.flushTime;
-		flush2.volume = task.flushVolume;
 
 		auto & sample	= *getState<Sample>(StateName::SAMPLE);
 		sample.time		= task.sampleTime;

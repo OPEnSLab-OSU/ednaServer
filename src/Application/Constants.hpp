@@ -8,7 +8,7 @@
 #define PRINT_REGION_DEBUG PrintConfig::setPrintVerbose(Verbosity::debug);
 #define PRINT_DEFAULT	   PrintConfig::setDefaultVerbose();
 
-enum class ValveDirection { normal, reverse };
+enum class Direction { normal, reverse };
 
 struct ValveBlock {
 	const int regIndex;

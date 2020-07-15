@@ -32,7 +32,7 @@ void New::AirFlush::enter(KPStateMachine & sm) {
 	app.shift.write();
 	app.pump.on();
 
-	setTimeCondition(15, [&]() { sm.transitionTo(StateName::STOP); });
+	setTimeCondition(time, [&]() { sm.transitionTo(StateName::STOP); });
 }
 
 void New::Preserve::enter(KPStateMachine & sm) {
@@ -56,7 +56,7 @@ void New::Dry::enter(KPStateMachine & sm) {
 	app.shift.write();
 	app.pump.on();
 
-	setTimeCondition(10, [&]() { sm.transitionTo(StateName::PRESERVE); });
+	setTimeCondition(time, [&]() { sm.transitionTo(StateName::PRESERVE); });
 }
 
 void New::Sample::enter(KPStateMachine & sm) {
@@ -82,9 +82,9 @@ void New::OffshootClean::enter(KPStateMachine & sm) {
 	app.shift.setPin(app.currentValveIdToPin(), HIGH);
 	app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
 	app.shift.write();
-	app.pump.on();
+	app.pump.on(Direction::reverse);
 
-	setTimeCondition(cleanTime, [&]() { sm.transitionTo(nextStateName); });
+	setTimeCondition(time, [&]() { sm.transitionTo(nextStateName); });
 };
 
 void New::Flush::enter(KPStateMachine & sm) {
@@ -96,5 +96,5 @@ void New::Flush::enter(KPStateMachine & sm) {
 	app.pump.on();
 
 	// To next state after 10 secs
-	setTimeCondition(10, [&]() { sm.transitionTo(nextStateName); });
+	setTimeCondition(time, [&]() { sm.transitionTo(nextStateName); });
 };

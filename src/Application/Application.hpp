@@ -170,9 +170,9 @@ public:
 	 *
 	 *  @param controlPin Control pin
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void writeIntakeValve(ValveDirection direction = ValveDirection::normal) {
+	void writeIntakeValve(Direction direction = Direction::normal) {
 		int controlPin = 0, reversePin = 1;
-		if (direction == ValveDirection::normal) {
+		if (direction == Direction::normal) {
 			std::swap(controlPin, reversePin);
 		}
 
@@ -311,7 +311,7 @@ public:
 	void shutdown() {
 		pump.off();									// Turn off motor
 		shift.writeAllRegistersLow();				// Turn off all TPIC devices
-		writeIntakeValve(ValveDirection::reverse);	// Reverse intake valve
+		writeIntakeValve(Direction::reverse);	// Reverse intake valve
 
 		tm.writeToDirectory();
 		vm.writeToDirectory();
