@@ -1,31 +1,32 @@
 #pragma once
 #include <KPFoundation.hpp>
 #include <KPStateMachine.hpp>
-#include <Task/Task.hpp>
+#include <KPState.hpp>
 
-class StateMachine : public KPStateMachine {
+#define STATE(x) constexpr const char * x = #x "_STATE"
+
+class StateController : public KPStateMachine {
 public:
-	const char * entryStateName = nullptr;
-	const char * stopStateName	= nullptr;
-	const char * idleStateName	= nullptr;
+	const char * beginState = nullptr;
+	const char * stopState	= nullptr;
+	const char * idleState	= nullptr;
 
-	StateMachine(const char * name, const char * entryStateName, const char * stopStateName,
-				 const char * idleStateName)
+	StateController(const char * name, const char * begin, const char * stop, const char * idle)
 		: KPStateMachine(name),
-		  entryStateName(entryStateName),
-		  stopStateName(stopStateName),
-		  idleStateName(idleStateName) {}
+		  beginState(begin),
+		  stopState(stop),
+		  idleState(idle) {}
 
 	void begin() {
-		transitionTo(entryStateName);
+		transitionTo(beginState);
 	}
 
 	void stop() {
-		transitionTo(stopStateName);
+		transitionTo(stopState);
 	}
 
 	void idle() {
-		transitionTo(idleStateName);
+		transitionTo(idleState);
 	}
 
 	void setup() override {
@@ -38,5 +39,5 @@ public:
 	 *
 	 *  @param task Task object containing states' parameters
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	virtual void transferTaskDataToStateParameters(const Task & task) {}
+	// virtual void transferTaskDataToStateParameters(const Task & task) {}
 };

@@ -1,23 +1,12 @@
-
+#include <States/OffshootPreload.hpp>
 #include <Application/Application.hpp>
-#include <array>
 
-void HyperFlush::Idle::enter(KPStateMachine & sm) {}
-void HyperFlush::Stop::enter(KPStateMachine & sm) {
-	auto & app = *static_cast<Application *>(sm.controller);
-	app.shift.setAllRegistersLow();
-	app.writeBallValveOff();
-	app.shift.write();
-	app.pump.off();
-
-	sm.transitionTo(StateName::IDLE);
-}
-
-void HyperFlush::OffshootPreload::enter(KPStateMachine & sm) {
+void OffshootPreload::enter(KPStateMachine & sm) {
 	// Intake valve is opened and the motor is runnning ...
 	// Turnoff only the flush valve
 	auto & app = *static_cast<Application *>(sm.controller);
 	app.shift.setPin(TPICDevices::FLUSH_VALVE, LOW);
+	app.intake.on();
 
 	// Reserving space ahead of time for performance
 	reserve(app.vm.numberOfValvesInUse + 1);
@@ -53,18 +42,6 @@ void HyperFlush::OffshootPreload::enter(KPStateMachine & sm) {
 	// Transition to the next state after the last valve
 	setTimeCondition(counter * preloadTime, [&]() {
 		println("done");
-		sm.transitionTo(StateName::STOP);
+		sm.next();
 	});
-};
-
-void HyperFlush::Flush::enter(KPStateMachine & sm) {
-	auto & app = *static_cast<Application *>(sm.controller);
-	app.shift.setAllRegistersLow();
-	app.writeBallValveOn();
-	app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-	app.shift.write();
-	app.pump.on();
-
-	// To next state after 10 secs
-	setTimeCondition(10, [&]() { sm.transitionTo(StateName::OFFSHOOT_PRELOAD); });
 };

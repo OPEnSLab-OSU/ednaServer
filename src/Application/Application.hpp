@@ -15,11 +15,10 @@
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
 #include <Components/SensorArray.hpp>
+#include <Components/Intake.hpp>
 
-#include <Procedures/MainStateMachine.hpp>
-#include <Procedures/BallStateMachine.hpp>
-#include <Procedures/NewStateMachine.hpp>
-#include <Procedures/HyperFlushStateMachine.hpp>
+#include <StateControllers/NewStateController.hpp>
+#include <StateControllers/HyperFlushStateController.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -51,13 +50,13 @@ public:
 						HardwarePins::SHFT_REG_CLOCK, HardwarePins::SHFT_REG_LATCH};
 
 	Power power{"power"};
-
+	BallIntake intake{shift};
 	Config config{ProgramSettings::CONFIG_FILE_PATH};
 	Status status;
 
-	// MainStateMachine sm;
-	NewStateMachine sm;
-	HyperFlushStateMachine hyperFlushStateController;
+	// MainStateController sm;
+	NewStateController sm;
+	HyperFlushStateController hyperFlushStateController;
 
 	ValveManager vm;
 	TaskManager tm;
@@ -149,36 +148,8 @@ public:
 		return strcmp(lhs, rhs) == 0;
 	}
 
-	void writeBallValveOn() {
-		shift.setPin(0, HIGH);
-		shift.setPin(1, LOW);
-		shift.write();
-	}
-
-	void writeBallValveOff() {
-		shift.setPin(1, HIGH);
-		shift.setPin(0, LOW);
-		shift.write();
-	}
-
-	void beginPreloadingProcedure() {
+	void beginHyperFlush() {
 		hyperFlushStateController.begin();
-	}
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  Convenient method for working with latch valve. Leaving the hardware
-	 *  implementer to decide what is "normal" direction.
-	 *
-	 *  @param controlPin Control pin
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void writeIntakeValve(Direction direction = Direction::normal) {
-		int controlPin = 0, reversePin = 1;
-		if (direction == Direction::normal) {
-			std::swap(controlPin, reversePin);
-		}
-
-		shift.setPin(controlPin, HIGH);
-		shift.setPin(reversePin, LOW);
-		shift.write();
 	}
 
 	ValveBlock currentValveNumberToBlock() {
@@ -206,7 +177,7 @@ public:
 				// NOTE: Check logic here. Maybe not be correct yet
 				if (shouldStopCurrentTask) {
 					cancel("delayTaskExecution");
-					if (status.currentStateName != sm.stopStateName) {
+					if (status.currentStateName != sm.stopState) {
 						sm.stop();
 					}
 
@@ -309,14 +280,14 @@ public:
 	 *
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void shutdown() {
-		pump.off();									// Turn off motor
-		shift.writeAllRegistersLow();				// Turn off all TPIC devices
-		writeIntakeValve(Direction::reverse);	// Reverse intake valve
+		pump.off();					   // Turn off motor
+		shift.writeAllRegistersLow();  // Turn off all TPIC devices
+		intake.off();
 
 		tm.writeToDirectory();
 		vm.writeToDirectory();
 		power.shutdown();
-		// raise("SHUTDOWN");
+		halt(TRACE, "Shutdown. Will not return.");
 	}
 
 	void invalidateTaskAndFreeUpValves(Task & task) {
