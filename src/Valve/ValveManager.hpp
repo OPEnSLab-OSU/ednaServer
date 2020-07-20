@@ -32,9 +32,9 @@ public:
 		valves.resize(config.numberOfValves);
 
 		for (size_t i = 0; i < valves.size(); i++) {
-			int valveAvailability = config.availableValves[i];
-			ValveStatus status	  = ValveStatus::Code(valveAvailability ? valveAvailability : -1);
-			valves[i].id		  = i;
+			auto valveAvailability = config.availableValves[i];
+			ValveStatus status	   = ValveStatus::Code(valveAvailability ? valveAvailability : -1);
+			valves[i].id		   = i;
 			valves[i].setStatus(status);
 
 			if (status != ValveStatus::unavailable) {
@@ -98,7 +98,7 @@ public:
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
-		unsigned long start = millis();
+		auto start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
 			if (valves[i].status != ValveStatus::unavailable) {
 				KPStringBuilder<32> filename("valve-", i, ".js");
@@ -123,7 +123,7 @@ public:
 		JsonFileLoader loader;
 		loader.createDirectoryIfNeeded(dir);
 
-		unsigned long start = millis();
+		auto start = millis();
 		for (size_t i = 0; i < valves.size(); i++) {
 			if (valves[i].status != ValveStatus::unavailable) {
 				KPStringBuilder<32> filename("valve-", i, ".js");
@@ -135,7 +135,6 @@ public:
 		PrintConfig::setPrintVerbose(Verbosity::debug);
 		println("\033[1;32mValveManager\033[0m: finished writing in ", millis() - start, " ms");
 		PrintConfig::setDefaultVerbose();
-
 		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 
@@ -149,7 +148,7 @@ public:
 	}
 
 	bool encodeJSON(const JsonVariant & dest) const {
-		for (const auto & v : valves) {
+		for (decltype(auto) v : valves) {
 			if (!v.encodeJSON(dest.createNestedObject())) {
 				return false;
 			}

@@ -45,8 +45,8 @@ public:
 		HardwarePins::MOTOR_REVERSE,
 	};
 
-	const int numberOfShiftRegisters = 4;
-	ShiftRegister shift{"shift-register", numberOfShiftRegisters, HardwarePins::SHFT_REG_DATA,
+	const int numberOfRegisters = 4;
+	ShiftRegister shift{"shift-register", numberOfRegisters, HardwarePins::SHFT_REG_DATA,
 						HardwarePins::SHFT_REG_CLOCK, HardwarePins::SHFT_REG_LATCH};
 
 	Power power{"power"};
@@ -141,6 +141,10 @@ private:
 #ifdef DEBUG
 		// runForever(2000, "mem", []() { printFreeRam(); });
 #endif
+	}
+
+	auto compute(int i) {
+		return i;
 	}
 
 public:
@@ -254,7 +258,7 @@ public:
 			return;
 		}
 
-		for (int v : task.valves) {
+		for (auto v : task.valves) {
 			if (vm.valves[v].status == ValveStatus::sampled) {
 				KPStringBuilder<100> error("Valve ", v, " has already been sampled");
 				response["error"] = error;
@@ -287,11 +291,11 @@ public:
 		tm.writeToDirectory();
 		vm.writeToDirectory();
 		power.shutdown();
-		halt(TRACE, "Shutdown. Will not return.");
+		halt(TRACE, "Shutdown. This message should not be displayed. Check power module");
 	}
 
 	void invalidateTaskAndFreeUpValves(Task & task) {
-		for (int i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
+		for (auto i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
 			vm.setValveFreeIfNotYetSampled(task.valves[i]);
 		}
 

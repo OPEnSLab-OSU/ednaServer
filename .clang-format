@@ -3,7 +3,7 @@ AlignAfterOpenBracket: Align
 AlignEscapedNewlines: Right
 AlignConsecutiveAssignments: true
 AlignConsecutiveMacros: true
-AlignOperands: false
+AlignOperands: true
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false

@@ -23,16 +23,14 @@ void OffshootPreload::enter(KPStateMachine & sm) {
 		auto valvePin = valve.id + app.shift.capacityPerRegister;
 		setTimeCondition(counter * preloadTime, [&app, prevValvePin, valvePin] {
 			if (prevValvePin) {
-				// Turn off the previuos valve
+				// Turn off the previous valve
 				app.shift.setPin(prevValvePin, LOW);
 				println("done");
 			}
 
 			app.shift.setPin(valvePin, HIGH);
 			app.shift.write();
-
-			auto rp = app.shift.toRegisterAndPinIndices(valvePin);
-			print("Preloading ", rp, "...");
+			print("Flushing offshoot ", valvePin, "...");
 		});
 
 		prevValvePin = valvePin;

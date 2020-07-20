@@ -38,7 +38,7 @@ public:
 class BallIntake : public Intake {
 public:
 	ShiftRegister & shift;
-	int controlPin = 1, reversePin = 0;
+	int controlPin = 0, reversePin = 1;
 
 	BallIntake(ShiftRegister & shift) : Intake("ball-intake"), shift(shift) {}
 	void on() {
