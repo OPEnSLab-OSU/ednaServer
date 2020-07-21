@@ -1,5 +1,6 @@
 #pragma once
 #include <Components/StateController.hpp>
+#include <States/Shared.hpp>
 
 namespace Main {
 	STATE(STOP);
@@ -34,5 +35,14 @@ public:
 	MainStateController()
 		: StateController("main-state-machine", Main::FLUSH, Main::STOP, Main::IDLE) {}
 
-	void setup() override;
+	// FLUSH -> SAMPLE -> DRY -> PRESERVE -> STOP -> IDLE
+	void setup() {
+		using namespace Main;
+		registerState(SharedStates::Flush(), FLUSH, SAMPLE);
+		registerState(SharedStates::Sample(), SAMPLE, DRY);
+		registerState(SharedStates::Dry(), DRY, PRESERVE);
+		registerState(SharedStates::Preserve(), PRESERVE, STOP);
+		registerState(Stop(), STOP, IDLE);
+		registerState(Idle(), IDLE);
+	}
 };
