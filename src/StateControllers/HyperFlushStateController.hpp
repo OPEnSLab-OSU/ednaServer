@@ -15,4 +15,7 @@ public:
 						  HyperFlush::IDLE) {}
 
 	void setup() override;
+
+	template <typename T>
+	void config(T && data) {}
 };

@@ -11,7 +11,7 @@ namespace Main {
 
 	/** ────────────────────────────────────────────────────────────────────────────
 	 *  @brief This state checks if there is an active task and schedule it if any.
-	 * [Connections: 0]
+	 *  [Connections: 0]
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	class Idle : public KPState {
 	public:
