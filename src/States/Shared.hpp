@@ -21,8 +21,10 @@ namespace SharedStates {
 	};
 
 	/** ────────────────────────────────────────────────────────────────────────────
+	 *  @brief Flush the main pipe with new water from the source
+	 *  [Connections: 1]
 	 *
-	 *
+	 *	@param time Flush time
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	class Flush : public KPState {
 	public:

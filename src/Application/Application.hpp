@@ -55,7 +55,7 @@ public:
 	Status status;
 
 	// MainStateController sm;
-	NewStateController sm;
+	NewStateController newStateController;
 	HyperFlushStateController hyperFlushStateController;
 
 	ValveManager vm;
@@ -85,6 +85,22 @@ private:
 		// actual time from the RTC for random task id generation
 		addComponent(power);
 		randomSeed(now());
+
+		// struct HyperFlushConfig : public HyperFlushStateController::Configurator {
+		// 	void configureStateController(Config & data) const {
+		// 		data.flushTime	 = 5;
+		// 		data.preloadTime = 5;
+		// 	}
+		// };
+		//
+		// hyperFlushStateController.configure(HyperFlushConfig());
+
+		hyperFlushStateController.configure([]() {
+			HyperFlushStateController::Config config;
+			config.flushTime   = 5;
+			config.preloadTime = 5;
+			return config;
+		}());
 
 		PRINT_REGION_DEBUG
 		println();
@@ -128,9 +144,9 @@ private:
 		hyperFlushStateController.idle();
 
 		// Wait in IDLE
-		addComponent(sm);
-		sm.addObserver(status);
-		sm.idle();
+		addComponent(newStateController);
+		newStateController.addObserver(status);
+		newStateController.idle();
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
@@ -141,10 +157,6 @@ private:
 #ifdef DEBUG
 		// runForever(2000, "mem", []() { printFreeRam(); });
 #endif
-	}
-
-	auto compute(int i) {
-		return i;
 	}
 
 public:
@@ -181,9 +193,9 @@ public:
 				// NOTE: Check logic here. Maybe not be correct yet
 				if (shouldStopCurrentTask) {
 					cancel("delayTaskExecution");
-					if (status.currentStateName != sm.stopState) {
-						sm.stop();
-					}
+					// if (status.currentStateName != HyperFlush::STOP) {
+					// 	newStateController.stop();
+					// }
 
 					continue;
 				} else {
@@ -206,10 +218,10 @@ public:
 				TimedAction delayTaskExecution;
 				delayTaskExecution.name		= "delayTaskExecution";
 				delayTaskExecution.interval = secsToMillis(timeUntil);
-				delayTaskExecution.callback = [this]() { sm.begin(); };
+				delayTaskExecution.callback = [this]() { newStateController.begin(); };
 				run(delayTaskExecution);  // async, will be execute later
 
-				sm.transferTaskDataToStateParameters(task);
+				newStateController.configure(task);
 
 				currentTaskId		   = id;
 				status.preventShutdown = true;

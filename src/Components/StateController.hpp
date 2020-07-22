@@ -5,39 +5,43 @@
 
 #define STATE(x) constexpr const char * x = #x "_STATE"
 
+template <typename T>
+struct StateControllerConfigurator {
+	using Config												 = T;
+	virtual void configureStateController(Config & config) const = 0;
+};
+
+template <typename T>
+struct StateControllerConfig {
+	using Config	   = T;
+	using Configurator = StateControllerConfigurator<Config>;
+	Config config;
+
+	void configure(const StateControllerConfigurator<Config> & configurator) {
+		configurator.configureStateController(config);
+	}
+
+	void configure(const Config & config) {
+		this->config = config;
+	}
+};
+
 class StateController : public KPStateMachine {
 public:
-	const char * beginState = nullptr;
-	const char * stopState	= nullptr;
-	const char * idleState	= nullptr;
+	StateController(const char * name) : KPStateMachine(name) {}
 
-	StateController(const char * name, const char * begin, const char * stop, const char * idle)
-		: KPStateMachine(name),
-		  beginState(begin),
-		  stopState(stop),
-		  idleState(idle) {}
+	virtual void begin() = 0;
+	virtual void stop()	 = 0;
+	virtual void idle()	 = 0;
 
-	void begin() {
-		transitionTo(beginState);
-	}
-
-	void stop() {
-		transitionTo(stopState);
-	}
-
-	void idle() {
-		transitionTo(idleState);
-	}
-
-	void setup() override {
+	virtual void setup() override {
 		println("StateMachine Setup ");
 	}
+};
 
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Decouple state machine from task object. This is where task data gets
-	 *  transfered to states' parameters
-	 *
-	 *  @param task Task object containing states' parameters
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	// virtual void transferTaskDataToStateParameters(const Task & task) {}
+template <typename T>
+class StateControllerWithConfig : public StateController, public StateControllerConfig<T> {
+public:
+	using StateController::StateController;
+	// using Configurator = StateControllerConfigurator<T>;
 };

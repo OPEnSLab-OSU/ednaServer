@@ -104,14 +104,14 @@ namespace SharedStates {
 
 		int counter		 = 0;
 		int prevValvePin = 0;
-		for (auto valve : app.vm.valves) {
+		for (const decltype(auto) valve : app.vm.valves) {
 			if (valve.status == ValveStatus::unavailable) {
 				continue;
 			}
 
 			// Skip the first register
 			auto valvePin = valve.id + app.shift.capacityPerRegister;
-			setTimeCondition(counter * preloadTime, [&app, prevValvePin, valvePin] {
+			setTimeCondition(counter * preloadTime, [&app, prevValvePin, valvePin]() {
 				if (prevValvePin) {
 					// Turn off the previous valve
 					app.shift.setPin(prevValvePin, LOW);
@@ -120,7 +120,7 @@ namespace SharedStates {
 
 				app.shift.setPin(valvePin, HIGH);
 				app.shift.write();
-				print("Flushing offshoot ", valvePin, "...");
+				print("Flushing offshoot ", valvePin - app.shift.capacityPerRegister, "...");
 			});
 
 			prevValvePin = valvePin;

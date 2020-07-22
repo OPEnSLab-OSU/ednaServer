@@ -32,7 +32,7 @@ public:
 		valves.resize(config.numberOfValves);
 
 		for (size_t i = 0; i < valves.size(); i++) {
-			auto valveAvailability = config.availableValves[i];
+			auto valveAvailability = config.valves[i];
 			ValveStatus status	   = ValveStatus::Code(valveAvailability ? valveAvailability : -1);
 			valves[i].id		   = i;
 			valves[i].setStatus(status);

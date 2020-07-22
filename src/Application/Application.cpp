@@ -210,7 +210,7 @@ void Application::setupServerRouting() {
 		Task & task = tm.tasks[id];
 		if (currentTaskId == task.id) {
 			invalidateTaskAndFreeUpValves(task);
-			sm.stop();
+			newStateController.stop();
 		} else {
 			invalidateTaskAndFreeUpValves(task);
 			tm.writeToDirectory();
@@ -287,7 +287,7 @@ void Application::setupServerRouting() {
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Emergency stop
 	// ────────────────────────────────────────────────────────────────────────────────
-	server.get("/stop", [this](Request & req, Response & res) { sm.stop(); });
+	server.get("/stop", [this](Request & req, Response & res) { newStateController.stop(); });
 }
 
 //
@@ -334,7 +334,7 @@ void Application::commandReceived(const char * input) {
 
 	if (line == "reset valves") {
 		for (int i = 0; i < config.numberOfValves; i++) {
-			vm.setValveStatus(i, ValveStatus::Code(config.availableValves[i]));
+			vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
 		}
 
 		vm.writeToDirectory();

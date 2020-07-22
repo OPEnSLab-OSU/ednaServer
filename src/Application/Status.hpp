@@ -45,7 +45,7 @@ public:
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void init(Config & config) {
 		valves.resize(config.numberOfValves);
-		memcpy(valves.data(), config.availableValves, sizeof(int) * config.numberOfValves);
+		memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
 	}
 
 private:

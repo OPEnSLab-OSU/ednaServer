@@ -7,29 +7,42 @@ namespace HyperFlush {
 	STATE(STOP);
 	STATE(FLUSH);
 	STATE(OFFSHOOT_PRELOAD);
+
+	struct Config {
+		decltype(SharedStates::Flush::time) flushTime;
+		decltype(SharedStates::OffshootPreload::preloadTime) preloadTime;
+	};
+
+	class Controller : public StateControllerWithConfig<Config> {
+	public:
+		Controller() : StateControllerWithConfig("hyperflush-state-machine") {}
+
+		// FLUSH -> OFFSHOOT_PRELOAD -> STOP -> IDLE
+		void setup() override {
+			registerState(SharedStates::Flush(), FLUSH, OFFSHOOT_PRELOAD);
+			registerState(SharedStates::OffshootPreload(), OFFSHOOT_PRELOAD, STOP);
+			registerState(SharedStates::Stop(), STOP, IDLE);
+			registerState(SharedStates::Idle(), IDLE);
+		}
+
+		void begin() override {
+			decltype(auto) flush = getState<SharedStates::Flush>(FLUSH);
+			flush.time			 = config.flushTime;
+
+			decltype(auto) preload = getState<SharedStates::OffshootPreload>(OFFSHOOT_PRELOAD);
+			preload.preloadTime	   = config.preloadTime;
+
+			transitionTo(FLUSH);
+		}
+
+		void stop() override {
+			transitionTo(STOP);
+		}
+
+		void idle() override {
+			transitionTo(IDLE);
+		}
+	};
 }  // namespace HyperFlush
 
-class HyperFlushStateController : public StateController {
-public:
-	HyperFlushStateController()
-		: StateController("hyperflush-state-machine", HyperFlush::FLUSH, HyperFlush::STOP,
-						  HyperFlush::IDLE) {}
-
-	void setup() {
-		using namespace HyperFlush;
-		registerState(SharedStates::Flush(), FLUSH, OFFSHOOT_PRELOAD);
-		registerState(SharedStates::OffshootPreload(), OFFSHOOT_PRELOAD, STOP);
-		registerState(SharedStates::Stop(), STOP, IDLE);
-		registerState(SharedStates::Idle(), IDLE);
-	}
-
-	template <typename T>
-	void config(T && data) {
-		using namespace HyperFlush;
-		const auto flush = getState<SharedStates::Flush>(FLUSH);
-		flush->time		 = data.flushTime;
-
-		const auto preload	 = getState<SharedStates::OffshootPreload>(OFFSHOOT_PRELOAD);
-		preload->preloadTime = data.preloadTime;
-	}
-};
+using HyperFlushStateController = HyperFlush::Controller;
