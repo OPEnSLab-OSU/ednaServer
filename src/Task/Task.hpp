@@ -9,8 +9,12 @@
 #include <Utilities/JsonFileLoader.hpp>
 
 #include <Task/TaskStatus.hpp>
+#include <StateControllers/NewStateController.hpp>
 
-struct Task : public JsonEncodable, public JsonDecodable, public Printable {
+struct Task : public JsonEncodable,
+			  public JsonDecodable,
+			  public Printable,
+			  public NewStateController::Configurator {
 public:
 	friend class TaskManager;
 
@@ -147,7 +151,17 @@ public:
 		StaticJsonDocument<encodingSize()> doc;
 		JsonVariant object = doc.to<JsonVariant>();
 		encodeJSON(object);
-		return serializeJsonPretty(doc, Serial);
+		return serializeJsonPretty(doc, printer);
 	}
 #pragma endregion
+
+
+	void configureStateController(NewStateController::Config & config) const {
+		config.flushTime	  = flushTime;
+		config.sampleTime	  = sampleTime;
+		config.samplePressure = samplePressure;
+		config.sampleVolume	  = sampleVolume;
+		config.dryTime		  = dryTime;
+		config.preserveTime	  = preserveTime;
+	}
 };

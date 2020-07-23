@@ -20,11 +20,11 @@ public:
 	signed char valveUpperBound = 0;
 	signed char numberOfValves	= 0;
 
-	signed char availableValves[ProgramSettings::MAX_VALVES] = {0};
-	char logFile[ProgramSettings::SD_FILE_NAME_LENGTH]		 = {0};
-	char statusFile[ProgramSettings::SD_FILE_NAME_LENGTH]	 = {0};
-	char taskFolder[ProgramSettings::SD_FILE_NAME_LENGTH]	 = {0};
-	char valveFolder[ProgramSettings::SD_FILE_NAME_LENGTH]	 = {0};
+	signed char valves[ProgramSettings::MAX_VALVES]		   = {0};
+	char logFile[ProgramSettings::SD_FILE_NAME_LENGTH]	   = {0};
+	char statusFile[ProgramSettings::SD_FILE_NAME_LENGTH]  = {0};
+	char taskFolder[ProgramSettings::SD_FILE_NAME_LENGTH]  = {0};
+	char valveFolder[ProgramSettings::SD_FILE_NAME_LENGTH] = {0};
 
 public:
 	// Config()			   = delete;
@@ -48,6 +48,8 @@ public:
 		valveUpperBound = source[VALVE_UPPER_BOUND];
 		numberOfValves	= valveUpperBound + 1;
 
+		std::fill_n(valves, ProgramSettings::MAX_VALVES, -1);
+
 		JsonArrayConst config_valves = source[VALVES_FREE].as<JsonArrayConst>();
 		for (int freeValveId : config_valves) {
 			if (freeValveId < 0) {
@@ -59,7 +61,7 @@ public:
 				KPStringBuilder<120> error("Config: ", freeValveId, " > ", valveUpperBound);
 				halt(TRACE, error);
 			} else {
-				availableValves[freeValveId] = 1;
+				valves[freeValveId] = 1;
 			}
 		}
 
@@ -82,11 +84,11 @@ public:
 		using namespace ConfigKeys;
 
 		JsonArray array_array = dest.createNestedArray(VALVES_FREE);
-		copyArray(availableValves, array_array);
+		copyArray(valves, array_array);
 
-		return dest[VALVE_UPPER_BOUND].set(valveUpperBound) && dest[FILE_LOG].set((char *) logFile)
-			&& dest[FILE_STATUS].set(statusFile) && dest[FOLDER_TASK].set(taskFolder)
-			&& dest[FOLDER_VALVE].set(valveFolder);
+		return dest[VALVE_UPPER_BOUND].set(valveUpperBound) && dest[FILE_LOG].set(logFile)
+			   && dest[FILE_STATUS].set(statusFile) && dest[FOLDER_TASK].set(taskFolder)
+			   && dest[FOLDER_VALVE].set(valveFolder);
 	}
 #pragma endregion
 #pragma region PRINTABLE

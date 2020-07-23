@@ -1,6 +1,5 @@
 #pragma once
-#define __k_str constexpr const char *
-#define __k_int constexpr int
+#define __k_auto static constexpr auto
 
 #define RED(x)	 "\033[31;1m" x "\033[0m"
 #define GREEN(x) "\033[32;1m" x "\033[0m"
@@ -16,51 +15,51 @@ struct ValveBlock {
 };
 
 namespace TPICDevices {
-	__k_int INTAKE_POS	   = 0;
-	__k_int INTAKE_NEG	   = 1;
-	__k_int AIR_VALVE	   = 2;
-	__k_int ALCHOHOL_VALVE = 3;
-	__k_int FLUSH_VALVE	   = 5;
+	__k_auto INTAKE_POS		= 0;
+	__k_auto INTAKE_NEG		= 1;
+	__k_auto AIR_VALVE		= 2;
+	__k_auto ALCHOHOL_VALVE = 3;
+	__k_auto FLUSH_VALVE	= 5;
 };	// namespace TPICDevices
 
 namespace HardwarePins {
-	__k_int POWER_MODULE = A0;
+	__k_auto POWER_MODULE = A0;
 #ifdef LIVE
 	// A1 is eDNA, 12 for HYPNOS
-	__k_int RTC_INTERRUPT = A1;
+	__k_auto RTC_INTERRUPT = A1;
 #else
-	__k_int RTC_INTERRUPT = 12;
+	__k_auto RTC_INTERRUPT = 12;
 #endif
-	__k_int BATTERY_VOLTAGE	  = A2;
-	__k_int ANALOG_SENSOR_1	  = A3;
-	__k_int ANALOG_SENSOR_2	  = A4;
-	__k_int SHUTDOWN_OVERRIDE = A5;
-	__k_int MOTOR_REVERSE	  = 5;
-	__k_int MOTOR_FORWARD	  = 6;
-	__k_int SHFT_REG_LATCH	  = 9;
-	__k_int SD_CARD			  = 10;
-	__k_int SHFT_REG_CLOCK	  = 11;
-	__k_int SHFT_REG_DATA	  = 12;
-	__k_int BUTTON_PIN		  = 13;
+	__k_auto BATTERY_VOLTAGE   = A2;
+	__k_auto ANALOG_SENSOR_1   = A3;
+	__k_auto ANALOG_SENSOR_2   = A4;
+	__k_auto SHUTDOWN_OVERRIDE = A5;
+	__k_auto MOTOR_REVERSE	   = 5;
+	__k_auto MOTOR_FORWARD	   = 6;
+	__k_auto SHFT_REG_LATCH	   = 9;
+	__k_auto SD_CARD		   = 10;
+	__k_auto SHFT_REG_CLOCK	   = 11;
+	__k_auto SHFT_REG_DATA	   = 12;
+	__k_auto BUTTON_PIN		   = 13;
 };	// namespace HardwarePins
 
 namespace ProgramSettings {
-	__k_str CONFIG_FILE_PATH		  = "config.js";
-	__k_int SD_FILE_NAME_LENGTH		  = 13;
-	__k_int CONFIG_JSON_BUFFER_SIZE	  = 800;
-	__k_int STATUS_JSON_BUFFER_SIZE	  = 800;
-	__k_int TASK_JSON_BUFFER_SIZE	  = 800;
-	__k_int TASKREF_JSON_BUFFER_SIZE  = 50;
-	__k_int MAX_VALVES				  = 24;
-	__k_int VALVE_JSON_BUFFER_SIZE	  = 500;
-	__k_int VALVEREF_JSON_BUFFER_SIZE = 50;
-	__k_int VALVE_GROUP_LENGTH		  = 25;
+	__k_auto CONFIG_FILE_PATH		   = "config.js";
+	__k_auto SD_FILE_NAME_LENGTH	   = 13;
+	__k_auto CONFIG_JSON_BUFFER_SIZE   = 800;
+	__k_auto STATUS_JSON_BUFFER_SIZE   = 800;
+	__k_auto TASK_JSON_BUFFER_SIZE	   = 800;
+	__k_auto TASKREF_JSON_BUFFER_SIZE  = 50;
+	__k_auto MAX_VALVES				   = 24;
+	__k_auto VALVE_JSON_BUFFER_SIZE	   = 500;
+	__k_auto VALVEREF_JSON_BUFFER_SIZE = 50;
+	__k_auto VALVE_GROUP_LENGTH		   = 25;
 };	// namespace ProgramSettings
 
 namespace TaskSettings {
-	__k_int NAME_LENGTH	 = 25;
-	__k_int GROUP_LENGTH = 25;
-	__k_int NOTES_LENGTH = 80;
+	__k_auto NAME_LENGTH  = 25;
+	__k_auto GROUP_LENGTH = 25;
+	__k_auto NOTES_LENGTH = 80;
 };	// namespace TaskSettings
 
 //
@@ -71,57 +70,56 @@ namespace TaskSettings {
 // These are used to retrieve values from ArduinoJson's JSON Object
 
 namespace ConfigKeys {
-	__k_str VALVES_FREE		  = "freeValves";
-	__k_str VALVE_UPPER_BOUND = "valveUpperBound";
-	__k_str FILE_LOG		  = "logFile";
-	__k_str FILE_STATUS		  = "statusFile";
-	__k_str FOLDER_TASK		  = "taskFolder";
-	__k_str FOLDER_VALVE	  = "valveFolder";
+	__k_auto VALVES_FREE	   = "freeValves";
+	__k_auto VALVE_UPPER_BOUND = "valveUpperBound";
+	__k_auto FILE_LOG		   = "logFile";
+	__k_auto FILE_STATUS	   = "statusFile";
+	__k_auto FOLDER_TASK	   = "taskFolder";
+	__k_auto FOLDER_VALVE	   = "valveFolder";
 }  // namespace ConfigKeys
 
 namespace TaskKeys {
-	__k_str ID				= "id";
-	__k_str NAME			= "name";
-	__k_str STATUS			= "status";
-	__k_str VALVES			= "valves";
-	__k_str VALVES_OFFSET	= "valvesOffset";
-	__k_str CREATED_AT		= "createdAt";
-	__k_str SCHEDULE		= "schedule";
-	__k_str TIME_BETWEEN	= "timeBetween";
-	__k_str NOTES			= "notes";
-	__k_str DELETE			= "deleteOnCompletion";
-	__k_str FLUSH_TIME		= "flushTime";
-	__k_str FLUSH_VOLUME	= "flushVolume";
-	__k_str SAMPLE_TIME		= "sampleTime";
-	__k_str SAMPLE_PRESSURE = "samplePressure";
-	__k_str SAMPLE_VOLUME	= "sampleVolume";
-	__k_str DRY_TIME		= "dryTime";
-	__k_str PRESERVE_TIME	= "preserveTime";
+	__k_auto ID				 = "id";
+	__k_auto NAME			 = "name";
+	__k_auto STATUS			 = "status";
+	__k_auto VALVES			 = "valves";
+	__k_auto VALVES_OFFSET	 = "valvesOffset";
+	__k_auto CREATED_AT		 = "createdAt";
+	__k_auto SCHEDULE		 = "schedule";
+	__k_auto TIME_BETWEEN	 = "timeBetween";
+	__k_auto NOTES			 = "notes";
+	__k_auto DELETE			 = "deleteOnCompletion";
+	__k_auto FLUSH_TIME		 = "flushTime";
+	__k_auto FLUSH_VOLUME	 = "flushVolume";
+	__k_auto SAMPLE_TIME	 = "sampleTime";
+	__k_auto SAMPLE_PRESSURE = "samplePressure";
+	__k_auto SAMPLE_VOLUME	 = "sampleVolume";
+	__k_auto DRY_TIME		 = "dryTime";
+	__k_auto PRESERVE_TIME	 = "preserveTime";
 }  // namespace TaskKeys
 
 namespace ValveKeys {
-	__k_str ID	   = "id";
-	__k_str STATUS = "status";
-	__k_str GROUP  = "group";
+	__k_auto ID		= "id";
+	__k_auto STATUS = "status";
+	__k_auto GROUP	= "group";
 }  // namespace ValveKeys
 
 namespace StatusKeys {
-	__k_str VALVE_ID		= "valveId";
-	__k_str VALVE_GROUP		= "valveGroup";
-	__k_str VALVE_SCHEDULE	= "valveSchedule";
-	__k_str VALVE_CURRENT	= "valveCurrent";
-	__k_str VALVE_STATUS	= "valveStatus";
-	__k_str VALVES			= "valves";
-	__k_str VALVES_COUNT	= "valvesCount";
-	__k_str SENSOR_PRESSURE = "pressure";
-	__k_str SENSOR_TEMP		= "temperature";
-	__k_str SENSOR_BARO		= "barometric";
-	__k_str SENSOR_VOLUME	= "waterVolume";
-	__k_str SENSOR_FLOW		= "waterFlow";
-	__k_str SENSOR_DEPTH	= "waterDepth";
-	__k_str CURRENT_TASK	= "currentTask";
-	__k_str CURRENT_STATE	= "currentState";
+	__k_auto VALVE_ID		 = "valveId";
+	__k_auto VALVE_GROUP	 = "valveGroup";
+	__k_auto VALVE_SCHEDULE	 = "valveSchedule";
+	__k_auto VALVE_CURRENT	 = "valveCurrent";
+	__k_auto VALVE_STATUS	 = "valveStatus";
+	__k_auto VALVES			 = "valves";
+	__k_auto VALVES_COUNT	 = "valvesCount";
+	__k_auto SENSOR_PRESSURE = "pressure";
+	__k_auto SENSOR_TEMP	 = "temperature";
+	__k_auto SENSOR_BARO	 = "barometric";
+	__k_auto SENSOR_VOLUME	 = "waterVolume";
+	__k_auto SENSOR_FLOW	 = "waterFlow";
+	__k_auto SENSOR_DEPTH	 = "waterDepth";
+	__k_auto CURRENT_TASK	 = "currentTask";
+	__k_auto CURRENT_STATE	 = "currentState";
 };	// namespace StatusKeys
 
-#undef __k_str
-#undef __k_int
+#undef __k_auto

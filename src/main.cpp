@@ -39,3 +39,17 @@ void loop() {
 	Runtime::update();
 }
 #endif
+
+
+
+// #include <KPFoundation.hpp>
+// void setup() {
+// 	Serial.begin(115200);
+// 	while (!Serial) {}
+
+// 	int i = 0;
+// 	KPStringBuilder<32> test("valve-", i, ".js");
+// 	println(test);
+// }
+
+// void loop() {}

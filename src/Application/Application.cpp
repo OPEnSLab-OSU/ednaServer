@@ -22,9 +22,8 @@ void Application::setupServerRouting() {
 
 	server.get("/api/preload", [this](Request &, Response & res) {
 		StaticJsonDocument<300> response;
-		if (compare(HyperFlush::StateName::IDLE,
-					hyperFlushStateController.getCurrentState()->getName())) {
-			beginPreloadingProcedure();
+		if (compare(HyperFlush::IDLE, hyperFlushStateController.getCurrentState()->getName())) {
+			beginHyperFlush();
 			response["success"] = "Begin preloading water";
 		} else {
 			response["error"] = "Preloading water is already in operation";
@@ -211,7 +210,7 @@ void Application::setupServerRouting() {
 		Task & task = tm.tasks[id];
 		if (currentTaskId == task.id) {
 			invalidateTaskAndFreeUpValves(task);
-			sm.stop();
+			newStateController.stop();
 		} else {
 			invalidateTaskAndFreeUpValves(task);
 			tm.writeToDirectory();
@@ -288,7 +287,7 @@ void Application::setupServerRouting() {
 	// ────────────────────────────────────────────────────────────────────────────────
 	// Emergency stop
 	// ────────────────────────────────────────────────────────────────────────────────
-	server.get("/stop", [this](Request & req, Response & res) { sm.stop(); });
+	server.get("/stop", [this](Request & req, Response & res) { newStateController.stop(); });
 }
 
 //
@@ -297,24 +296,22 @@ void Application::setupServerRouting() {
 // ──────────────────────────────────────────────────────────────────────────────
 //
 
-class Parser {
-public:
-	int selector = 0;
-	Parser & at(int pos) {
-		return *this;
-	}
+// class Parser {
+// public:
+// 	int selector = 0;
+// 	Parser & at(int pos) {
+// 		return *this;
+// 	}
 
-	template <typename T>
-	Parser & addCase(std::function<void(T)>) {}
-};
+// 	template <typename T>
+// 	Parser & addCase(std::function<void(T)>) {}
+// };
 
 void Application::commandReceived(const char * input) {
 	KPString line{input};
-	println("----- ", line);
+	println("Enter: ", line);
 
-	if (line == "read status") {
-	} else if (line == "save status") {
-	} else if (line == "print status") {
+	if (line == "print status") {
 		println(status);
 	}
 
@@ -326,6 +323,7 @@ void Application::commandReceived(const char * input) {
 		println("Schduling temp task");
 		Task task				= tm.createTask();
 		task.schedule			= now() + 5;
+		task.flushTime			= 5;
 		task.sampleTime			= 5;
 		task.deleteOnCompletion = true;
 		task.status				= TaskStatus::active;
@@ -336,7 +334,7 @@ void Application::commandReceived(const char * input) {
 
 	if (line == "reset valves") {
 		for (int i = 0; i < config.numberOfValves; i++) {
-			vm.setValveStatus(i, ValveStatus::Code(config.availableValves[i]));
+			vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
 		}
 
 		vm.writeToDirectory();
@@ -346,7 +344,7 @@ void Application::commandReceived(const char * input) {
 		println(free_ram());
 	}
 
-	if (line == "preload") {
-		beginPreloadingProcedure();
+	if (line == "hyperflush") {
+		beginHyperFlush();
 	};
 }

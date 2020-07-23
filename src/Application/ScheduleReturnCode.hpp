@@ -20,8 +20,7 @@ public:
 		case scheduled:
 			return "Task scheduled for execution";
 		default:
-			// raise("Unknown case: ScheduleReturnCode::description");
-			return "";
+			halt(TRACE, "Unknown case");
 		}
 	}
 
@@ -34,8 +33,7 @@ public:
 		case scheduled:
 			return "scheduled";
 		default:
-			halt(TRACE, "Unknown case: ScheduleReturnCode::description");
-			return "";
+			halt(TRACE, "Unknown case");
 		}
 	}
 

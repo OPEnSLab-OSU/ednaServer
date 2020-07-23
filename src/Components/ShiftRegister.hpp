@@ -27,7 +27,6 @@ class ShiftRegister : public KPComponent {
 public:
 	const int capacityPerRegister = 8;
 	const int registersCount;
-
 	const int dataPin;
 	const int clockPin;
 	const int latchPin;
@@ -51,7 +50,7 @@ public:
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────
-	 *  Set all given pins to output mode. The registers should be hooked up
+	 *  @brief Set all given pins to output mode. The registers should be hooked up
 	 *  in daisy chain mode.
 	 *
 	 *  @param data Data pin
@@ -70,7 +69,7 @@ public:
 	 *  @param pinNumber Pin number (ex: 0,1,2,...,23)
 	 *  @return int Index of the register containing this pin
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	int toRegisterIndex(int pinNumber) const {
+	auto toRegisterIndex(int pinNumber) const -> int {
 		return pinNumber / capacityPerRegister;
 	}
 
@@ -81,11 +80,11 @@ public:
 	 *  @param pinNumber Pin number (ex: 0,1,2,...,23)
 	 *  @return int Index of the pin
 	 *  ──────────────────────────────────────────────────────────────────────────── */
-	int toPinIndex(int pinNumber) const {
+	auto toPinIndex(int pinNumber) const -> int {
 		return pinNumber % capacityPerRegister;
 	}
 
-	std::pair<int, int> toRegisterAndPinIndices(int pinNumber) const {
+	auto toRegisterAndPinIndices(int pinNumber) const -> std::pair<int, int> {
 		return {toRegisterIndex(pinNumber), toPinIndex(pinNumber)};
 	}
 

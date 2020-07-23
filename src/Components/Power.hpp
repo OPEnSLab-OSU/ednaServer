@@ -20,14 +20,14 @@
  */
 
 #pragma once
-#include "KPFoundation.hpp"
-#include "DS3232RTC.h"
-#include "LowPower.h"
-#include "Wire.h"
+#include <KPFoundation.hpp>
+#include <DS3232RTC.h>
+#include <LowPower.h>
+#include <Wire.h>
 #include <SPI.h>
 #include <Functional>
 
-#include "Application/Constants.hpp"
+#include <Application/Constants.hpp>
 
 #define RTC_ADDR 0x68
 

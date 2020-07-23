@@ -4,7 +4,6 @@
 
 class Pump : public KPComponent {
 public:
-	using KPComponent::KPComponent;
 	const int control1;
 	const int control2;
 
@@ -18,14 +17,14 @@ public:
 	}
 
 	void on(Direction dir = Direction::normal) {
+		digitalWrite(control1, dir == Direction::normal);
+		digitalWrite(control2, dir != Direction::normal);
 		delay(20);
-		analogWrite(control1, dir == Direction::normal ? 255 : 0);
-		analogWrite(control2, dir == Direction::normal ? 0 : 255);
 	}
 
 	void off() {
-		analogWrite(control1, 0);
-		analogWrite(control2, 0);
+		digitalWrite(control1, 0);
+		digitalWrite(control2, 0);
 		delay(20);
 	}
 

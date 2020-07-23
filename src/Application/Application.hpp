@@ -15,11 +15,10 @@
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
 #include <Components/SensorArray.hpp>
+#include <Components/Intake.hpp>
 
-#include <Procedures/MainStateMachine.hpp>
-#include <Procedures/BallStateMachine.hpp>
-#include <Procedures/NewStateMachine.hpp>
-#include <Procedures/HyperFlushStateMachine.hpp>
+#include <StateControllers/NewStateController.hpp>
+#include <StateControllers/HyperFlushStateController.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -46,18 +45,18 @@ public:
 		HardwarePins::MOTOR_REVERSE,
 	};
 
-	const int numberOfShiftRegisters = 4;
-	ShiftRegister shift{"shift-register", numberOfShiftRegisters, HardwarePins::SHFT_REG_DATA,
+	const int numberOfRegisters = 4;
+	ShiftRegister shift{"shift-register", numberOfRegisters, HardwarePins::SHFT_REG_DATA,
 						HardwarePins::SHFT_REG_CLOCK, HardwarePins::SHFT_REG_LATCH};
 
 	Power power{"power"};
-
+	BallIntake intake{shift};
 	Config config{ProgramSettings::CONFIG_FILE_PATH};
 	Status status;
 
-	// MainStateMachine sm;
-	NewStateMachine sm;
-	HyperFlushStateMachine hyperFlushStateController;
+	// MainStateController sm;
+	NewStateController newStateController;
+	HyperFlushStateController hyperFlushStateController;
 
 	ValveManager vm;
 	TaskManager tm;
@@ -86,6 +85,22 @@ private:
 		// actual time from the RTC for random task id generation
 		addComponent(power);
 		randomSeed(now());
+
+		// struct HyperFlushConfig : public HyperFlushStateController::Configurator {
+		// 	void configureStateController(Config & data) const {
+		// 		data.flushTime	 = 5;
+		// 		data.preloadTime = 5;
+		// 	}
+		// };
+		//
+		// hyperFlushStateController.configure(HyperFlushConfig());
+
+		hyperFlushStateController.configure([]() {
+			HyperFlushStateController::Config config;
+			config.flushTime   = 5;
+			config.preloadTime = 5;
+			return config;
+		}());
 
 		PRINT_REGION_DEBUG
 		println();
@@ -129,9 +144,9 @@ private:
 		hyperFlushStateController.idle();
 
 		// Wait in IDLE
-		addComponent(sm);
-		sm.addObserver(status);
-		sm.idle();
+		addComponent(newStateController);
+		newStateController.addObserver(status);
+		newStateController.idle();
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
@@ -149,36 +164,8 @@ public:
 		return strcmp(lhs, rhs) == 0;
 	}
 
-	void writeBallValveOn() {
-		shift.setPin(0, HIGH);
-		shift.setPin(1, LOW);
-		shift.write();
-	}
-
-	void writeBallValveOff() {
-		shift.setPin(1, HIGH);
-		shift.setPin(0, LOW);
-		shift.write();
-	}
-
-	void beginPreloadingProcedure() {
+	void beginHyperFlush() {
 		hyperFlushStateController.begin();
-	}
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  Convenient method for working with latch valve. Leaving the hardware
-	 *  implementer to decide what is "normal" direction.
-	 *
-	 *  @param controlPin Control pin
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void writeIntakeValve(Direction direction = Direction::normal) {
-		int controlPin = 0, reversePin = 1;
-		if (direction == Direction::normal) {
-			std::swap(controlPin, reversePin);
-		}
-
-		shift.setPin(controlPin, HIGH);
-		shift.setPin(reversePin, LOW);
-		shift.write();
 	}
 
 	ValveBlock currentValveNumberToBlock() {
@@ -206,9 +193,9 @@ public:
 				// NOTE: Check logic here. Maybe not be correct yet
 				if (shouldStopCurrentTask) {
 					cancel("delayTaskExecution");
-					if (status.currentStateName != sm.stopStateName) {
-						sm.stop();
-					}
+					// if (status.currentStateName != HyperFlush::STOP) {
+					// 	newStateController.stop();
+					// }
 
 					continue;
 				} else {
@@ -231,10 +218,10 @@ public:
 				TimedAction delayTaskExecution;
 				delayTaskExecution.name		= "delayTaskExecution";
 				delayTaskExecution.interval = secsToMillis(timeUntil);
-				delayTaskExecution.callback = [this]() { sm.begin(); };
+				delayTaskExecution.callback = [this]() { newStateController.begin(); };
 				run(delayTaskExecution);  // async, will be execute later
 
-				sm.transferTaskDataToStateParameters(task);
+				newStateController.configure(task);
 
 				currentTaskId		   = id;
 				status.preventShutdown = true;
@@ -283,7 +270,7 @@ public:
 			return;
 		}
 
-		for (int v : task.valves) {
+		for (auto v : task.valves) {
 			if (vm.valves[v].status == ValveStatus::sampled) {
 				KPStringBuilder<100> error("Valve ", v, " has already been sampled");
 				response["error"] = error;
@@ -309,18 +296,18 @@ public:
 	 *
 	 *  ──────────────────────────────────────────────────────────────────────────── */
 	void shutdown() {
-		pump.off();									// Turn off motor
-		shift.writeAllRegistersLow();				// Turn off all TPIC devices
-		writeIntakeValve(Direction::reverse);	// Reverse intake valve
+		pump.off();					   // Turn off motor
+		shift.writeAllRegistersLow();  // Turn off all TPIC devices
+		intake.off();
 
 		tm.writeToDirectory();
 		vm.writeToDirectory();
 		power.shutdown();
-		// raise("SHUTDOWN");
+		halt(TRACE, "Shutdown. This message should not be displayed. Check power module");
 	}
 
 	void invalidateTaskAndFreeUpValves(Task & task) {
-		for (int i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
+		for (auto i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
 			vm.setValveFreeIfNotYetSampled(task.valves[i]);
 		}
 
