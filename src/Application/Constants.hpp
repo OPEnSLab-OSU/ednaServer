@@ -1,5 +1,5 @@
 #pragma once
-#define __k_auto static constexpr auto
+#define __k_auto constexpr auto
 
 #define RED(x)	 "\033[31;1m" x "\033[0m"
 #define GREEN(x) "\033[32;1m" x "\033[0m"

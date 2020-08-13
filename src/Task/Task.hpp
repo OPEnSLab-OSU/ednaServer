@@ -155,8 +155,7 @@ public:
 	}
 #pragma endregion
 
-
-	void configureStateController(NewStateController::Config & config) const {
+	void operator()(NewStateController::Config & config) const {
 		config.flushTime	  = flushTime;
 		config.sampleTime	  = sampleTime;
 		config.samplePressure = samplePressure;

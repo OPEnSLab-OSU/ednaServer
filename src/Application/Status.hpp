@@ -23,18 +23,17 @@ public:
 	float pressure	  = 0;
 	float temperature = 0;
 	float barometric  = 0;
-
 	float waterVolume = 0;
 	float waterDepth  = 0;
 	float waterFlow	  = 0;
 
-	KPString currentStateName = nullptr;
-	KPString currentTaskName  = nullptr;
-
 	bool isFull			 = false;
 	bool preventShutdown = false;
 
-	Status() = default;
+	KPString currentStateName = nullptr;
+	KPString currentTaskName  = nullptr;
+
+	// Status() = default;
 	// Status(const Status &) = delete;
 	// Status & operator=(const Status &) = delete;
 
@@ -98,6 +97,11 @@ private:
 
 	void baro2DidUpdate(const std::pair<float, float> & values) override {
 		waterDepth = values.first;
+	}
+
+	bool isBatteryLow() {
+		analogReadResolution(10);
+		return analogRead(HardwarePins::BATTERY_VOLTAGE) <= 860;  // 860 is around 12V of battery
 	}
 
 public:

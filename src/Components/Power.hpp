@@ -25,7 +25,7 @@
 #include <LowPower.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <Functional>
+#include <functional>
 
 #include <Application/Constants.hpp>
 
