@@ -1,13 +1,13 @@
 #include <StateControllers/MainStateController.hpp>
-#include <Application/Application.hpp>
+#include <Application/App.hpp>
 
 void Main::Idle::enter(KPStateMachine & sm) {
-	Application & app = *static_cast<Application *>(sm.controller);
+	auto & app = *static_cast<App *>(sm.controller);
 	println(app.scheduleNextActiveTask().description());
 };
 
 void Main::Stop::enter(KPStateMachine & sm) {
-	Application & app = *static_cast<Application *>(sm.controller);
+	auto & app = *static_cast<App *>(sm.controller);
 	app.pump.off();
 	app.shift.writeAllRegistersLow();
 	app.intake.off();

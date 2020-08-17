@@ -1,4 +1,4 @@
-#include <Application/Application.hpp>
+#include <Application/App.hpp>
 
 //
 // ──────────────────────────────────────────────────────────────── I ──────────
@@ -11,24 +11,17 @@ void sendJsonResponse(Response & res, JsonDocument & response) {
 	res.end();
 }
 
-void Application::setupServerRouting() {
+void App::setupServerRouting() {
 	server.handlers.reserve(12);
 
-	server.get("/", [this](Request & req, Response & res) {
-		res.setHeader("Content-Encoding", "gzip");
-		res.sendFile("index.gz", fileLoader);
-		res.end();
-	});
+	// server.get("/", [this](Request & req, Response & res) {
+	// 	res.setHeader("Content-Encoding", "gzip");
+	// 	res.sendFile("index.gz", fileLoader);
+	// 	res.end();
+	// });
 
 	server.get("/api/preload", [this](Request &, Response & res) {
-		StaticJsonDocument<300> response;
-		if (compare(HyperFlush::IDLE, hyperFlushStateController.getCurrentState()->getName())) {
-			beginHyperFlush();
-			response["success"] = "Begin preloading water";
-		} else {
-			response["error"] = "Preloading water is already in operation";
-		}
-
+		const auto & response = dispatchAPI<API::StartHyperFlush>();
 		res.json(response);
 		res.end();
 	});
@@ -37,9 +30,7 @@ void Application::setupServerRouting() {
 	// Get the current status
 	// ────────────────────────────────────────────────────────────────────────────────
 	server.get("/api/status", [this](Request &, Response & res) {
-		StaticJsonDocument<Status::encodingSize()> response;
-		encodeJSON(status, response.to<JsonObject>());
-		response["utc"] = now();
+		const auto & response = dispatchAPI<API::StatusGet>();
 
 		KPStringBuilder<10> length(measureJson(response));
 		res.setHeader("Content-Length", length);
@@ -81,17 +72,7 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		int id = body[TaskKeys::ID];
-
-		StaticJsonDocument<Task::encodingSize() + 500> response;
-		if (tm.findTask(id)) {
-			JsonVariant payload = response.createNestedObject("payload");
-			encodeJSON(tm.tasks[id], payload);
-			response["success"] = "Task found";
-		} else {
-			response["error"] = "Task not found";
-		}
-
+		const auto & response = dispatchAPI<API::TaskGet>(body);
 		res.json(response);
 		res.end();
 	});
@@ -104,25 +85,7 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		const char * name = body[TaskKeys::NAME];
-
-		// Create and add new task to manager
-		Task task = tm.createTask();
-		strcpy(task.name, name);
-		tm.insertTask(task, true);
-
-		// NOTE: Uncomment to save task. Not sure if this is necessary here
-		// tm.writeToDirectory();
-
-		// Success response
-		StaticJsonDocument<Task::encodingSize() + 500> response;
-		KPStringBuilder<100> success("Successfully created ", name);
-		response["success"] = success;
-
-		// Return task with partially filled fields
-		JsonVariant payload = response.createNestedObject("payload");
-		encodeJSON(task, payload);
-
+		const auto & response = dispatchAPI<API::TaskCreate>(body);
 		res.json(response);
 		res.end();
 	});
@@ -135,24 +98,7 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		// Prarse incomming payload
-		Task incomingTask;
-		incomingTask.decodeJSON(body.as<JsonVariant>());
-
-		// Validate
-		StaticJsonDocument<Task::encodingSize() + 500> response;
-		validateTaskForSaving(incomingTask, response);
-		if (response.containsKey("error")) {
-			sendJsonResponse(res, response);
-			return;
-		}
-
-		// Save
-		tm.tasks[incomingTask.id] = incomingTask;
-		tm.writeToDirectory();
-
-		// Respond
-		response["success"] = "Task successfully saved";
+		const auto & response = dispatchAPI<API::TaskSave>(body);
 		res.json(response);
 		res.end();
 	});
@@ -165,27 +111,7 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		int id = body[TaskKeys::ID];
-
-		StaticJsonDocument<Task::encodingSize() + 500> response;
-		validateTaskForScheduling(id, response);
-		if (response.containsKey("error")) {
-			sendJsonResponse(res, response);
-			return;
-		}
-
-		Task & task			  = tm.tasks[id];
-		task.valveOffsetStart = 0;
-		tm.setTaskStatus(task.id, TaskStatus::active);
-		tm.writeToDirectory();
-
-		JsonVariant payload = response.createNestedObject("payload");
-		encodeJSON(task, payload);
-
-		ScheduleReturnCode code = scheduleNextActiveTask();
-		println(code.description());
-
-		response["success"] = "Task has been scheduled";
+		const auto & response = dispatchAPI<API::TaskSchedule>(body);
 		res.json(response);
 		res.end();
 	});
@@ -198,28 +124,7 @@ void Application::setupServerRouting() {
 		deserializeJson(body, req.body);
 		serializeJsonPretty(body, Serial);
 
-		int id = body[TaskKeys::ID];
-
-		StaticJsonDocument<Task::encodingSize() + 500> response;
-		if (!tm.findTask(id)) {
-			response["error"] = "Task not found";
-			sendJsonResponse(res, response);
-			return;
-		}
-
-		Task & task = tm.tasks[id];
-		if (currentTaskId == task.id) {
-			invalidateTaskAndFreeUpValves(task);
-			newStateController.stop();
-		} else {
-			invalidateTaskAndFreeUpValves(task);
-			tm.writeToDirectory();
-		}
-
-		JsonVariant payload = response.createNestedObject("payload");
-		encodeJSON(task, payload);
-		response["success"] = "Task is now inactive";
-
+		const auto & response = dispatchAPI<API::TaskUnschedule>(body);
 		res.json(response);
 		res.end();
 	});
@@ -231,25 +136,7 @@ void Application::setupServerRouting() {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 
-		int id = body["id"];
-
-		StaticJsonDocument<500> response;
-		if (!tm.findTask(id)) {
-			response["error"] = "No task with this name";
-			goto send;
-		}
-
-		if (tm.tasks[id].status == TaskStatus::active) {
-			response["error"] = "Task currently have active status. "
-								"Please deactivate before continue.";
-			goto send;
-		}
-
-		tm.deleteTask(id);
-		tm.writeToDirectory();
-		response["success"] = "Task deleted";
-
-	send:
+		const auto & response = dispatchAPI<API::TaskDelete>(body);
 		res.json(response);
 		res.end();
 	});
@@ -261,25 +148,7 @@ void Application::setupServerRouting() {
 		StaticJsonDocument<100> body;
 		deserializeJson(body, req.body);
 
-		const time_t utc		 = body["utc"];
-		const int timezoneOffset = body["timezoneOffset"];
-		const auto compileTime	 = power.compileTime(timezoneOffset);
-
-#ifdef DEBUG
-		println("Received UTC: ", utc);
-		println("Current RTC time: ", now());
-		println("Time at compilation: ", compileTime);
-#endif
-
-		// Checking against compiled time + millis() to prevents bogus value
-		StaticJsonDocument<100> response;
-		if (utc >= compileTime + millisToSecs(millis())) {
-			response["success"] = "RTC updated";
-			power.set(utc + 1);
-		} else {
-			response["error"] = "That doesn't seem right.";
-		}
-
+		const auto & response = dispatchAPI<API::RTCUpdate>(body);
 		res.json(response);
 		res.end();
 	});
@@ -296,20 +165,20 @@ void Application::setupServerRouting() {
 // ──────────────────────────────────────────────────────────────────────────────
 //
 
-// class Parser {
-// public:
-// 	int selector = 0;
-// 	Parser & at(int pos) {
-// 		return *this;
-// 	}
 
-// 	template <typename T>
-// 	Parser & addCase(std::function<void(T)>) {}
-// };
 
-void Application::commandReceived(const char * input) {
-	KPString line{input};
-	println("Enter: ", line);
+void App::commandReceived(const char * incomingMessage, size_t size) {
+	KPString line{incomingMessage};
+
+	println(line);
+
+	if (incomingMessage[0] == '{') {
+		StaticJsonDocument<255> doc;
+		deserializeJson(doc, incomingMessage);
+
+		StaticJsonDocument<255> response;
+		// dispatch(doc["cmd"].as<const char *>(), doc, response);
+	}
 
 	if (line == "print status") {
 		println(status);

@@ -1,6 +1,5 @@
 #ifndef UNIT_TEST
-	#include <KPApplicationRuntime.hpp>
-	#include <Application/Application.hpp>
+	#include <Application/App.hpp>
 
 void printDirectory(File dir, int numTabs) {
 	while (true) {
@@ -28,19 +27,17 @@ void printDirectory(File dir, int numTabs) {
 }
 
 namespace {
-	Application app;
+	App app;
 }
 
 void setup() {
-	Runtime::setInitialAppController(app);
+	app.setup();
 }
 
 void loop() {
-	Runtime::update();
+	app.update();
 }
 #endif
-
-
 
 // #include <KPFoundation.hpp>
 // void setup() {

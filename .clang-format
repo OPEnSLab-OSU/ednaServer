@@ -4,7 +4,7 @@ AlignEscapedNewlines: Right
 AlignConsecutiveAssignments: true
 AlignConsecutiveMacros: true
 AlignOperands: true
-AllowAllArgumentsOnNextLine: false
+AllowAllArgumentsOnNextLine: true
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Empty

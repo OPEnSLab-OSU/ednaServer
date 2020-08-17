@@ -28,12 +28,13 @@
 
 #include <Utilities/JsonEncodableDecodable.hpp>
 
-extern void printDirectory(File dir, int numTabs);
+#include <API/API.hpp>
 
-class Application : public KPController, public KPSerialInputObserver, public TaskObserver {
+class App : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
+	void setupAPI();
 	void setupServerRouting();
-	void commandReceived(const char * line) override;
+	void commandReceived(const char * line, size_t size) override;
 
 public:
 	KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
@@ -46,8 +47,13 @@ public:
 	};
 
 	const int numberOfRegisters = 4;
-	ShiftRegister shift{"shift-register", numberOfRegisters, HardwarePins::SHFT_REG_DATA,
-						HardwarePins::SHFT_REG_CLOCK, HardwarePins::SHFT_REG_LATCH};
+	ShiftRegister shift{
+		"shift-register",
+		numberOfRegisters,
+		HardwarePins::SHFT_REG_DATA,
+		HardwarePins::SHFT_REG_CLOCK,
+		HardwarePins::SHFT_REG_LATCH,
+	};
 
 	Power power{"power"};
 	BallIntake intake{shift};
@@ -74,41 +80,27 @@ private:
 		return "Application-Task Observer";
 	}
 
+public:
 	void setup() override {
 		KPSerialInput::sharedInstance().addObserver(this);
 		Serial.begin(115200);
 
-#ifndef RELEASE
+#ifdef DEBUG
 		while (!Serial) {};
+		println();
+		println("==================================================");
+		println("DEBUG MODE");
+		println("==================================================");
 #endif
 		// Here we add and initialize the power module first. This allows us to get the
 		// actual time from the RTC for random task id generation
 		addComponent(power);
 		randomSeed(now());
 
-		// struct HyperFlushConfig : public HyperFlushStateController::Configurator {
-		// 	void configureStateController(Config & data) const {
-		// 		data.flushTime	 = 5;
-		// 		data.preloadTime = 5;
-		// 	}
-		// };
-		//
-		// hyperFlushStateController.configure(HyperFlushConfig());
-
-		hyperFlushStateController.configure([]() {
-			HyperFlushStateController::Config config;
+		hyperFlushStateController.configure([](HyperFlush::Config & config) {
 			config.flushTime   = 5;
 			config.preloadTime = 5;
-			return config;
-		}());
-
-		PRINT_REGION_DEBUG
-		println();
-		println("==================================================");
-		println("DEBUG MODE");
-		println("Default print verbosity is ", static_cast<int>(PrintConfig::defaultPrintVerbose));
-		println("==================================================");
-		PRINT_DEFAULT
+		});
 
 		// Register server and broadcast the WIFI signal as soon as possible
 		addComponent(server);
@@ -118,7 +110,6 @@ private:
 		// Register the rest of the components
 		addComponent(KPSerialInput::sharedInstance());
 		addComponent(ActionScheduler::sharedInstance());
-
 		addComponent(fileLoader);
 		addComponent(shift);
 		addComponent(pump);
@@ -140,6 +131,7 @@ private:
 		tm.addObserver(this);
 		tm.loadTasksFromDirectory(config.taskFolder);
 
+		// Wait in IDLE
 		addComponent(hyperFlushStateController);
 		hyperFlushStateController.idle();
 
@@ -155,15 +147,20 @@ private:
 		});
 
 #ifdef DEBUG
-		// runForever(2000, "mem", []() { printFreeRam(); });
+		runForever(2000, "mem", []() { printFreeRam(); });
 #endif
 	}
 
-public:
+	template <typename T, typename... Args>
+	auto dispatchAPI(Args &&... args) {
+		return T{}(*this, std::forward<Args>(args)...);
+	}
+
 	bool compare(const char * lhs, const char * rhs) {
 		return strcmp(lhs, rhs) == 0;
 	}
 
+public:
 	void beginHyperFlush() {
 		hyperFlushStateController.begin();
 	}

@@ -3,6 +3,7 @@
 
 #include <KPFoundation.hpp>
 #include <KPState.hpp>
+#include <KPStateMachine.hpp>
 
 #include <Application/Config.hpp>
 #include <Utilities/JsonFileLoader.hpp>

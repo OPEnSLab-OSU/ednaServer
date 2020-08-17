@@ -41,9 +41,7 @@ public:
 				numberOfValvesInUse++;
 			}
 
-			PRINT_REGION_DEBUG
 			println(status);
-			PRINT_DEFAULT
 		}
 
 		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
@@ -77,9 +75,7 @@ public:
 			if (valves[id].status != ValveStatus::sampled) {
 				valves[id].decodeJSON(object);
 			} else {
-				PrintConfig::setPrintVerbose(Verbosity::info);
 				println("Valve is already sampled");
-				PrintConfig::setDefaultVerbose();
 			}
 		}
 
@@ -132,9 +128,7 @@ public:
 			}
 		}
 
-		PrintConfig::setPrintVerbose(Verbosity::debug);
 		println("\033[1;32mValveManager\033[0m: finished writing in ", millis() - start, " ms");
-		PrintConfig::setDefaultVerbose();
 		updateObservers(&ValveObserver::valveArrayDidUpdate, valves);
 	}
 

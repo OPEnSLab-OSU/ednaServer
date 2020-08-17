@@ -4,9 +4,6 @@
 #define RED(x)	 "\033[31;1m" x "\033[0m"
 #define GREEN(x) "\033[32;1m" x "\033[0m"
 
-#define PRINT_REGION_DEBUG PrintConfig::setPrintVerbose(Verbosity::debug);
-#define PRINT_DEFAULT	   PrintConfig::setDefaultVerbose();
-
 enum class Direction { normal, reverse };
 
 struct ValveBlock {
