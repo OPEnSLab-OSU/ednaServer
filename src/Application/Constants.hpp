@@ -16,9 +16,11 @@ namespace TPICDevices {
 	__k_auto INTAKE_NEG		= 1;
 	__k_auto AIR_VALVE		= 2;
 	__k_auto ALCHOHOL_VALVE = 3;
-	__k_auto FLUSH_VALVE	= 5;
+	__k_auto FLUSH_VALVE	= 4;
 };	// namespace TPICDevices
 
+// Make sure LIVE is running on the actual machine. Otherwise, all pins will
+// turn on
 namespace HardwarePins {
 	__k_auto POWER_MODULE = A0;
 #ifdef LIVE
