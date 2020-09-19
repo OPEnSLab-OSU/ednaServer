@@ -33,6 +33,7 @@
 class App : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
 	void setupAPI();
+	void setupSerialRouting();
 	void setupServerRouting();
 	void commandReceived(const char * line, size_t size) override;
 
@@ -109,6 +110,8 @@ public:
 
 		// Register the rest of the components
 		addComponent(KPSerialInput::sharedInstance());
+		setupSerialRouting();
+
 		addComponent(ActionScheduler::sharedInstance());
 		addComponent(fileLoader);
 		addComponent(shift);
@@ -147,7 +150,7 @@ public:
 		});
 
 #ifdef DEBUG
-		runForever(2000, "mem", []() { printFreeRam(); });
+		// runForever(2000, "mem", []() { printFreeRam(); });
 #endif
 	}
 

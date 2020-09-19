@@ -1,16 +1,5 @@
 #include <Application/App.hpp>
 
-//
-// ──────────────────────────────────────────────────────────────── I ──────────
-//   :::::: S E R V E R   S E T U P : :  :   :    :     :        :          :
-// ──────────────────────────────────────────────────────────────────────────
-//
-
-void sendJsonResponse(Response & res, JsonDocument & response) {
-	res.json(response);
-	res.end();
-}
-
 void App::setupServerRouting() {
 	server.handlers.reserve(12);
 
@@ -157,63 +146,4 @@ void App::setupServerRouting() {
 	// Emergency stop
 	// ────────────────────────────────────────────────────────────────────────────────
 	server.get("/stop", [this](Request & req, Response & res) { newStateController.stop(); });
-}
-
-//
-// ──────────────────────────────────────────────────────────────────── II ──────────
-//   :::::: S E R I A L   C O M M A N D : :  :   :    :     :        :          :
-// ──────────────────────────────────────────────────────────────────────────────
-//
-
-
-
-void App::commandReceived(const char * incomingMessage, size_t size) {
-	KPString line{incomingMessage};
-
-	println(line);
-
-	if (incomingMessage[0] == '{') {
-		StaticJsonDocument<255> doc;
-		deserializeJson(doc, incomingMessage);
-
-		StaticJsonDocument<255> response;
-		// dispatch(doc["cmd"].as<const char *>(), doc, response);
-	}
-
-	if (line == "print status") {
-		println(status);
-	}
-
-	if (line == "print config") {
-		println(config);
-	}
-
-	if (line == "schedule now") {
-		println("Schduling temp task");
-		Task task				= tm.createTask();
-		task.schedule			= now() + 5;
-		task.flushTime			= 5;
-		task.sampleTime			= 5;
-		task.deleteOnCompletion = true;
-		task.status				= TaskStatus::active;
-		task.valves.push_back(0);
-		tm.insertTask(task);
-		println(scheduleNextActiveTask().description());
-	}
-
-	if (line == "reset valves") {
-		for (int i = 0; i < config.numberOfValves; i++) {
-			vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
-		}
-
-		vm.writeToDirectory();
-	}
-
-	if (line == "mem") {
-		println(free_ram());
-	}
-
-	if (line == "hyperflush") {
-		beginHyperFlush();
-	};
 }

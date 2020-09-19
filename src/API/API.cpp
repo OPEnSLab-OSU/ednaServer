@@ -20,7 +20,13 @@ namespace API {
 		encodeJSON(app.status, response.to<JsonObject>());
 		response["utc"] = now();
 		return response;
-	};
+	}
+
+	auto ConfigGet::operator()(App & app) -> R {
+		R response;
+		encodeJSON(app.config, response.to<JsonObject>());
+		return response;
+	}
 
 	auto TaskCreate::operator()(App & app, JsonDocument & input) -> R {
 		R response;

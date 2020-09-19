@@ -19,44 +19,47 @@ struct APISpec<_R(Args...)> {
 
 class App;
 namespace API {
-	struct StartHyperFlush : APISpec<StaticJsonDocument<300>(App &)> {
+	template <size_t size>
+	using JsonResponse = StaticJsonDocument<size>;
+
+	struct StartHyperFlush : APISpec<JsonResponse<300>(App &)> {
 		auto operator()(Arg<0>) -> R;
 	};
 
-	struct StatusGet : APISpec<StaticJsonDocument<Status::encodingSize()>(App &)> {
+	struct StatusGet : APISpec<JsonResponse<Status::encodingSize()>(App &)> {
 		auto operator()(Arg<0>) -> R;
 	};
 
-	struct TaskCreate
-		: APISpec<StaticJsonDocument<Task::encodingSize() + 500>(App &, JsonDocument &)> {
+	struct ConfigGet : APISpec<JsonResponse<Config::encodingSize()>(App &)> {
+		auto operator()(Arg<0>) -> R;
+	};
+
+	struct TaskCreate : APISpec<JsonResponse<Task::encodingSize() + 500>(App &, JsonDocument &)> {
 		auto operator()(Arg<0>, Arg<1>) -> R;
 	};
 
-	struct TaskGet
-		: APISpec<StaticJsonDocument<Task::encodingSize() + 500>(App &, JsonDocument &)> {
+	struct TaskGet : APISpec<JsonResponse<Task::encodingSize() + 500>(App &, JsonDocument &)> {
 		auto operator()(Arg<0>, Arg<1>) -> R;
 	};
 
-	struct TaskSave
-		: APISpec<StaticJsonDocument<Task::encodingSize() + 500>(App &, JsonDocument &)> {
+	struct TaskSave : APISpec<JsonResponse<Task::encodingSize() + 500>(App &, JsonDocument &)> {
 		auto operator()(Arg<0>, Arg<1>) -> R;
 	};
 
-	struct TaskDelete : APISpec<StaticJsonDocument<500>(App &, JsonDocument &)> {
+	struct TaskDelete : APISpec<JsonResponse<500>(App &, JsonDocument &)> {
 		auto operator()(Arg<0>, Arg<1>) -> R;
 	};
 
-	struct TaskSchedule
-		: APISpec<StaticJsonDocument<Task::encodingSize() + 500>(App &, JsonDocument &)> {
+	struct TaskSchedule : APISpec<JsonResponse<Task::encodingSize() + 500>(App &, JsonDocument &)> {
 		auto operator()(Arg<0>, Arg<1>) -> R;
 	};
 
 	struct TaskUnschedule
-		: APISpec<StaticJsonDocument<Task::encodingSize() + 500>(App &, JsonDocument &)> {
+		: APISpec<JsonResponse<Task::encodingSize() + 500>(App &, JsonDocument &)> {
 		auto operator()(Arg<0>, Arg<1>) -> R;
 	};
 
-	struct RTCUpdate : APISpec<StaticJsonDocument<100>(App &, JsonDocument &)> {
+	struct RTCUpdate : APISpec<JsonResponse<100>(App &, JsonDocument &)> {
 		auto operator()(Arg<0>, Arg<1>) -> R;
 	};
 };	// namespace API
