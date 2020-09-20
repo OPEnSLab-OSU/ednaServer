@@ -84,20 +84,30 @@ private:
 		currentStateName = current->getName();
 	}
 
-	void pressureSensorDidUpdate(const std::pair<float, float> & values) override {
-		println(GREEN("Pressure: "), values.first);
-		println(GREEN("Temperature: "), values.second);
+	//
+	// ──────────────────────────────────────────────────────  ──────────
+	//   :::::: S E N S O R S : :  :   :    :     :        :          :
+	// ────────────────────────────────────────────────────────────────
+	//
 
-		pressure	= values.first;
-		temperature = values.second;
+	void flowSensorDidUpdate(FlowSensor::SensorData & values) override {
+		waterFlow = values.flow;
 	}
 
-	void baro1DidUpdate(const std::pair<float, float> & values) override {
-		barometric = values.first;
+	void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {
+		pressure	= std::get<0>(values);
+		temperature = std::get<1>(values);
+
+		println(GREEN("Pressure: "), pressure);
+		println(GREEN("Temperature: "), temperature);
 	}
 
-	void baro2DidUpdate(const std::pair<float, float> & values) override {
-		waterDepth = values.first;
+	void baro1DidUpdate(BaroSensor::SensorData & values) override {
+		barometric = std::get<0>(values);
+	}
+
+	void baro2DidUpdate(BaroSensor::SensorData & values) override {
+		waterDepth = std::get<0>(values);
 	}
 
 	bool isBatteryLow() {

@@ -1,10 +1,10 @@
 #pragma once
-#include <KPFoundation.hpp>
 #include <KPSubject.hpp>
 #include <Components/SensorArrayObserver.hpp>
 
-#include <SSC.h>
-#include <SparkFun_MS5803_I2C.h>
+#include <Components/Sensors/FlowSensor.hpp>
+#include <Components/Sensors/PressureSensor.hpp>
+#include <Components/Sensors/BaroSensor.hpp>
 
 #define PSAddr 0x08
 #define FSAddr 0x07
@@ -21,157 +21,87 @@ inline bool checkForConnection(unsigned char addr) {
 // without dynamic dispatch.
 // See: https://www.fluentcpp.com/2017/05/12/curiously-recurring-template-pattern/
 
-template <typename T>
-class Crtp {
-protected:
-	T & underlying() {
-		return static_cast<T &>(*this);
-	}
-	T const & underlying() const {
-		return static_cast<T const &>(*this);
-	}
-};
+// template <typename T>
+// class Crtp {
+// protected:
+// 	T & underlying() {
+// 		return static_cast<T &>(*this);
+// 	}
+// 	T const & underlying() const {
+// 		return static_cast<T const &>(*this);
+// 	}
+// };
 
-template <typename SensorType>
-class I2CSensor : public Crtp<SensorType> {
-private:
-	friend SensorType;
-	I2CSensor() {}
+// template <typename SensorType>
+// class I2CSensor : public Crtp<SensorType> {
+// private:
+// 	friend SensorType;
+// 	I2CSensor() {}
 
-public:
-	float updateFreqHz				  = 2;
-	unsigned long timeSinceLastUpdate = 0;
-	unsigned char addr				  = 0;
-	unsigned char enabled			  = false;
-	unsigned char updated			  = false;
+// public:
+// 	float updateFreqHz				  = 2;
+// 	unsigned long timeSinceLastUpdate = 0;
+// 	unsigned char addr				  = 0;
+// 	unsigned char enabled			  = false;
+// 	unsigned char updated			  = false;
 
-	void updateSensor() {
-		if (!enabled) {
-			return;
-		}
+// 	void updateSensor() {
+// 		if (!enabled) {
+// 			return;
+// 		}
 
-		if ((millis() - timeSinceLastUpdate) >= 1000 / updateFreqHz) {
-			this->underlying().update();
-			updated				= true;
-			timeSinceLastUpdate = millis();
-		}
-	}
+// 		if ((millis() - timeSinceLastUpdate) >= 1000 / updateFreqHz) {
+// 			this->underlying().update();
+// 			updated				= true;
+// 			timeSinceLastUpdate = millis();
+// 		}
+// 	}
 
-	bool didUpdate() {
-		if (updated) {
-			updated = false;
-			return true;
-		} else {
-			return false;
-		}
-	}
-};
-
-class PressureSensor : public I2CSensor<PressureSensor> {
-	SSC sensor;
-
-public:
-	PressureSensor(PressureSensor & rhs) = delete;
-	PressureSensor(unsigned char addr) : sensor{addr} {
-		this->addr = addr;
-	}
-
-	void setup() {
-		enabled = checkForConnection(addr);
-		if (enabled) {
-			sensor.setMinRaw(1638);
-			sensor.setMaxRaw(14745);
-			sensor.setMinPressure(0);
-			sensor.setMaxPressure(30);
-			sensor.start();
-		}
-	};
-
-	void update() {
-		sensor.update();
-	}
-
-public:
-	std::pair<float, float> getValue() {
-		return {sensor.pressure(), sensor.temperature()};
-	}
-};
-
-class BaroSensor : public I2CSensor<BaroSensor> {
-	MS5803 sensor;
-
-public:
-	BaroSensor(ms5803_addr addr) : sensor(addr) {
-		this->addr = addr;
-	}
-
-	void setup() {
-		enabled = checkForConnection(addr);
-		if (enabled) {
-			sensor.begin();
-		}
-	}
-
-	void update() {}
-
-	std::pair<float, float> getValue() {
-		return {sensor.getPressure(ADC_4096), sensor.getTemperature(CELSIUS, ADC_4096)};
-	}
-};
+// 	bool didUpdate() {
+// 		if (updated) {
+// 			updated = false;
+// 			return true;
+// 		} else {
+// 			return false;
+// 		}
+// 	}
+// };
 
 class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
 	using KPComponent::KPComponent;
-	PressureSensor ps{PSAddr};
+
+	FlowSensor flow{FSAddr};
+	PressureSensor pressure{PSAddr};
 	BaroSensor baro1{ADDRESS_HIGH};
 	BaroSensor baro2{ADDRESS_LOW};
 
 	void setup() override {
-		ps.setup();
-		ps.updateFreqHz = 2;
-		println(ps.enabled ? GREEN("Pressure sensor connected")
-						   : RED("Pressure sensor not connected"));
-	}
+		flow.begin();
+		flow.onReceived = [this](FlowSensor::SensorData & data) {
+			updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
+		};
 
-	void updatePs() {
-		if (!ps.enabled) {
-			return;
-		}
+		pressure.begin();
+		pressure.onReceived = [this](PressureSensor::SensorData & data) {
+			updateObservers(&SensorArrayObserver::pressureSensorDidUpdate, data);
+		};
 
-		if (ps.didUpdate()) {
-			updateObservers(&SensorArrayObserver::pressureSensorDidUpdate, ps.getValue());
-		}
+		baro1.begin();
+		baro1.onReceived = [this](BaroSensor::SensorData & data) {
+			updateObservers(&SensorArrayObserver::baro1DidUpdate, data);
+		};
 
-		ps.updateSensor();
-	}
-
-	void updateBaro1() {
-		if (!baro1.enabled) {
-			return;
-		}
-
-		if (baro1.didUpdate()) {
-			updateObservers(&SensorArrayObserver::baro1DidUpdate, baro1.getValue());
-		}
-
-		baro1.updateSensor();
-	}
-
-	void updateBaro2() {
-		if (!baro2.enabled) {
-			return;
-		}
-
-		if (baro2.didUpdate()) {
-			updateObservers(&SensorArrayObserver::baro2DidUpdate, baro2.getValue());
-		}
-
-		baro2.updateSensor();
+		baro2.begin();
+		baro2.onReceived = [this](BaroSensor::SensorData & data) {
+			updateObservers(&SensorArrayObserver::baro2DidUpdate, data);
+		};
 	}
 
 	void update() override {
-		updatePs();
-		updateBaro1();
-		updateBaro2();
+		flow.update();
+		pressure.update();
+		baro1.update();
+		baro2.update();
 	}
 };

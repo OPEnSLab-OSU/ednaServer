@@ -43,7 +43,11 @@
 		"streambuf": "cpp",
 		"cinttypes": "cpp",
 		"typeinfo": "cpp",
-		"numeric": "cpp"
+		"numeric": "cpp",
+		"bitset": "cpp",
+		"cstring": "cpp",
+		"ctime": "cpp",
+		"regex": "cpp"
 	},
 	"python.pythonPath": "/usr/bin/python3"
 }
