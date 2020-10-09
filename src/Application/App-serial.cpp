@@ -1,4 +1,5 @@
 #include <Application/App.hpp>
+#include <Components/Sensors/FlowSensor.hpp>
 
 namespace {
 	struct SerialRequest {
@@ -87,6 +88,12 @@ void App::commandReceived(const char * msg, size_t size) {
 			}
 		}
 	}
+
+	// if (strcmp(msg, "flow temp")) {
+	// 	// auto response = FlowSensor::read();
+	// }
+
+	// if (strcmp(msg, "flow flow")) {}
 	// KPString line{msg};
 
 	// println(line);

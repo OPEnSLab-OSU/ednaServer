@@ -50,11 +50,11 @@ struct FlowSensor : public Sensor<FlowSensorData> {
 		int temp_h	 = Wire.read();
 		int temp_l	 = Wire.read();
 
-		int calculatedChecksum = 1 + ~(count_h + count_l + temp_h + temp_l);
-		if (calculatedChecksum != checksum) {
+		byte check = checksum + count_h + count_l + temp_h + temp_l;
+		if (check) {
 			setErrorCode(ErrorCode::invalidChecksum);
 		}
 
-		return {countToFlow((count_h << 8) + count_l), (temp_h << 8) + temp_l};
+		return {countToFlow((count_h << 8) | count_l), (temp_h << 8) | temp_l};
 	}
 };
