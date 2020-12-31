@@ -89,26 +89,31 @@ public:
 #ifdef DEBUG
 		while (!Serial) {};
 		println();
-		println("==================================================");
-		println("DEBUG MODE");
-		println("==================================================");
+		println(BLUE("=================================================="));
+		println(BLUE("                   DEBUG MODE"));
+		println(BLUE("=================================================="));
 #endif
-		// Here we add and initialize the power module first. This allows us to get the
-		// actual time from the RTC for random task id generation
+
+		//
+		// ─── POWER MODULE ────────────────────────────────────────────────
+		//
+		// Here we add and initialize the power module first.
+		// So we can seed the random number generator with actual time from RTC.
 		addComponent(power);
 		randomSeed(now());
 
-		hyperFlushStateController.configure([](HyperFlush::Config & config) {
-			config.flushTime   = 5;
-			config.preloadTime = 5;
-		});
+		//
+		// ─── ADD WIFI SERVER ─────────────────────────────────────────────
+		//
 
-		// Register server and broadcast the WIFI signal as soon as possible
 		addComponent(server);
 		server.begin();
 		setupServerRouting();
 
-		// Register the rest of the components
+		//
+		// ─── ADDING COMPONENTS ───────────────────────────────────────────
+		//
+
 		addComponent(KPSerialInput::sharedInstance());
 		setupSerialRouting();
 
@@ -119,29 +124,57 @@ public:
 		addComponent(sensors);
 		sensors.addObserver(status);
 
-		// Load configuration from file and initialize config then status object
+		//
+		// ─── LOADING CONFIG FILE ─────────────────────────────────────────
+		//
+		// Load configuration from file to initialize config and status object
 		JsonFileLoader loader;
 		loader.load(config.configFilepath, config);
 		status.init(config);
 
-		// Configure valve manager
+		//
+		// ─── ADDING VALVE MANAGER ────────────────────────────────────────
+		//
+
 		vm.init(config);
 		vm.addObserver(status);
 		vm.loadValvesFromDirectory(config.valveFolder);
 
-		// Configure task manager
+		//
+		// ─── ADDING TASK MANAGER ─────────────────────────────────────────
+		//
+
 		tm.init(config);
 		tm.addObserver(this);
 		tm.loadTasksFromDirectory(config.taskFolder);
 
-		// Wait in IDLE
-		addComponent(hyperFlushStateController);
-		hyperFlushStateController.idle();
+		//
+		// ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
+		//
 
-		// Wait in IDLE
+		hyperFlushStateController.configure([](HyperFlush::Config & config) {
+			config.flushTime   = 5;
+			config.preloadTime = 5;
+		});
+
+		addComponent(hyperFlushStateController);
+		hyperFlushStateController.idle();  // Wait in IDLE
+
+		//
+		// ─── NEW STATE CONTROLLER ────────────────────────────────────────
+		//
+
 		addComponent(newStateController);
 		newStateController.addObserver(status);
-		newStateController.idle();
+		newStateController.idle();	// Wait in IDLE
+
+		// Print WiFi status
+		if (server.enabled()) {
+			println();
+			println(BLUE("====================== WIFI ======================"));
+			server.printWiFiStatus();
+			println(BLUE("=================================================="));
+		}
 
 		// RTC Interrupt callback
 		power.onInterrupt([this]() {
@@ -150,7 +183,7 @@ public:
 		});
 
 #ifdef DEBUG
-		// runForever(2000, "mem", []() { printFreeRam(); });
+		runForever(2000, "mem", []() { printFreeRam(); });
 #endif
 	}
 
@@ -174,8 +207,7 @@ public:
 	}
 
 	int currentValveIdToPin() {
-		// Skip the first register
-		return status.currentValve + shift.capacityPerRegister;
+		return status.currentValve + shift.capacityPerRegister;	 // <-- Skip the first register
 	}
 
 	/** ────────────────────────────────────────────────────────────────────────────

@@ -20,13 +20,15 @@ template <typename _SensorData, typename... Types>
 class Sensor {
 public:
 	struct ErrorCode {
-		enum Code { success = 0, notReady, invalidChecksum } _code;
+		enum Code { success = 0, notReady, notEnabled, invalidChecksum } _code;
 		ErrorCode(Code code) : _code(code) {}
 
 		operator Code() const {
 			return _code;
 		}
 	};
+
+	bool enabled = false;
 
 private:
 	ErrorCode errorCode			 = ErrorCode::success;
@@ -45,8 +47,10 @@ public:
 	/**
 	 * Subclass should override this method for setting up the sensor for reading/writing
 	 */
+private:
 	virtual void begin() = 0;
 
+public:
 	/**
 	 * Sublass should override this method to return SensorData
 	 *
@@ -55,7 +59,7 @@ public:
 	virtual SensorData read() = 0;
 
 	/**
-	 * Set the Error Code object
+	 * Set the Error Code
 	 *
 	 * @param code Ex. ErrorCode::success, ErrorCode::notReady, etc.
 	 */
@@ -64,7 +68,7 @@ public:
 	}
 
 	/**
-	 * Get the Error Code object
+	 * Get the Error Code
 	 *
 	 * @return ErrorCode x. ErrorCode::success, ErrorCode::notReady, etc.
 	 */
@@ -73,7 +77,7 @@ public:
 	}
 
 	/**
-	 * Set the Update Freq object
+	 * Set the Update Freq
 	 *
 	 * @param freqHz # per second (1000ms)
 	 */
@@ -93,6 +97,17 @@ public:
 	 * @return ErrorCode
 	 */
 	virtual ErrorCode update() final {
+		if (!enabled) {
+			return ErrorCode::notEnabled;
+		}
+
+		static bool didBegin = false;
+		if (!didBegin) {
+			didBegin = true;
+			begin();
+		}
+
+		// Lazy evaluation: last_update will never be initialized if the sensor is not enabled;
 		static long last_update = millis();
 		if ((millis() - last_update) < updateInterval) {
 			return ErrorCode::notReady;

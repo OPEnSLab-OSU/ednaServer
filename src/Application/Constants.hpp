@@ -3,6 +3,8 @@
 
 #define RED(x)	 "\033[31;1m" x "\033[0m"
 #define GREEN(x) "\033[32;1m" x "\033[0m"
+#define BROWN(x) "\033[33;1m" x "\033[0m"
+#define BLUE(x)	 "\033[34;1m" x "\033[0m"
 
 enum class Direction { normal, reverse };
 

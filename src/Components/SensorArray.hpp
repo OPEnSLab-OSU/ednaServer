@@ -49,6 +49,7 @@
 // };
 
 #pragma once
+#include <vector>
 #include <KPSubject.hpp>
 #include <Components/SensorArrayObserver.hpp>
 
@@ -59,10 +60,10 @@
 
 #define PSAddr 0x08
 #define FSAddr 0x07
-#define BSAddr 0x77
-#define DSAddr 0x76
+#define BSAddr ADDRESS_HIGH
+#define DSAddr ADDRESS_LOW
 
-inline bool checkForConnection(unsigned char addr) {
+inline bool checkForI2CConnection(unsigned char addr) {
 	Wire.begin();
 	Wire.requestFrom(addr, 1);
 	return Wire.read() != -1;
@@ -74,26 +75,25 @@ public:
 
 	TurbineFlowSensor flow;
 	PressureSensor pressure{PSAddr};
-	BaroSensor baro1{ADDRESS_HIGH};
-	BaroSensor baro2{ADDRESS_LOW};
+	BaroSensor baro1{BSAddr};
+	BaroSensor baro2{DSAddr};
 
 	void setup() override {
-		flow.begin();
+		flow.enabled	= true;
 		flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
 			updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
 		};
 
-		pressure.begin();
+		pressure.enabled	= checkForI2CConnection(PSAddr);
 		pressure.onReceived = [this](PressureSensor::SensorData & data) {
 			updateObservers(&SensorArrayObserver::pressureSensorDidUpdate, data);
 		};
-
-		baro1.begin();
+		baro1.enabled	 = checkForI2CConnection(BSAddr);
 		baro1.onReceived = [this](BaroSensor::SensorData & data) {
 			updateObservers(&SensorArrayObserver::baro1DidUpdate, data);
 		};
 
-		baro2.begin();
+		baro2.enabled	 = checkForI2CConnection(DSAddr);
 		baro2.onReceived = [this](BaroSensor::SensorData & data) {
 			updateObservers(&SensorArrayObserver::baro2DidUpdate, data);
 		};

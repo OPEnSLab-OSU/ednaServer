@@ -6,12 +6,13 @@ class BaroSensor : public Sensor<float, float> {
 private:
 	MS5803 sensor;
 
-public:
-	BaroSensor(ms5803_addr addr) : sensor(addr) {}
-
 	void begin() override {
+		setUpdateFreq(3);
 		sensor.begin();
 	}
+
+public:
+	BaroSensor(ms5803_addr addr) : sensor(addr) {}
 
 	SensorData read() override {
 		return {sensor.getPressure(ADC_4096), sensor.getTemperature(CELSIUS, ADC_4096)};

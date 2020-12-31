@@ -106,9 +106,9 @@ void App::commandReceived(const char * msg, size_t size) {
 	// 	// dispatch(doc["cmd"].as<const char *>(), doc, response);
 	// }
 
-	// if (line == "print status") {
-	// 	println(status);
-	// }
+	if (strcmp(msg, "status")) {
+		println(status);
+	}
 
 	// if (line == "print config") {
 	// 	println(config);
