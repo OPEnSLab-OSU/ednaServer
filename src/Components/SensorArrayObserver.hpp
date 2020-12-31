@@ -1,6 +1,6 @@
 #pragma once
 #include <KPObserver.hpp>
-#include <Components/Sensors/FlowSensor.hpp>
+#include <Components/Sensors/TurbineFlowSensor.hpp>
 #include <Components/Sensors/PressureSensor.hpp>
 #include <Components/Sensors/BaroSensor.hpp>
 
@@ -12,7 +12,7 @@ public:
 
 	virtual const char * SensorManagerObserverName() const = 0;
 
-	virtual void flowSensorDidUpdate(FlowSensor::SensorData & values) {}
+	virtual void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) {}
 	virtual void pressureSensorDidUpdate(PressureSensor::SensorData & values) {}
 	virtual void baro1DidUpdate(BaroSensor::SensorData & values) {}
 	virtual void baro2DidUpdate(BaroSensor::SensorData & values) {}

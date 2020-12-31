@@ -3,11 +3,11 @@
 void App::setupServerRouting() {
 	server.handlers.reserve(12);
 
-	// server.get("/", [this](Request & req, Response & res) {
-	// 	res.setHeader("Content-Encoding", "gzip");
-	// 	res.sendFile("index.gz", fileLoader);
-	// 	res.end();
-	// });
+	server.get("/", [this](Request & req, Response & res) {
+		res.setHeader("Content-Encoding", "gzip");
+		res.sendFile("index.gz", fileLoader);
+		res.end();
+	});
 
 	server.get("/api/preload", [this](Request &, Response & res) {
 		const auto & response = dispatchAPI<API::StartHyperFlush>();

@@ -254,7 +254,6 @@ public:
 	}
 #pragma endregion
 #pragma region PRINTABLE
-
 	size_t printTo(Print & p) const {
 		size_t charWritten = 0;
 		charWritten += p.println("[");

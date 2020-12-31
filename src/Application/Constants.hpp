@@ -27,7 +27,7 @@ namespace HardwarePins {
 	// A1 is eDNA, 12 for HYPNOS
 	__k_auto RTC_INTERRUPT = A1;
 #else
-	__k_auto RTC_INTERRUPT = 12;
+	__k_auto RTC_INTERRUPT = 12;  // Change this to A1 to force using A1 for RTC
 #endif
 	__k_auto BATTERY_VOLTAGE   = A2;
 	__k_auto ANALOG_SENSOR_1   = A3;

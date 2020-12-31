@@ -20,7 +20,7 @@ template <typename _SensorData, typename... Types>
 class Sensor {
 public:
 	struct ErrorCode {
-		enum Code { success = 0, tooEarly, invalidChecksum } _code;
+		enum Code { success = 0, notReady, invalidChecksum } _code;
 		ErrorCode(Code code) : _code(code) {}
 
 		operator Code() const {
@@ -57,7 +57,7 @@ public:
 	/**
 	 * Set the Error Code object
 	 *
-	 * @param code Ex. ErrorCode::success, ErrorCode::tooEarly, etc.
+	 * @param code Ex. ErrorCode::success, ErrorCode::notReady, etc.
 	 */
 	void setErrorCode(ErrorCode code) {
 		errorCode = code;
@@ -66,7 +66,7 @@ public:
 	/**
 	 * Get the Error Code object
 	 *
-	 * @return ErrorCode x. ErrorCode::success, ErrorCode::tooEarly, etc.
+	 * @return ErrorCode x. ErrorCode::success, ErrorCode::notReady, etc.
 	 */
 	ErrorCode getErrorCode() {
 		return errorCode;
@@ -79,7 +79,7 @@ public:
 	 */
 	void setUpdateFreq(double freqHz) {
 		if (freqHz <= 0) {
-			updateInterval = INT64_MAX;
+			updateInterval = ULONG_MAX;
 		} else {
 			updateInterval = static_cast<int>(1000.0 / freqHz);
 		}
@@ -95,7 +95,7 @@ public:
 	virtual ErrorCode update() final {
 		static long last_update = millis();
 		if ((millis() - last_update) < updateInterval) {
-			return ErrorCode::tooEarly;
+			return ErrorCode::notReady;
 		}
 
 		setErrorCode(ErrorCode::success);

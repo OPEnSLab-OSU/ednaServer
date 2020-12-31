@@ -90,8 +90,8 @@ private:
 	// ────────────────────────────────────────────────────────────────
 	//
 
-	void flowSensorDidUpdate(FlowSensor::SensorData & values) override {
-		waterFlow = values.flow;
+	void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) override {
+		waterFlow = values.lpm;
 	}
 
 	void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {

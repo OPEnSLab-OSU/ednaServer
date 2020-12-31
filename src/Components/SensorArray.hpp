@@ -1,22 +1,3 @@
-#pragma once
-#include <KPSubject.hpp>
-#include <Components/SensorArrayObserver.hpp>
-
-#include <Components/Sensors/FlowSensor.hpp>
-#include <Components/Sensors/PressureSensor.hpp>
-#include <Components/Sensors/BaroSensor.hpp>
-
-#define PSAddr 0x08
-#define FSAddr 0x07
-#define BSAddr 0x77
-#define DSAddr 0x76
-
-inline bool checkForConnection(unsigned char addr) {
-	Wire.begin();
-	Wire.requestFrom(addr, 1);
-	return Wire.read() != -1;
-}
-
 // The Curiously Recurring Template Pattern (CRTP) allows us to build functionalities
 // without dynamic dispatch.
 // See: https://www.fluentcpp.com/2017/05/12/curiously-recurring-template-pattern/
@@ -67,18 +48,38 @@ inline bool checkForConnection(unsigned char addr) {
 // 	}
 // };
 
+#pragma once
+#include <KPSubject.hpp>
+#include <Components/SensorArrayObserver.hpp>
+
+#include <Components/Sensors/TurbineFlowSensor.hpp>
+// #include <Components/Sensors/FlowSensor.hpp>
+#include <Components/Sensors/PressureSensor.hpp>
+#include <Components/Sensors/BaroSensor.hpp>
+
+#define PSAddr 0x08
+#define FSAddr 0x07
+#define BSAddr 0x77
+#define DSAddr 0x76
+
+inline bool checkForConnection(unsigned char addr) {
+	Wire.begin();
+	Wire.requestFrom(addr, 1);
+	return Wire.read() != -1;
+}
+
 class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
 	using KPComponent::KPComponent;
 
-	FlowSensor flow{FSAddr};
+	TurbineFlowSensor flow;
 	PressureSensor pressure{PSAddr};
 	BaroSensor baro1{ADDRESS_HIGH};
 	BaroSensor baro2{ADDRESS_LOW};
 
 	void setup() override {
 		flow.begin();
-		flow.onReceived = [this](FlowSensor::SensorData & data) {
+		flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
 			updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
 		};
 
