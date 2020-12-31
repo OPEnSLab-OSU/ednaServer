@@ -8,16 +8,16 @@
 // ────────────────────────────────────────────────────────────────────────────────
 class JsonDecodable {
 public:
-	static const char * decoderName() {
-		return "Unnamed";
-	}
+    static const char * decoderName() {
+        return "Unnamed";
+    }
 
-	static constexpr size_t decodingSize();
-	virtual void decodeJSON(const JsonVariant & source) = 0;
+    static constexpr size_t decodingSize();
+    virtual void decodeJSON(const JsonVariant & source) = 0;
 };
 
 inline void decodeJSON(JsonDecodable & decoder, const JsonVariant & source) {
-	decoder.decodeJSON(source);
+    decoder.decodeJSON(source);
 };
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -25,14 +25,14 @@ inline void decodeJSON(JsonDecodable & decoder, const JsonVariant & source) {
 // ────────────────────────────────────────────────────────────────────────────────
 class JsonEncodable {
 public:
-	static const char * encoderName() {
-		return "Unnamed";
-	}
+    static const char * encoderName() {
+        return "Unnamed";
+    }
 
-	static const size_t encodingSize();
-	virtual bool encodeJSON(const JsonVariant & dest) const = 0;
+    static const size_t encodingSize();
+    virtual bool encodeJSON(const JsonVariant & dest) const = 0;
 };
 
 inline void encodeJSON(JsonEncodable & encoder, const JsonVariant & dest) {
-	encoder.encodeJSON(dest);
+    encoder.encodeJSON(dest);
 };

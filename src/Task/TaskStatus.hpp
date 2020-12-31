@@ -10,21 +10,21 @@
 //
 class TaskStatus {
 public:
-	enum Code {
-		inactive = 0,
-		active,		// 1
-		completed,	// 2
-		missed		// 3
-	} _code;
+    enum Code {
+        inactive = 0,
+        active,     // 1
+        completed,  // 2
+        missed      // 3
+    } _code;
 
-	TaskStatus(Code code) : _code(code) {}
+    TaskStatus(Code code) : _code(code) {}
 
-	Code code() const {
-		return _code;
-	}
+    Code code() const {
+        return _code;
+    }
 
-	// Implicit conversion to int
-	operator int() const {
-		return _code;
-	}
+    // Implicit conversion to int
+    operator int() const {
+        return _code;
+    }
 };

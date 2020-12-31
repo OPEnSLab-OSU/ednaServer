@@ -6,14 +6,14 @@
 
 class SensorArrayObserver : public KPObserver {
 public:
-	const char * ObserverName() const {
-		return SensorManagerObserverName();
-	}
+    const char * ObserverName() const {
+        return SensorManagerObserverName();
+    }
 
-	virtual const char * SensorManagerObserverName() const = 0;
+    virtual const char * SensorManagerObserverName() const = 0;
 
-	virtual void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) {}
-	virtual void pressureSensorDidUpdate(PressureSensor::SensorData & values) {}
-	virtual void baro1DidUpdate(BaroSensor::SensorData & values) {}
-	virtual void baro2DidUpdate(BaroSensor::SensorData & values) {}
+    virtual void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) {}
+    virtual void pressureSensorDidUpdate(PressureSensor::SensorData & values) {}
+    virtual void baro1DidUpdate(BaroSensor::SensorData & values) {}
+    virtual void baro2DidUpdate(BaroSensor::SensorData & values) {}
 };

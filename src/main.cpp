@@ -1,41 +1,41 @@
 #ifndef UNIT_TEST
-	#include <Application/App.hpp>
+    #include <Application/App.hpp>
 
 void printDirectory(File dir, int numTabs) {
-	while (true) {
-		File entry = dir.openNextFile();
-		if (!entry) {
-			break;
-		}
+    while (true) {
+        File entry = dir.openNextFile();
+        if (!entry) {
+            break;
+        }
 
-		for (uint8_t i = 0; i < numTabs; i++) {
-			print('\t');
-		}
+        for (uint8_t i = 0; i < numTabs; i++) {
+            print('\t');
+        }
 
-		print(entry.name());
+        print(entry.name());
 
-		if (entry.isDirectory()) {
-			println("/");
-			printDirectory(entry, numTabs + 1);
-		} else {
-			print("\t\t");
-			println(entry.size(), DEC);	 // files have sizes, directories do not
-		}
+        if (entry.isDirectory()) {
+            println("/");
+            printDirectory(entry, numTabs + 1);
+        } else {
+            print("\t\t");
+            println(entry.size(), DEC);  // files have sizes, directories do not
+        }
 
-		entry.close();
-	}
+        entry.close();
+    }
 }
 
 namespace {
-	App app;
+    App app;
 }
 
 void setup() {
-	app.setup();
+    app.setup();
 }
 
 void loop() {
-	app.update();
+    app.update();
 }
 #endif
 

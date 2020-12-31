@@ -10,21 +10,21 @@
 //
 class ValveStatus {
 public:
-	enum Code {
-		unavailable = -1,
-		sampled,	// 0
-		free,		// 1
-		operating,	// 2
-	} _code;
+    enum Code {
+        unavailable = -1,
+        sampled,    // 0
+        free,       // 1
+        operating,  // 2
+    } _code;
 
-	ValveStatus(Code code) : _code(code) {}
+    ValveStatus(Code code) : _code(code) {}
 
-	Code code() const {
-		return _code;
-	}
+    Code code() const {
+        return _code;
+    }
 
-	// Implicit conversion to int
-	operator int() const {
-		return _code;
-	}
+    // Implicit conversion to int
+    operator int() const {
+        return _code;
+    }
 };

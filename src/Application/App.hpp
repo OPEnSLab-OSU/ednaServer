@@ -32,327 +32,327 @@
 
 class App : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
-	void setupAPI();
-	void setupSerialRouting();
-	void setupServerRouting();
-	void commandReceived(const char * line, size_t size) override;
+    void setupAPI();
+    void setupSerialRouting();
+    void setupServerRouting();
+    void commandReceived(const char * line, size_t size) override;
 
 public:
-	KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
-	KPServer server{"web-server", "eDNA-test", "password"};
+    KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
+    KPServer server{"web-server", "eDNA-test", "password"};
 
-	Pump pump{
-		"pump",
-		HardwarePins::MOTOR_FORWARD,
-		HardwarePins::MOTOR_REVERSE,
-	};
+    Pump pump{
+        "pump",
+        HardwarePins::MOTOR_FORWARD,
+        HardwarePins::MOTOR_REVERSE,
+    };
 
-	const int numberOfRegisters = 4;
-	ShiftRegister shift{
-		"shift-register",
-		numberOfRegisters,
-		HardwarePins::SHFT_REG_DATA,
-		HardwarePins::SHFT_REG_CLOCK,
-		HardwarePins::SHFT_REG_LATCH,
-	};
+    const int numberOfRegisters = 4;
+    ShiftRegister shift{
+        "shift-register",
+        numberOfRegisters,
+        HardwarePins::SHFT_REG_DATA,
+        HardwarePins::SHFT_REG_CLOCK,
+        HardwarePins::SHFT_REG_LATCH,
+    };
 
-	Power power{"power"};
-	BallIntake intake{shift};
-	Config config{ProgramSettings::CONFIG_FILE_PATH};
-	Status status;
+    Power power{"power"};
+    BallIntake intake{shift};
+    Config config{ProgramSettings::CONFIG_FILE_PATH};
+    Status status;
 
-	// MainStateController sm;
-	NewStateController newStateController;
-	HyperFlushStateController hyperFlushStateController;
+    // MainStateController sm;
+    NewStateController newStateController;
+    HyperFlushStateController hyperFlushStateController;
 
-	ValveManager vm;
-	TaskManager tm;
+    ValveManager vm;
+    TaskManager tm;
 
-	SensorArray sensors{"sensor-array"};
+    SensorArray sensors{"sensor-array"};
 
-	int currentTaskId = 0;
+    int currentTaskId = 0;
 
 private:
-	const char * KPSerialInputObserverName() const override {
-		return "Application-KPSerialInput Observer";
-	}
+    const char * KPSerialInputObserverName() const override {
+        return "Application-KPSerialInput Observer";
+    }
 
-	const char * TaskObserverName() const override {
-		return "Application-Task Observer";
-	}
-
-public:
-	void setup() override {
-		KPSerialInput::sharedInstance().addObserver(this);
-		Serial.begin(115200);
-
-#ifdef DEBUG
-		while (!Serial) {};
-		println();
-		println(BLUE("=================================================="));
-		println(BLUE("                   DEBUG MODE"));
-		println(BLUE("=================================================="));
-#endif
-
-		//
-		// ─── POWER MODULE ────────────────────────────────────────────────
-		//
-		// Here we add and initialize the power module first.
-		// So we can seed the random number generator with actual time from RTC.
-		addComponent(power);
-		randomSeed(now());
-
-		//
-		// ─── ADD WIFI SERVER ─────────────────────────────────────────────
-		//
-
-		addComponent(server);
-		server.begin();
-		setupServerRouting();
-
-		//
-		// ─── ADDING COMPONENTS ───────────────────────────────────────────
-		//
-
-		addComponent(KPSerialInput::sharedInstance());
-		setupSerialRouting();
-
-		addComponent(ActionScheduler::sharedInstance());
-		addComponent(fileLoader);
-		addComponent(shift);
-		addComponent(pump);
-		addComponent(sensors);
-		sensors.addObserver(status);
-
-		//
-		// ─── LOADING CONFIG FILE ─────────────────────────────────────────
-		//
-		// Load configuration from file to initialize config and status object
-		JsonFileLoader loader;
-		loader.load(config.configFilepath, config);
-		status.init(config);
-
-		//
-		// ─── ADDING VALVE MANAGER ────────────────────────────────────────
-		//
-
-		vm.init(config);
-		vm.addObserver(status);
-		vm.loadValvesFromDirectory(config.valveFolder);
-
-		//
-		// ─── ADDING TASK MANAGER ─────────────────────────────────────────
-		//
-
-		tm.init(config);
-		tm.addObserver(this);
-		tm.loadTasksFromDirectory(config.taskFolder);
-
-		//
-		// ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
-		//
-
-		hyperFlushStateController.configure([](HyperFlush::Config & config) {
-			config.flushTime   = 5;
-			config.preloadTime = 5;
-		});
-
-		addComponent(hyperFlushStateController);
-		hyperFlushStateController.idle();  // Wait in IDLE
-
-		//
-		// ─── NEW STATE CONTROLLER ────────────────────────────────────────
-		//
-
-		addComponent(newStateController);
-		newStateController.addObserver(status);
-		newStateController.idle();	// Wait in IDLE
-
-		// Print WiFi status
-		if (server.enabled()) {
-			println();
-			println(BLUE("====================== WIFI ======================"));
-			server.printWiFiStatus();
-			println(BLUE("=================================================="));
-		}
-
-		// RTC Interrupt callback
-		power.onInterrupt([this]() {
-			println(GREEN("RTC Interrupted!"));
-			println(scheduleNextActiveTask().description());
-		});
-
-#ifdef DEBUG
-		runForever(2000, "mem", []() { printFreeRam(); });
-#endif
-	}
-
-	template <typename T, typename... Args>
-	auto dispatchAPI(Args &&... args) {
-		return T{}(*this, std::forward<Args>(args)...);
-	}
-
-	bool compare(const char * lhs, const char * rhs) {
-		return strcmp(lhs, rhs) == 0;
-	}
+    const char * TaskObserverName() const override {
+        return "Application-Task Observer";
+    }
 
 public:
-	void beginHyperFlush() {
-		hyperFlushStateController.begin();
-	}
+    void setup() override {
+        KPSerialInput::sharedInstance().addObserver(this);
+        Serial.begin(115200);
 
-	ValveBlock currentValveNumberToBlock() {
-		return {shift.toRegisterIndex(status.currentValve) + 1,
-				shift.toPinIndex(status.currentValve)};
-	}
+#ifdef DEBUG
+        while (!Serial) {};
+        println();
+        println(BLUE("=================================================="));
+        println(BLUE("                   DEBUG MODE"));
+        println(BLUE("=================================================="));
+#endif
 
-	int currentValveIdToPin() {
-		return status.currentValve + shift.capacityPerRegister;	 // <-- Skip the first register
-	}
+        //
+        // ─── POWER MODULE ────────────────────────────────────────────────
+        //
+        // Here we add and initialize the power module first.
+        // So we can seed the random number generator with actual time from RTC.
+        addComponent(power);
+        randomSeed(now());
 
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Get the earliest upcoming task and schedule it
-	 *
-	 *  @return true if task is successfully scheduled.
-	 *  @return false if task is either missed schedule or no active task available.
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	ScheduleReturnCode scheduleNextActiveTask(bool shouldStopCurrentTask = false) {
-		for (auto id : tm.getActiveSortedTaskIds()) {
-			Task & task		= tm.tasks[id];
-			time_t time_now = now();
+        //
+        // ─── ADD WIFI SERVER ─────────────────────────────────────────────
+        //
 
-			if (currentTaskId == id) {
-				// NOTE: Check logic here. Maybe not be correct yet
-				if (shouldStopCurrentTask) {
-					cancel("delayTaskExecution");
-					// if (status.currentStateName != HyperFlush::STOP) {
-					// 	newStateController.stop();
-					// }
+        addComponent(server);
+        server.begin();
+        setupServerRouting();
 
-					continue;
-				} else {
-					return ScheduleReturnCode::operating;
-				}
-			}
+        //
+        // ─── ADDING COMPONENTS ───────────────────────────────────────────
+        //
 
-			if (time_now >= task.schedule) {
-				// Missed schedule
-				println(RED("Missed schedule"));
-				invalidateTaskAndFreeUpValves(task);
-				continue;
-			}
+        addComponent(KPSerialInput::sharedInstance());
+        setupSerialRouting();
 
-			if (time_now >= task.schedule - 10) {
-				// Wake up between 10 secs of the actual schedule time
-				// Prepare an action to execute at exact time
-				const auto timeUntil = task.schedule - time_now;
+        addComponent(ActionScheduler::sharedInstance());
+        addComponent(fileLoader);
+        addComponent(shift);
+        addComponent(pump);
+        addComponent(sensors);
+        sensors.addObserver(status);
 
-				TimedAction delayTaskExecution;
-				delayTaskExecution.name		= "delayTaskExecution";
-				delayTaskExecution.interval = secsToMillis(timeUntil);
-				delayTaskExecution.callback = [this]() { newStateController.begin(); };
-				run(delayTaskExecution);  // async, will be execute later
+        //
+        // ─── LOADING CONFIG FILE ─────────────────────────────────────────
+        //
+        // Load configuration from file to initialize config and status object
+        JsonFileLoader loader;
+        loader.load(config.configFilepath, config);
+        status.init(config);
 
-				newStateController.configure(task);
+        //
+        // ─── ADDING VALVE MANAGER ────────────────────────────────────────
+        //
 
-				currentTaskId		   = id;
-				status.preventShutdown = true;
-				vm.setValveStatus(task.valves[task.valveOffsetStart], ValveStatus::operating);
+        vm.init(config);
+        vm.addObserver(status);
+        vm.loadValvesFromDirectory(config.valveFolder);
 
-				println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
-				return ScheduleReturnCode::operating;
-			} else {
-				// Wake up before not due to alarm, reschedule anyway
-				status.preventShutdown = false;
-				power.scheduleNextAlarm(task.schedule - 8);	 // 3 < x < 10
-				return ScheduleReturnCode::scheduled;
-			}
-		}
+        //
+        // ─── ADDING TASK MANAGER ─────────────────────────────────────────
+        //
 
-		currentTaskId = 0;
-		return ScheduleReturnCode::unavailable;
-	}
+        tm.init(config);
+        tm.addObserver(this);
+        tm.loadTasksFromDirectory(config.taskFolder);
 
-	void validateTaskForSaving(const Task & task, JsonDocument & response) {
-		if (task.status == 1) {
-			response["error"] = "Task is current active";
-			return;
-		}
+        //
+        // ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
+        //
 
-		if (!tm.findTask(task.id)) {
-			response["error"] = "Task not found: invalid task id";
-			return;
-		}
-	}
+        hyperFlushStateController.configure([](HyperFlush::Config & config) {
+            config.flushTime   = 5;
+            config.preloadTime = 5;
+        });
 
-	void validateTaskForScheduling(int id, JsonDocument & response) {
-		if (!tm.findTask(id)) {
-			response["error"] = "Task not found";
-			return;
-		}
+        addComponent(hyperFlushStateController);
+        hyperFlushStateController.idle();  // Wait in IDLE
 
-		Task & task = tm.tasks[id];
-		if (task.getNumberOfValves() == 0) {
-			response["error"] = "Cannot schedule a task without an assigned valve";
-			return;
-		}
+        //
+        // ─── NEW STATE CONTROLLER ────────────────────────────────────────
+        //
 
-		if (task.schedule <= now() + 3) {
-			response["error"] = "Must be in the future";
-			return;
-		}
+        addComponent(newStateController);
+        newStateController.addObserver(status);
+        newStateController.idle();  // Wait in IDLE
 
-		for (auto v : task.valves) {
-			if (vm.valves[v].status == ValveStatus::sampled) {
-				KPStringBuilder<100> error("Valve ", v, " has already been sampled");
-				response["error"] = error;
-				return;
-			}
-		}
-	}
+        // Print WiFi status
+        if (server.enabled()) {
+            println();
+            println(BLUE("====================== WIFI ======================"));
+            server.printWiFiStatus();
+            println(BLUE("=================================================="));
+        }
 
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Runs after the setup and initialization of all components
-	 *
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void update() override {
-		KPController::update();
+        // RTC Interrupt callback
+        power.onInterrupt([this]() {
+            println(GREEN("RTC Interrupted!"));
+            println(scheduleNextActiveTask().description());
+        });
 
-		if (!status.isProgrammingMode() && !status.preventShutdown) {
-			shutdown();
-		}
-	}
+#ifdef DEBUG
+        runForever(2000, "mem", []() { printFreeRam(); });
+#endif
+    }
 
-	/** ────────────────────────────────────────────────────────────────────────────
-	 *  @brief Turn off the motor, shut off the pins and power off the system
-	 *
-	 *  ──────────────────────────────────────────────────────────────────────────── */
-	void shutdown() {
-		pump.off();					   // Turn off motor
-		shift.writeAllRegistersLow();  // Turn off all TPIC devices
-		intake.off();
+    template <typename T, typename... Args>
+    auto dispatchAPI(Args &&... args) {
+        return T{}(*this, std::forward<Args>(args)...);
+    }
 
-		tm.writeToDirectory();
-		vm.writeToDirectory();
-		power.shutdown();
-		halt(TRACE, "Shutdown. This message should not be displayed. Check power module");
-	}
+    bool compare(const char * lhs, const char * rhs) {
+        return strcmp(lhs, rhs) == 0;
+    }
 
-	void invalidateTaskAndFreeUpValves(Task & task) {
-		for (auto i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
-			vm.setValveFreeIfNotYetSampled(task.valves[i]);
-		}
+public:
+    void beginHyperFlush() {
+        hyperFlushStateController.begin();
+    }
 
-		task.valves.clear();
-		tm.markTaskAsCompleted(task.id);
-	}
+    ValveBlock currentValveNumberToBlock() {
+        return {shift.toRegisterIndex(status.currentValve) + 1,
+                shift.toPinIndex(status.currentValve)};
+    }
+
+    int currentValveIdToPin() {
+        return status.currentValve + shift.capacityPerRegister;  // <-- Skip the first register
+    }
+
+    /** ────────────────────────────────────────────────────────────────────────────
+     *  @brief Get the earliest upcoming task and schedule it
+     *
+     *  @return true if task is successfully scheduled.
+     *  @return false if task is either missed schedule or no active task available.
+     *  ──────────────────────────────────────────────────────────────────────────── */
+    ScheduleReturnCode scheduleNextActiveTask(bool shouldStopCurrentTask = false) {
+        for (auto id : tm.getActiveSortedTaskIds()) {
+            Task & task     = tm.tasks[id];
+            time_t time_now = now();
+
+            if (currentTaskId == id) {
+                // NOTE: Check logic here. Maybe not be correct yet
+                if (shouldStopCurrentTask) {
+                    cancel("delayTaskExecution");
+                    // if (status.currentStateName != HyperFlush::STOP) {
+                    // 	newStateController.stop();
+                    // }
+
+                    continue;
+                } else {
+                    return ScheduleReturnCode::operating;
+                }
+            }
+
+            if (time_now >= task.schedule) {
+                // Missed schedule
+                println(RED("Missed schedule"));
+                invalidateTaskAndFreeUpValves(task);
+                continue;
+            }
+
+            if (time_now >= task.schedule - 10) {
+                // Wake up between 10 secs of the actual schedule time
+                // Prepare an action to execute at exact time
+                const auto timeUntil = task.schedule - time_now;
+
+                TimedAction delayTaskExecution;
+                delayTaskExecution.name     = "delayTaskExecution";
+                delayTaskExecution.interval = secsToMillis(timeUntil);
+                delayTaskExecution.callback = [this]() { newStateController.begin(); };
+                run(delayTaskExecution);  // async, will be execute later
+
+                newStateController.configure(task);
+
+                currentTaskId          = id;
+                status.preventShutdown = true;
+                vm.setValveStatus(task.valves[task.valveOffsetStart], ValveStatus::operating);
+
+                println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
+                return ScheduleReturnCode::operating;
+            } else {
+                // Wake up before not due to alarm, reschedule anyway
+                status.preventShutdown = false;
+                power.scheduleNextAlarm(task.schedule - 8);  // 3 < x < 10
+                return ScheduleReturnCode::scheduled;
+            }
+        }
+
+        currentTaskId = 0;
+        return ScheduleReturnCode::unavailable;
+    }
+
+    void validateTaskForSaving(const Task & task, JsonDocument & response) {
+        if (task.status == 1) {
+            response["error"] = "Task is current active";
+            return;
+        }
+
+        if (!tm.findTask(task.id)) {
+            response["error"] = "Task not found: invalid task id";
+            return;
+        }
+    }
+
+    void validateTaskForScheduling(int id, JsonDocument & response) {
+        if (!tm.findTask(id)) {
+            response["error"] = "Task not found";
+            return;
+        }
+
+        Task & task = tm.tasks[id];
+        if (task.getNumberOfValves() == 0) {
+            response["error"] = "Cannot schedule a task without an assigned valve";
+            return;
+        }
+
+        if (task.schedule <= now() + 3) {
+            response["error"] = "Must be in the future";
+            return;
+        }
+
+        for (auto v : task.valves) {
+            if (vm.valves[v].status == ValveStatus::sampled) {
+                KPStringBuilder<100> error("Valve ", v, " has already been sampled");
+                response["error"] = error;
+                return;
+            }
+        }
+    }
+
+    /** ────────────────────────────────────────────────────────────────────────────
+     *  @brief Runs after the setup and initialization of all components
+     *
+     *  ──────────────────────────────────────────────────────────────────────────── */
+    void update() override {
+        KPController::update();
+
+        if (!status.isProgrammingMode() && !status.preventShutdown) {
+            shutdown();
+        }
+    }
+
+    /** ────────────────────────────────────────────────────────────────────────────
+     *  @brief Turn off the motor, shut off the pins and power off the system
+     *
+     *  ──────────────────────────────────────────────────────────────────────────── */
+    void shutdown() {
+        pump.off();                    // Turn off motor
+        shift.writeAllRegistersLow();  // Turn off all TPIC devices
+        intake.off();
+
+        tm.writeToDirectory();
+        vm.writeToDirectory();
+        power.shutdown();
+        halt(TRACE, "Shutdown. This message should not be displayed. Check power module");
+    }
+
+    void invalidateTaskAndFreeUpValves(Task & task) {
+        for (auto i = task.getValveOffsetStart(); i < task.getNumberOfValves(); i++) {
+            vm.setValveFreeIfNotYetSampled(task.valves[i]);
+        }
+
+        task.valves.clear();
+        tm.markTaskAsCompleted(task.id);
+    }
 
 private:
-	void taskDidUpdate(const Task & task) override {}
+    void taskDidUpdate(const Task & task) override {}
 
-	void taskDidDelete(int id) override {
-		if (currentTaskId == id) {
-			currentTaskId = 0;
-		}
-	}
+    void taskDidDelete(int id) override {
+        if (currentTaskId == id) {
+            currentTaskId = 0;
+        }
+    }
 };
