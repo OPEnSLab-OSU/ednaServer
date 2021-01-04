@@ -37,16 +37,20 @@ namespace API {
         strcpy(task.name, name);
         app.tm.insertTask(task, true);
 
-        // NOTE: Uncomment to save task. Not sure if this is necessary here
+        // NOTE: Uncomment to save task. Not sure if this is necessary here.
+        // Current behaviour requires the user to "save" the task first before writing to SD card.
         // tm.writeToDirectory();
 
         // Success response
         KPStringBuilder<100> success("Successfully created ", name);
-        response["success"] = success;
+        response["success"] = (char *) success;
 
         // Return task with partially filled fields
         JsonVariant payload = response.createNestedObject("payload");
         encodeJSON(task, payload);
+
+        println(measureJson(response));
+        serializeJsonPretty(response, Serial);
         return response;
     }
 

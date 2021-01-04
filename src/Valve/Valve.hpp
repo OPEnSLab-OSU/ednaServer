@@ -68,7 +68,7 @@ public:
         using namespace ValveKeys;
         // clang-format off
 		return dst[ID].set(id)
-			   && dst[GROUP].set(group)
+			   && dst[GROUP].set((char *) group)
 			   && dst[STATUS].set(status);
 	}  // clang-format on
 

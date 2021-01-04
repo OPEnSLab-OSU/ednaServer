@@ -1,7 +1,7 @@
 #include <Application/App.hpp>
 
 void App::setupServerRouting() {
-    server.handlers.reserve(12);
+    server.handlers.reserve(13);
 
     server.get("/", [this](Request & req, Response & res) {
         res.setHeader("Content-Encoding", "gzip");
@@ -25,6 +25,8 @@ void App::setupServerRouting() {
         res.setHeader("Content-Length", length);
         res.json(response);
         res.end();
+
+        serializeJsonPretty(response, Serial);
     });
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -76,6 +78,7 @@ void App::setupServerRouting() {
 
         const auto & response = dispatchAPI<API::TaskCreate>(body);
         res.json(response);
+        serializeJsonPretty(response, Serial);
         res.end();
     });
 

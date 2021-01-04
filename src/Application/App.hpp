@@ -305,7 +305,7 @@ public:
         for (auto v : task.valves) {
             if (vm.valves[v].status == ValveStatus::sampled) {
                 KPStringBuilder<100> error("Valve ", v, " has already been sampled");
-                response["error"] = error;
+                response["error"] = (char *) error;
                 return;
             }
         }

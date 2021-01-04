@@ -37,7 +37,7 @@ namespace New {
             // 		halt(TRACE, "Unhandled state transition");
             // 	}
             // });
-            // ..or alternatively with default state transition:
+            // ..or alternatively if state only has one input and one output
             registerState(SharedStates::Flush(), FLUSH1, OFFSHOOT_CLEAN_1);
             registerState(SharedStates::OffshootClean(5), OFFSHOOT_CLEAN_1, FLUSH2);
             registerState(SharedStates::Flush(), FLUSH2, SAMPLE);

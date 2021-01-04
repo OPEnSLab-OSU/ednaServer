@@ -129,8 +129,8 @@ public:
         using namespace TaskKeys;
         // clang-format off
 		return dst[ID].set(id) 
-			&& dst[NAME].set(name) 
-			&& dst[NOTES].set(notes)
+			&& dst[NAME].set((char *)name) 
+			&& dst[NOTES].set((char *) notes)
 			&& dst[STATUS].set(status) 
 			&& dst[CREATED_AT].set(createdAt)
 			&& dst[SCHEDULE].set(schedule) 

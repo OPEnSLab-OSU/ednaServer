@@ -31,8 +31,8 @@ public:
     bool isFull          = false;
     bool preventShutdown = false;
 
-    KPString currentStateName = nullptr;
-    KPString currentTaskName  = nullptr;
+    const char * currentStateName = nullptr;
+    const char * currentTaskName  = nullptr;
 
     // Status() = default;
     // Status(const Status &) = delete;
@@ -110,7 +110,7 @@ private:
         waterDepth = std::get<0>(values);
     }
 
-    bool isBatteryLow() {
+    bool isBatteryLow() const {
         analogReadResolution(10);
         return analogRead(HardwarePins::BATTERY_VOLTAGE) <= 860;  // 860 is around 12V of battery
     }
@@ -174,7 +174,8 @@ public:
 			&& dest[SENSOR_DEPTH].set(waterDepth)
 			&& dest[SENSOR_FLOW].set(waterFlow) 
 			&& dest[CURRENT_TASK].set(currentTaskName)
-			&& dest[CURRENT_STATE].set(currentStateName);
+			&& dest[CURRENT_STATE].set(currentStateName) 
+            && dest[LOW_BATTERY].set(isBatteryLow());
         // clang-format on
     }
 

@@ -121,6 +121,7 @@ namespace StatusKeys {
     __k_auto SENSOR_DEPTH    = "waterDepth";
     __k_auto CURRENT_TASK    = "currentTask";
     __k_auto CURRENT_STATE   = "currentState";
+    __k_auto LOW_BATTERY     = "lowBattery";
 };  // namespace StatusKeys
 
 #undef __k_auto
