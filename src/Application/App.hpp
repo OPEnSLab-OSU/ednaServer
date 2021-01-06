@@ -303,10 +303,22 @@ public:
         }
 
         for (auto v : task.valves) {
-            if (vm.valves[v].status == ValveStatus::sampled) {
+            switch (vm.valves[v].status) {
+            case ValveStatus::unavailable: {
+                KPStringBuilder<100> error("Valve ", v, " is not available");
+                response["error"] = (char *) error;
+                return;
+            }
+            case ValveStatus::sampled: {
                 KPStringBuilder<100> error("Valve ", v, " has already been sampled");
                 response["error"] = (char *) error;
                 return;
+            }
+            case ValveStatus::operating: {
+                KPStringBuilder<100> error("Valve ", v, " is operating");
+                response["error"] = (char *) error;
+                return;
+            }
             }
         }
     }

@@ -4,8 +4,13 @@ void App::setupServerRouting() {
     server.handlers.reserve(13);
 
     server.get("/", [this](Request & req, Response & res) {
-        res.setHeader("Content-Encoding", "gzip");
-        res.sendFile("index.gz", fileLoader);
+        if (strstr(req.header, "br")) {
+            res.setHeader("Content-Encoding", "br");
+            res.sendFile("index.br", fileLoader);
+        } else {
+            res.setHeader("Content-Encoding", "gzip");
+            res.sendFile("index.gz", fileLoader);
+        }
         res.end();
     });
 

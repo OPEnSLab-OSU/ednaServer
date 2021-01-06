@@ -78,7 +78,8 @@ public:
         setupRTC();
 
         // Register interrupt pin as active low
-        pinMode(HardwarePins::RTC_INTERRUPT, INPUT_PULLUP);
+        // INPUT_PULLUP may conflict with PULL_UP resister on the micro-controller
+        pinMode(HardwarePins::RTC_INTERRUPT, INPUT);
         pinMode(HardwarePins::POWER_MODULE, OUTPUT);
     }
 
