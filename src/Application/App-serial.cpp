@@ -127,10 +127,11 @@ void App::commandReceived(const char * msg, size_t size) {
     // 	println(scheduleNextActiveTask().description());
     // }
 
-    // if (line == "reset valves") {
-    // 	for (int i = 0; i < config.numberOfValves; i++) {
-    // 		vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
-    // 	}
+    if (strcmp(msg, "reset valves") == 0) {
+        for (int i = 0; i < config.numberOfValves; i++) {
+            vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
+        }
+    }
 
     // 	vm.writeToDirectory();
     // }

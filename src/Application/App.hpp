@@ -217,6 +217,7 @@ public:
      *  @return false if task is either missed schedule or no active task available.
      *  ──────────────────────────────────────────────────────────────────────────── */
     ScheduleReturnCode scheduleNextActiveTask(bool shouldStopCurrentTask = false) {
+        status.preventShutdown = false;
         for (auto id : tm.getActiveSortedTaskIds()) {
             Task & task     = tm.tasks[id];
             time_t time_now = now();
@@ -231,6 +232,7 @@ public:
 
                     continue;
                 } else {
+                    status.preventShutdown = true;
                     return ScheduleReturnCode::operating;
                 }
             }
@@ -263,7 +265,6 @@ public:
                 return ScheduleReturnCode::operating;
             } else {
                 // Wake up before not due to alarm, reschedule anyway
-                status.preventShutdown = false;
                 power.scheduleNextAlarm(task.schedule - 8);  // 3 < x < 10
                 return ScheduleReturnCode::scheduled;
             }
@@ -329,7 +330,6 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void update() override {
         KPController::update();
-
         if (!status.isProgrammingMode() && !status.preventShutdown) {
             shutdown();
         }
