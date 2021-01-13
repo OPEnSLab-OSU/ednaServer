@@ -1,20 +1,19 @@
 #pragma once
 #include <Components/Sensor.hpp>
-#include <SparkFun_MS5803_I2C.h>
+#include <MS5803_02.h>
 
 class BaroSensor : public Sensor<float, float> {
 private:
-    MS5803 sensor;
+    MS_5803 sensor;
 
     void begin() override {
         setUpdateFreq(3);
-        sensor.begin();
+        sensor.initializeMS_5803(true);
     }
 
 public:
-    BaroSensor(ms5803_addr addr) : sensor(addr) {}
-
+    BaroSensor(byte address) : sensor(address, 512) {}
     SensorData read() override {
-        return {sensor.getPressure(ADC_4096), sensor.getTemperature(CELSIUS, ADC_4096)};
+        return {sensor.pressure(), sensor.temperature()};
     }
 };

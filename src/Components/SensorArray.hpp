@@ -54,55 +54,54 @@
 #include <Components/SensorArrayObserver.hpp>
 
 #include <Components/Sensors/TurbineFlowSensor.hpp>
-// #include <Components/Sensors/FlowSensor.hpp>
 #include <Components/Sensors/PressureSensor.hpp>
 #include <Components/Sensors/BaroSensor.hpp>
 
 #define PSAddr 0x08
 #define FSAddr 0x07
-#define BSAddr ADDRESS_HIGH
-#define DSAddr ADDRESS_LOW
+#define BSAddr 0x77
+#define DSAddr 0x76
 
 inline bool checkForI2CConnection(unsigned char addr) {
-	Wire.begin();
-	Wire.requestFrom(addr, 1);
-	return Wire.read() != -1;
+    Wire.begin();
+    Wire.requestFrom(addr, 1);
+    return Wire.read() != -1;
 }
 
 class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
-	using KPComponent::KPComponent;
+    using KPComponent::KPComponent;
 
-	TurbineFlowSensor flow;
-	PressureSensor pressure{PSAddr};
-	BaroSensor baro1{BSAddr};
-	BaroSensor baro2{DSAddr};
+    TurbineFlowSensor flow;
+    PressureSensor pressure{PSAddr};
+    BaroSensor baro1{BSAddr};
+    BaroSensor baro2{DSAddr};
 
-	void setup() override {
-		flow.enabled	= true;
-		flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
-			updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
-		};
+    void setup() override {
+        flow.enabled    = true;
+        flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
+            updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
+        };
 
-		pressure.enabled	= checkForI2CConnection(PSAddr);
-		pressure.onReceived = [this](PressureSensor::SensorData & data) {
-			updateObservers(&SensorArrayObserver::pressureSensorDidUpdate, data);
-		};
-		baro1.enabled	 = checkForI2CConnection(BSAddr);
-		baro1.onReceived = [this](BaroSensor::SensorData & data) {
-			updateObservers(&SensorArrayObserver::baro1DidUpdate, data);
-		};
+        pressure.enabled    = checkForI2CConnection(PSAddr);
+        pressure.onReceived = [this](PressureSensor::SensorData & data) {
+            updateObservers(&SensorArrayObserver::pressureSensorDidUpdate, data);
+        };
+        baro1.enabled    = checkForI2CConnection(BSAddr);
+        baro1.onReceived = [this](BaroSensor::SensorData & data) {
+            updateObservers(&SensorArrayObserver::baro1DidUpdate, data);
+        };
 
-		baro2.enabled	 = checkForI2CConnection(DSAddr);
-		baro2.onReceived = [this](BaroSensor::SensorData & data) {
-			updateObservers(&SensorArrayObserver::baro2DidUpdate, data);
-		};
-	}
+        baro2.enabled    = checkForI2CConnection(DSAddr);
+        baro2.onReceived = [this](BaroSensor::SensorData & data) {
+            updateObservers(&SensorArrayObserver::baro2DidUpdate, data);
+        };
+    }
 
-	void update() override {
-		flow.update();
-		pressure.update();
-		baro1.update();
-		baro2.update();
-	}
+    void update() override {
+        flow.update();
+        pressure.update();
+        baro1.update();
+        baro2.update();
+    }
 };
