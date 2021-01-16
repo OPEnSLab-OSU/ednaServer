@@ -127,7 +127,7 @@ public:
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
         //
-        // Load configuration from file to initialize config and status object
+        // Load configuration from file to initialize config and status objects
         JsonFileLoader loader;
         loader.load(config.configFilepath, config);
         status.init(config);

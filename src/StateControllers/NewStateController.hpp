@@ -5,15 +5,15 @@
 
 namespace New {
     STATE(IDLE);
-    STATE(STOP);
-    STATE(FLUSH1);
-    STATE(FLUSH2);
+    STATE(FLUSH_1);
     STATE(OFFSHOOT_CLEAN_1);
-    STATE(OFFSHOOT_CLEAN_2);
     STATE(SAMPLE);
+    STATE(FLUSH_2);
+    STATE(OFFSHOOT_CLEAN_2);
     STATE(DRY);
     STATE(PRESERVE);
     STATE(AIR_FLUSH);
+    STATE(STOP);
 
     struct Config {
         decltype(SharedStates::Flush::time) flushTime;
@@ -38,9 +38,9 @@ namespace New {
             // 	}
             // });
             // ..or alternatively if state only has one input and one output
-            registerState(SharedStates::Flush(), FLUSH1, OFFSHOOT_CLEAN_1);
-            registerState(SharedStates::OffshootClean(5), OFFSHOOT_CLEAN_1, FLUSH2);
-            registerState(SharedStates::Flush(), FLUSH2, SAMPLE);
+            registerState(SharedStates::Flush(), FLUSH_1, OFFSHOOT_CLEAN_1);
+            registerState(SharedStates::OffshootClean(5), OFFSHOOT_CLEAN_1, FLUSH_2);
+            registerState(SharedStates::Flush(), FLUSH_2, SAMPLE);
             registerState(SharedStates::Sample(), SAMPLE, OFFSHOOT_CLEAN_2);
             registerState(SharedStates::OffshootClean(10), OFFSHOOT_CLEAN_2, DRY);
             registerState(SharedStates::Dry(), DRY, PRESERVE);
@@ -53,10 +53,10 @@ namespace New {
         };
 
         void configureStates() {
-            decltype(auto) flush1 = getState<SharedStates::Flush>(FLUSH1);
+            decltype(auto) flush1 = getState<SharedStates::Flush>(FLUSH_1);
             flush1.time           = config.flushTime;
 
-            decltype(auto) flush2 = getState<SharedStates::Flush>(FLUSH2);
+            decltype(auto) flush2 = getState<SharedStates::Flush>(FLUSH_2);
             flush2.time           = config.flushTime;
 
             decltype(auto) sample = getState<SharedStates::Sample>(SAMPLE);
@@ -73,7 +73,7 @@ namespace New {
 
         void begin() override {
             configureStates();
-            transitionTo(FLUSH1);
+            transitionTo(FLUSH_1);
         }
 
         void stop() override {
