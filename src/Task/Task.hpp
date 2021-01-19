@@ -29,9 +29,9 @@ public:
     int timeBetween = 0;
 
     int flushTime      = 0;
-    int flushVolume    = 0;
+    float flushVolume  = 0;
     int sampleTime     = 0;
-    int sampleVolume   = 0;
+    float sampleVolume = 0;
     int samplePressure = 0;
     int dryTime        = 0;
     int preserveTime   = 0;

@@ -19,14 +19,14 @@ class Status : public JsonDecodable,
                public SensorArrayObserver {
 public:
     std::vector<int> valves;
-    int currentValve = -1;
-
-    float pressure    = 0;
-    float temperature = 0;
-    float barometric  = 0;
-    float waterVolume = 0;
-    float waterDepth  = 0;
-    float waterFlow   = 0;
+    int currentValve   = -1;
+    float pressure     = 0;
+    float temperature  = 0;
+    float barometric   = 0;
+    float waterVolume  = 0;
+    float waterDepth   = 0;
+    float waterFlow    = 0;
+    float sampleVolume = 0;
 
     bool isFull          = false;
     bool preventShutdown = false;
@@ -91,15 +91,14 @@ private:
     //
 
     void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) override {
-        waterFlow = values.lpm;
+        waterFlow    = values.lpm;
+        waterVolume  = values.volume;
+        sampleVolume = values.volume;
     }
 
     void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {
         pressure    = std::get<0>(values);
         temperature = std::get<1>(values);
-
-        println(GREEN("Pressure: "), pressure);
-        println(GREEN("Temperature: "), temperature);
     }
 
     void baro1DidUpdate(BaroSensor::SensorData & values) override {
@@ -175,7 +174,8 @@ public:
 			&& dest[SENSOR_FLOW].set(waterFlow) 
 			&& dest[CURRENT_TASK].set(currentTaskName)
 			&& dest[CURRENT_STATE].set(currentStateName) 
-            && dest[LOW_BATTERY].set(isBatteryLow());
+            && dest[LOW_BATTERY].set(isBatteryLow())
+            && dest[SAMPLE_VOLUME].set(sampleVolume);
         // clang-format on
     }
 

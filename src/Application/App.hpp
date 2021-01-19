@@ -356,7 +356,9 @@ public:
         }
 
         task.valves.clear();
-        tm.markTaskAsCompleted(task.id);
+        if (tm.markTaskAsCompleted(task.id)) {
+            tm.writeToDirectory();
+        };
     }
 
 private:

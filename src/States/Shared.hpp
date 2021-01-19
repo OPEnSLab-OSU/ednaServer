@@ -62,6 +62,8 @@ namespace SharedStates {
         unsigned long time = 150;
         float pressure     = 8;
         float volume       = 1000;
+
+        float volumeMeasure = 0;
         void enter(KPStateMachine & sm) override;
     };
 

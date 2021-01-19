@@ -12,7 +12,7 @@ inline double interpolate(double x, double in_min, double in_max, double out_min
 }
 
 struct TurbineFlowSensorData {
-    double totalVolume;
+    double volume;
     double lpm;
 };
 
@@ -26,8 +26,12 @@ private:
     }
 
 public:
-    double totalVolume = 0;
-    double lpm         = 0;
+    double volume = 0;
+    double lpm    = 0;
+
+    void resetVolume() {
+        volume = 0;
+    }
 
     SensorData read() override {
         if (flowUpdated) {
@@ -36,12 +40,12 @@ public:
             auto flowIntervalSecs = double(flowIntervalMicros) / 1000000.0;
             auto hz               = double(1) / flowIntervalSecs;
             lpm                   = hz < 37 ? 0 : interpolate(hz, 37, 917, 0.1, 2.5);
-            totalVolume += lpm * (flowIntervalSecs / 60.0);
-            println(totalVolume, lpm);
+            volume += lpm * (flowIntervalSecs / 60.0);
+            println(volume, lpm);
         } else {
             setErrorCode(ErrorCode::notReady);
         }
 
-        return {totalVolume, lpm};
+        return {volume, lpm};
     }
 };

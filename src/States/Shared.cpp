@@ -57,11 +57,13 @@ namespace SharedStates {
         app.shift.write();
         app.pump.on();
 
+        app.sensors.flow.resetVolume();
+
         // This condition will be evaluated repeatedly until true then the callback will be executed
         // once
         auto const condition = [&]() {
             return timeSinceLastTransition() >= secsToMillis(time)
-                   || app.status.pressure >= pressure;
+                   || app.status.pressure >= pressure || app.sensors.flow.volume >= volume;
         };
 
         setCondition(condition, [&]() { sm.next(); });
