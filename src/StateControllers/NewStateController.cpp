@@ -17,7 +17,7 @@ void NewStateController::setup() {
     registerState(SharedStates::Sample(), SAMPLE, [this](int code) {
         auto & app = *static_cast<App *>(controller);
         app.sensors.flow.stopMeasurement();
-        app.logToFile("log.csv");
+        app.logAfterSample();
 
         switch (code) {
         case 0:

@@ -28,6 +28,8 @@ public:
     float waterFlow    = 0;
     float sampleVolume = 0;
 
+    float maxPressure = 0;
+
     bool isFull          = false;
     bool preventShutdown = false;
 
@@ -99,6 +101,7 @@ private:
     void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {
         pressure    = std::get<0>(values);
         temperature = std::get<1>(values);
+        maxPressure = max(pressure, maxPressure);
     }
 
     void baro1DidUpdate(BaroSensor::SensorData & values) override {

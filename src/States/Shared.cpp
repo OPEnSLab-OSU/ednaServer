@@ -60,7 +60,8 @@ namespace SharedStates {
         app.sensors.flow.resetVolume();
         app.sensors.flow.startMeasurement();
 
-        this->condition = nullptr;
+        app.status.maxPressure = 0;
+        this->condition        = nullptr;
 
         // This condition will be evaluated repeatedly until true then the callback will be executed
         // once
