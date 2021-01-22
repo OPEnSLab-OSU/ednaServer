@@ -21,8 +21,7 @@ private:
     void begin() override {
         lastFlowTick = micros();
         pinMode(A3, INPUT);
-        attachInterrupt(digitalPinToInterrupt(A3), flowTick, FALLING);
-        setUpdateFreq(300);
+        setUpdateFreq(1000);
     }
 
 public:
@@ -33,15 +32,22 @@ public:
         volume = 0;
     }
 
+    void startMeasurement() {
+        attachInterrupt(digitalPinToInterrupt(A3), flowTick, FALLING);
+    }
+
+    void stopMeasurement() {
+        detachInterrupt(digitalPinToInterrupt(A3));
+    }
+
     SensorData read() override {
         if (flowUpdated) {
             flowUpdated = false;
 
-            auto flowIntervalSecs = double(flowIntervalMicros) / 1000000.0;
-            auto hz               = double(1) / flowIntervalSecs;
-            lpm                   = hz < 37 ? 0 : interpolate(hz, 37, 917, 0.1, 2.5);
-            volume += lpm * (flowIntervalSecs / 60.0);
-            println(volume, lpm);
+            auto hz = 1000000.0 / double(flowIntervalMicros);
+            lpm     = hz < 37 ? 0 : interpolate(hz, 37, 917, 0.110, 2.476);
+            volume += lpm * (flowIntervalMicros / 60000000.0);
+            println("Volume: ", volume, ", LPM: ", lpm);
         } else {
             setErrorCode(ErrorCode::notReady);
         }

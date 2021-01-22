@@ -159,7 +159,7 @@ void App::setupServerRouting() {
         for (int i = 0; i < config.numberOfValves; i++) {
             vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
         }
-
+        vm.writeToDirectory();
         res.end();
     });
 }

@@ -63,7 +63,8 @@ namespace SharedStates {
         float pressure     = 8;
         float volume       = 1000;
 
-        float volumeMeasure = 0;
+        const char * condition;
+
         void enter(KPStateMachine & sm) override;
     };
 

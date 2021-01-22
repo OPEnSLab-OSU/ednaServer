@@ -176,15 +176,76 @@ public:
             println(BLUE("=================================================="));
         }
 
+        // Regular log header
+        if (!SD.exists(config.logFile)) {
+            File file = SD.open(config.logFile, FILE_WRITE);
+            KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
+                                        "State, Config Sample Time, Config Sample "
+                                        "Pressure, Config Sample Volume, Temperature Recorded,"
+                                        "Pressure Recorded, Volume Recorded\n"};
+            file.println(header);
+            file.close();
+        }
+
+        // Debug log header
+        if (!SD.exists("detail.csv")) {
+            File file = SD.open("detail.csv", FILE_WRITE);
+            KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
+                                        "State, Config Sample Time, Config Sample "
+                                        "Pressure, Config Sample Volume, Temperature Recorded,"
+                                        "Pressure Recorded, Volume Recorded\n"};
+            file.println(header);
+            file.close();
+        }
+
         // RTC Interrupt callback
         power.onInterrupt([this]() {
             println(GREEN("RTC Interrupted!"));
             println(scheduleNextActiveTask().description());
         });
 
+        runForever(1000, "detailLog", [&]() { logToFile("detail.csv"); });
 #ifdef DEBUG
-        runForever(2000, "mem", []() { printFreeRam(); });
+        runForever(2000, "memLog", [&]() { printFreeRam(); });
 #endif
+    }
+
+    void logToFile(const char * filename) {
+        if (currentTaskId) {
+            SD.begin(HardwarePins::SD_CARD);
+            File log    = SD.open(filename, FILE_WRITE);
+            Task & task = tm.tasks.at(currentTaskId);
+
+            char formattedTime[64];
+            auto utc = now();
+            sprintf(formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                    hour(utc), minute(utc), second(utc));
+
+            KPStringBuilder<512> data{utc,
+                                      ",",
+                                      formattedTime,
+                                      ",",
+                                      task.name,
+                                      ",",
+                                      status.currentValve,
+                                      ",",
+                                      status.currentStateName,
+                                      ",",
+                                      task.sampleTime,
+                                      ",",
+                                      task.samplePressure,
+                                      ",",
+                                      task.sampleVolume,
+                                      ",",
+                                      status.temperature,
+                                      ",",
+                                      status.pressure,
+                                      ",",
+                                      status.waterVolume};
+            log.println(data);
+            log.flush();
+            log.close();
+        }
     }
 
     template <typename T, typename... Args>
@@ -356,9 +417,7 @@ public:
         }
 
         task.valves.clear();
-        if (tm.markTaskAsCompleted(task.id)) {
-            tm.writeToDirectory();
-        };
+        tm.markTaskAsCompleted(task.id);
     }
 
 private:

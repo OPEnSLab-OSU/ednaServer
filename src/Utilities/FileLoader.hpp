@@ -12,14 +12,14 @@ public:
                 return true;
             }
 
-            // raise(Error("FileLoader: path already exists but "
-            // "not directory please remove the file"));
+            halt(TRACE, "Directory is a file. Please remove it.");
         }
 
         // folder doesn't exist
-        print("FileLoader: directory doesn't exist. Creating...");
+        print("FileLoader: ", dir, " directory doesn't exist. Creating...");
         bool success = SD.mkdir(dir);
         println(success ? "success" : "failed");
+        folder.close();
         return success;
     }
 };

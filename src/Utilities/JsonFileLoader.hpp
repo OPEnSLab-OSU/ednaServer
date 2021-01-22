@@ -28,16 +28,22 @@ public:
         unsigned long start = millis();
 
         // raise error if file doesn't exist to notify the user
+        if (!SD.begin(HardwarePins::SD_CARD)) {
+            println("Not ready");
+        };
+
         File file = SD.open(filepath, FILE_READ);
         if (!file) {
             KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
-            // println(Error(message));
+            println(message);
+            file.close();
             return;
         }
 
         // skip empty file
         if (file.size() == 0) {
             println("JsonFileLoader: ", filepath, " is empty");
+            file.close();
             return;
         }
 
@@ -54,12 +60,12 @@ public:
             KPStringBuilder<120> message(decoder.decoderName(),
                                          " decoder: size exeecds the buffer limit whlie decoding ",
                                          filepath);
-            // raise(message);
+            halt(TRACE, message);
         } break;
         default:
             KPStringBuilder<120> message(decoder.decoderName(), " decoder: ", error.c_str(),
                                          " while decoding ", filepath);
-            // raise(message);
+            halt(TRACE, message);
         }
 
         println();
@@ -76,7 +82,7 @@ public:
         if (!encoder.encodeJSON(dest)) {
             KPStringBuilder<120> message("Encoder (", encoder.encoderName(),
                                          "): JSON object size exceeds the buffer limit.");
-            // raise(Error(message));
+            halt(TRACE, message);
         }
 
         save(filepath, doc);
@@ -86,6 +92,10 @@ public:
     void save(const char * filepath, StaticJsonDocument<size> & src) const {
         // timestamp
         unsigned long start = millis();
+
+        if (!SD.begin(HardwarePins::SD_CARD)) {
+            println("Not ready");
+        };
 
         // serialize JSON document to file
         File file = SD.open(filepath, FILE_WRITE | O_TRUNC);
