@@ -218,30 +218,32 @@ public:
 
             char formattedTime[64];
             auto utc = now();
-            sprintf(formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
-                    hour(utc), minute(utc), second(utc));
+            sprintf(
+                formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                hour(utc), minute(utc), second(utc));
 
-            KPStringBuilder<512> data{utc,
-                                      ",",
-                                      formattedTime,
-                                      ",",
-                                      task.name,
-                                      ",",
-                                      status.currentValve,
-                                      ",",
-                                      status.currentStateName,
-                                      ",",
-                                      task.sampleTime,
-                                      ",",
-                                      task.samplePressure,
-                                      ",",
-                                      task.sampleVolume,
-                                      ",",
-                                      status.temperature,
-                                      ",",
-                                      status.pressure,
-                                      ",",
-                                      status.waterVolume};
+            KPStringBuilder<512> data{
+                utc,
+                ",",
+                formattedTime,
+                ",",
+                task.name,
+                ",",
+                status.currentValve,
+                ",",
+                status.currentStateName,
+                ",",
+                task.sampleTime,
+                ",",
+                task.samplePressure,
+                ",",
+                task.sampleVolume,
+                ",",
+                status.temperature,
+                ",",
+                status.pressure,
+                ",",
+                status.waterVolume};
             log.println(data);
             log.flush();
             log.close();
@@ -255,30 +257,32 @@ public:
 
         char formattedTime[64];
         auto utc = now();
-        sprintf(formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
-                hour(utc), minute(utc), second(utc));
+        sprintf(
+            formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+            hour(utc), minute(utc), second(utc));
 
-        KPStringBuilder<512> data{utc,
-                                  ",",
-                                  formattedTime,
-                                  ",",
-                                  task.name,
-                                  ",",
-                                  status.currentValve,
-                                  ",",
-                                  status.currentStateName,
-                                  ",",
-                                  task.sampleTime,
-                                  ",",
-                                  task.samplePressure,
-                                  ",",
-                                  task.sampleVolume,
-                                  ",",
-                                  status.temperature,
-                                  ",",
-                                  status.maxPressure,
-                                  ",",
-                                  status.waterVolume};
+        KPStringBuilder<512> data{
+            utc,
+            ",",
+            formattedTime,
+            ",",
+            task.name,
+            ",",
+            status.currentValve,
+            ",",
+            status.currentStateName,
+            ",",
+            task.sampleTime,
+            ",",
+            task.samplePressure,
+            ",",
+            task.sampleVolume,
+            ",",
+            status.temperature,
+            ",",
+            status.maxPressure,
+            ",",
+            status.waterVolume};
         log.println(data);
         log.flush();
         log.close();
@@ -299,8 +303,8 @@ public:
     }
 
     ValveBlock currentValveNumberToBlock() {
-        return {shift.toRegisterIndex(status.currentValve) + 1,
-                shift.toPinIndex(status.currentValve)};
+        return {
+            shift.toRegisterIndex(status.currentValve) + 1, shift.toPinIndex(status.currentValve)};
     }
 
     int currentValveIdToPin() {

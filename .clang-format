@@ -1,5 +1,5 @@
 AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: AlwaysBreak
 AlignEscapedNewlines: Right
 AlignConsecutiveAssignments: true
 AlignConsecutiveMacros: true
@@ -37,6 +37,6 @@ NamespaceIndentation: All
 PointerAlignment: Middle
 SortIncludes: false
 SpaceAfterCStyleCast: true
-Standard: c++11
+Standard: c++14
 TabWidth: 4
 UseTab: false
