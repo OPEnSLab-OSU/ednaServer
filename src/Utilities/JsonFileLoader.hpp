@@ -57,14 +57,14 @@ public:
         case DeserializationError::Ok:
             break;
         case DeserializationError::NoMemory: {
-            KPStringBuilder<120> message(decoder.decoderName(),
-                                         " decoder: size exeecds the buffer limit whlie decoding ",
-                                         filepath);
+            KPStringBuilder<120> message(
+                decoder.decoderName(), " decoder: size exeecds the buffer limit whlie decoding ",
+                filepath);
             halt(TRACE, message);
         } break;
         default:
-            KPStringBuilder<120> message(decoder.decoderName(), " decoder: ", error.c_str(),
-                                         " while decoding ", filepath);
+            KPStringBuilder<120> message(
+                decoder.decoderName(), " decoder: ", error.c_str(), " while decoding ", filepath);
             halt(TRACE, message);
         }
 
@@ -80,8 +80,9 @@ public:
         StaticJsonDocument<Encoder::encodingSize()> doc;
         JsonVariant dest = doc.template to<JsonVariant>();
         if (!encoder.encodeJSON(dest)) {
-            KPStringBuilder<120> message("Encoder (", encoder.encoderName(),
-                                         "): JSON object size exceeds the buffer limit.");
+            KPStringBuilder<120> message(
+                "Encoder (", encoder.encoderName(),
+                "): JSON object size exceeds the buffer limit.");
             halt(TRACE, message);
         }
 
@@ -98,7 +99,7 @@ public:
         };
 
         // serialize JSON document to file
-        File file = SD.open(filepath, FILE_WRITE | O_TRUNC);
+        File file = SD.open(filepath, O_RDWR | O_CREAT | O_TRUNC);
         serializeJson(src, file);
         file.close();
 
