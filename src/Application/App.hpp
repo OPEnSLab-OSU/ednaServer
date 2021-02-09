@@ -30,6 +30,8 @@
 
 #include <API/API.hpp>
 
+#include <configuration.hpp>
+
 class App : public KPController, public KPSerialInputObserver, public TaskObserver {
 private:
     void setupAPI();
@@ -39,7 +41,7 @@ private:
 
 public:
     KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
-    KPServer server{"web-server", "eDNA-test", "password"};
+    KPServer server{"web-server", SERVER_NAME, SERVER_PASSWORD};
 
     Pump pump{
         "pump",
