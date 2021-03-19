@@ -8,7 +8,7 @@
 #include <Application/Config.hpp>
 
 #include <vector>
-#include "SD.h"
+#include "Components/SDcard.hpp"
 
 class TaskManager : public KPComponent,
                     public JsonEncodable,

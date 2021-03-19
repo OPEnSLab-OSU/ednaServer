@@ -1,11 +1,12 @@
 #pragma once
 #include <KPFoundation.hpp>
-#include <SD.h>
+#include <Components/SDcard.hpp>
+//#include <SdFat.h>
 
 class FileLoader {
 public:
     bool createDirectoryIfNeeded(const char * dir) {
-        File folder = SD.open(dir, FILE_READ);
+        File32 folder = SD.open(dir, FILE_READ);
         if (folder) {
             if (folder.isDirectory()) {
                 folder.close();

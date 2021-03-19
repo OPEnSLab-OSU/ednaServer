@@ -2,12 +2,14 @@
 #include <StreamUtils.h>
 #include <Utilities/FileLoader.hpp>
 #include <Utilities/JsonEncodableDecodable.hpp>
+#include <Components/SDcard.hpp>
+#include <FatLib/FatFile.h>
 
 class JsonFileLoader : public FileLoader {
 public:
     template <size_t size>
     void load(const char * filepath, StaticJsonDocument<size> & dst) {
-        File file = SD.open(filepath, FILE_READ);
+        File32 file = SD.open(filepath, FILE_READ);
         if (!file) {
             KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
             // println(Error(message));
@@ -32,7 +34,7 @@ public:
             println("Not ready");
         };
 
-        File file = SD.open(filepath, FILE_READ);
+        File32 file = SD.open(filepath, FILE_READ);
         if (!file) {
             KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
             println(message);
@@ -99,7 +101,7 @@ public:
         };
 
         // serialize JSON document to file
-        File file = SD.open(filepath, O_RDWR | O_CREAT | O_TRUNC);
+        File32 file = SD.open(filepath, O_RDWR | O_CREAT | O_TRUNC);
         serializeJson(src, file);
         file.close();
 
