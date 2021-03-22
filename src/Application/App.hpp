@@ -1,6 +1,7 @@
 #pragma once
 #define ARDUINOJSON_USE_LONG_LONG 1
 #include <FatLib/FatFile.h>
+#include <FatLib/FatVolume.h>
 #include <KPController.hpp>
 #include <KPFileLoader.hpp>
 #include <KPSerialInput.hpp>
@@ -180,8 +181,8 @@ public:
         }
 
         // Regular log header
-        if (!SD.exists(config.logFile)) {
-            File32 file = SD.open(config.logFile, FILE_WRITE);
+        if (!SDCard::sharedInstance().exists(config.logFile)) {
+            File file = SDCard::sharedInstance().open(config.logFile, FILE_WRITE);
             KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
@@ -191,8 +192,8 @@ public:
         }
 
         // Detail log header
-        if (!SD.exists("detail.csv")) {
-            File32 file = SD.open("detail.csv", FILE_WRITE);
+        if (!SDCard::sharedInstance().exists("detail.csv")) {
+            File file = SDCard::sharedInstance().open("detail.csv", FILE_WRITE);
             KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
@@ -215,8 +216,8 @@ public:
 
     void logDetail(const char * filename) {
         if (currentTaskId) {
-            SD.begin(HardwarePins::SD_CARD);
-            File32 log    = SD.open(filename, FILE_WRITE);
+            SDCard::sharedInstance().begin(HardwarePins::SD_CARD);
+            File log    = SDCard::sharedInstance().open(filename, FILE_WRITE);
             Task & task = tm.tasks.at(currentTaskId);
 
             char formattedTime[64];
@@ -254,8 +255,8 @@ public:
     }
 
     void logAfterSample() {
-        SD.begin(HardwarePins::SD_CARD);
-        File32 log    = SD.open(config.logFile, FILE_WRITE);
+        SDCard::sharedInstance().begin(HardwarePins::SD_CARD);
+        File log    = SDCard::sharedInstance().open(config.logFile, FILE_WRITE);
         Task & task = tm.tasks.at(currentTaskId);
 
         char formattedTime[64];

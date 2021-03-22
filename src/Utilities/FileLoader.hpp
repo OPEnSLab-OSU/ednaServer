@@ -6,7 +6,7 @@
 class FileLoader {
 public:
     bool createDirectoryIfNeeded(const char * dir) {
-        File32 folder = SD.open(dir, FILE_READ);
+        File folder = SDCard::sharedInstance().open(dir, FILE_READ);
         if (folder) {
             if (folder.isDirectory()) {
                 folder.close();
@@ -18,7 +18,7 @@ public:
 
         // folder doesn't exist
         print("FileLoader: ", dir, " directory doesn't exist. Creating...");
-        bool success = SD.mkdir(dir);
+        bool success = SDCard::sharedInstance().mkdir(dir);
         println(success ? "success" : "failed");
         folder.close();
         return success;

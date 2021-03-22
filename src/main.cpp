@@ -1,9 +1,9 @@
 #ifndef UNIT_TEST
     #include <Application/App.hpp>
 
-void printDirectory(File32 dir, int numTabs) {
+void printDirectory(File dir, int numTabs) {
     while (true) {
-        File32 entry = dir.openNextFile();
+        File entry = dir.openNextFile();
         if (!entry) {
             break;
         }
