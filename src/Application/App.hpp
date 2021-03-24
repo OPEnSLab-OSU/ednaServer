@@ -97,7 +97,8 @@ public:
         println(BLUE("                   DEBUG MODE"));
         println(BLUE("=================================================="));
 #endif
-
+        println(SDCard::sharedInstance().begin(HardwarePins::SD_CARD, SD_SCK_MHZ(15)));
+        SDCard::sharedInstance().initErrorPrint();
         //
         // ─── POWER MODULE ────────────────────────────────────────────────
         //
@@ -127,6 +128,7 @@ public:
         addComponent(pump);
         addComponent(sensors);
         sensors.addObserver(status);
+
 
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
@@ -182,7 +184,7 @@ public:
 
         // Regular log header
         if (!SDCard::sharedInstance().exists(config.logFile)) {
-            File file = SDCard::sharedInstance().open(config.logFile, FILE_WRITE);
+            File32 file = SDCard::sharedInstance().open(config.logFile, FILE_WRITE);
             KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
@@ -193,7 +195,7 @@ public:
 
         // Detail log header
         if (!SDCard::sharedInstance().exists("detail.csv")) {
-            File file = SDCard::sharedInstance().open("detail.csv", FILE_WRITE);
+            File32 file = SDCard::sharedInstance().open("detail.csv", FILE_WRITE);
             KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
@@ -217,7 +219,7 @@ public:
     void logDetail(const char * filename) {
         if (currentTaskId) {
             SDCard::sharedInstance().begin(HardwarePins::SD_CARD);
-            File log    = SDCard::sharedInstance().open(filename, FILE_WRITE);
+            File32 log    = SDCard::sharedInstance().open(filename, FILE_WRITE);
             Task & task = tm.tasks.at(currentTaskId);
 
             char formattedTime[64];
@@ -256,7 +258,7 @@ public:
 
     void logAfterSample() {
         SDCard::sharedInstance().begin(HardwarePins::SD_CARD);
-        File log    = SDCard::sharedInstance().open(config.logFile, FILE_WRITE);
+        File32 log    = SDCard::sharedInstance().open(config.logFile, FILE_WRITE);
         Task & task = tm.tasks.at(currentTaskId);
 
         char formattedTime[64];

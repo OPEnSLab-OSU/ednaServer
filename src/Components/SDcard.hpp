@@ -1,22 +1,16 @@
 #pragma once
 #include<SdFat.h>
-//#include<FatLib/FatVolume.h>
 
-//static SdFat32 SD;
-
-class SDCard : public SdFs {
+class SDCard : public SdFat32 {
 private:
-	SdFs SDcard;
+    SDCard() {}
+    ~SDCard() {}
+    SDCard(SDCard const&) = delete;
+    SDCard & operator = (SDCard const&) = delete;
 
 public:
-    using SdFs::SdFs;
-    //using FatVolume::FatVolume;
-    //SdFat32& get_SD_card() {
-    //    return SDcard;
-    //}
-    //void open(const char * d, oflag_t oflag = O_RDONLY){
+    using SdFat32::SdFat32;
 
-    //}
 	static SDCard & sharedInstance() {
 		static SDCard SD;
 		return SD;
