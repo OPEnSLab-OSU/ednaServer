@@ -6,7 +6,7 @@
 class FileLoader {
 public:
     bool createDirectoryIfNeeded(const char * dir) {
-        File32 folder = SDCard::sharedInstance().open(dir, FILE_READ);
+        File folder = SDCard::sharedInstance().open(dir, FILE_READ);
         if (folder.isOpen()) {
             if (folder.isDirectory()) {
                 folder.close();

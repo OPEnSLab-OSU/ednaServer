@@ -9,7 +9,7 @@ class JsonFileLoader : public FileLoader {
 public:
     template <size_t size>
     void load(const char * filepath, StaticJsonDocument<size> & dst) {
-        File32 file = SDCard::sharedInstance().open(filepath, FILE_READ);
+        File file = SDCard::sharedInstance().open(filepath, FILE_READ);
         if (!file) {
             KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
             // println(Error(message));
@@ -34,7 +34,7 @@ public:
             println("Not ready");
         };
 
-        File32 file = SDCard::sharedInstance().open(filepath, FILE_READ);
+        File file = SDCard::sharedInstance().open(filepath, FILE_READ);
         if (!file) {
             KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
             println(message);
@@ -101,7 +101,7 @@ public:
         };
 
         // serialize JSON document to file
-        File32 file = SDCard::sharedInstance().open(filepath, O_RDWR | O_CREAT | O_TRUNC);
+        File file = SDCard::sharedInstance().open(filepath, O_RDWR | O_CREAT | O_TRUNC);
         serializeJson(src, file);
         file.close();
 
