@@ -4,16 +4,31 @@
 class SDCard{
 private:
     SdFat sd;
-    /*
-    SDCard() {}
-    ~SDCard() {}
+    
+    SDCard() {
+    #ifdef DEBUG
+        pinMode(5, OUTPUT);
+        digitalWrite(5, LOW);
+        pinMode(6, OUTPUT);
+        digitalWrite(6, HIGH);
+    #endif
+
+    //println("ADSFASDFASDFASDFASDFASDFASD");
+    }
+    
+    ~SDCard() {
+        //sd.end();
+        //sd.errorHalt();
+    }
+    
     SDCard(SDCard const&) = delete;
     SDCard & operator = (SDCard const&) = delete;
-    */
 
 public:
     bool begin(SdCsPin_t pin){
-        return sd.begin(pin);
+
+        return sd.begin(SdSpiConfig(pin, DEDICATED_SPI, SD_SCK_MHZ(12)));
+        //return sd.begin(pin);
     }
 
     File open(const char *path, oflag_t flag=0X00){

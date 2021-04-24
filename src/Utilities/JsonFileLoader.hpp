@@ -3,7 +3,7 @@
 #include <Utilities/FileLoader.hpp>
 #include <Utilities/JsonEncodableDecodable.hpp>
 #include <Components/SDcard.hpp>
-#include <FatLib/FatFile.h>
+//#include <FatLib/FatFile.h>
 
 class JsonFileLoader : public FileLoader {
 public:
@@ -13,16 +13,19 @@ public:
         if (!file) {
             KPStringBuilder<120> message("JsonFileLoader: ", filepath, " doesn't exist");
             // println(Error(message));
+            file.close();
             return;
         }
 
         // skip empty file
         if (file.size() == 0) {
             println("JsonFileLoader: ", filepath, " is empty");
+            file.close();
             return;
         }
 
         deserializeJson(dst, file);
+        file.close();
     }
 
     template <typename Decoder>
@@ -31,7 +34,7 @@ public:
 
         // raise error if file doesn't exist to notify the user
         if (!SDCard::sharedInstance().begin(HardwarePins::SD_CARD)) {
-            println("Not ready");
+            println("Not ready - reres");
         };
 
         File file = SDCard::sharedInstance().open(filepath, FILE_READ);

@@ -1,7 +1,7 @@
 #pragma once
 #define ARDUINOJSON_USE_LONG_LONG 1
-#include <FatLib/FatFile.h>
-#include <FatLib/FatVolume.h>
+//#include <FatLib/FatFile.h>
+//#include <FatLib/FatVolume.h>
 #include <KPController.hpp>
 #include <KPFileLoader.hpp>
 #include <KPSerialInput.hpp>
@@ -96,9 +96,20 @@ public:
         println(BLUE("=================================================="));
         println(BLUE("                   DEBUG MODE"));
         println(BLUE("=================================================="));
+/*         pinMode(5, OUTPUT);
+        digitalWrite(5, LOW);
+        pinMode(6, OUTPUT);
+        digitalWrite(6, HIGH); */
 #endif
-        println(SDCard::sharedInstance().begin(HardwarePins::SD_CARD));
-        SDCard::sharedInstance().initErrorPrint();
+        /*if(!SDCard::sharedInstance().begin(HardwarePins::SD_CARD)){
+            SDCard::sharedInstance().initErrorPrint();
+        }else{
+            println("Card Activated");
+        }
+
+        if(!SDCard::sharedInstance().begin(HardwarePins::SD_CARD)){
+            println("ADFSDFASDF");
+        }*/
         //
         // ─── POWER MODULE ────────────────────────────────────────────────
         //
@@ -184,6 +195,7 @@ public:
 
         // Regular log header
         if (!SDCard::sharedInstance().exists(config.logFile)) {
+            //println("HMM");
             File file = SDCard::sharedInstance().open(config.logFile, FILE_WRITE);
             KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
