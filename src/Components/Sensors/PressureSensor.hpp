@@ -1,10 +1,10 @@
 #pragma once
 #include <Components/Sensor.hpp>
-#include <SSC.h>
+#include <Components/Sensors/custom_SSC.hpp>
 
 class PressureSensor : public Sensor<float, float> {
 private:
-    SSC sensor;
+    custom_ssc sensor;
 
     void begin() override {
         setUpdateFreq(3);
