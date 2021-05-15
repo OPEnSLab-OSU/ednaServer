@@ -12,8 +12,6 @@ private:
         pinMode(6, OUTPUT);
         digitalWrite(6, HIGH);
     #endif
-
-    //println("ADSFASDFASDFASDFASDFASDFASD");
     }
     
     ~SDCard() {
