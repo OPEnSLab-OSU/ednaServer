@@ -28,6 +28,11 @@ public:
     float waterFlow    = 0;
     float sampleVolume = 0;
 
+    bool buttonPressed = false;
+    bool buttonTriggered = false;
+    bool latestButtonPress = false;
+    unsigned long buttonStart = 0;
+
     float maxPressure = 0;
 
     bool isFull          = false;
@@ -110,6 +115,17 @@ private:
 
     void baro2DidUpdate(BaroSensor::SensorData & values) override {
         waterDepth = std::get<0>(values);
+    }
+
+    void buttonDidUpdate(ButtonSensor::SensorData & values) override {
+        latestButtonPress = (bool)std::get<0>(values);
+        if (latestButtonPress != buttonTriggered && (unsigned long) (millis() - buttonStart) < 1000) {
+            buttonTriggered    = true;
+            buttonStart = millis();
+            
+        } else {
+            buttonPressed = latestButtonPress;
+        }
     }
 
     bool isBatteryLow() const {

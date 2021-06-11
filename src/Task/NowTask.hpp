@@ -9,14 +9,14 @@
 #include <Utilities/JsonFileLoader.hpp>
 
 #include <Task/TaskStatus.hpp>
-#include <StateControllers/NewStateController.hpp>
+#include <StateControllers/NowTaskStateController.hpp>
 
-struct Task : public JsonEncodable,
+struct NowTask : public JsonEncodable,
               public JsonDecodable,
               public Printable,
-              public NewStateController::Configurator {
+              public NowTaskStateController::Configurator {
 public:
-    friend class TaskManager;
+    friend class NowTaskManager;
 
     int id;
     char name[TaskSettings::NAME_LENGTH]{0};
@@ -37,19 +37,29 @@ public:
     int preserveTime   = 0;
 
     bool deleteOnCompletion = false;
-
-    std::vector<uint8_t> valves;
+    int* valve;
+//    std::vector<uint8_t> valves;
 
 public:
     int valveOffsetStart = 0;
 
 public:
-    Task()                   = default;
-    Task(const Task & other) = default;
-    Task & operator=(const Task &) = default;
+    NowTask() {
+        valve = (int*) malloc(sizeof(int));
+        *valve = 0; 
+    }
+    NowTask(const NowTask & other) {
+        valve = (int*) malloc(sizeof(int));
+        *valve = *other.valve;
+    };
+    NowTask & operator=(const NowTask &) = default;
 
-    explicit Task(const JsonObject & data) {
+    explicit NowTask(const JsonObject & data) {
         decodeJSON(data);
+    }
+
+    ~NowTask() {
+        free(valve);
     }
 
     int getValveOffsetStart() const {
@@ -57,10 +67,14 @@ public:
     }
 
     int getNumberOfValves() const {
-        return valves.size();
+        return 1;
+        //return valves.size();
     }
 
     bool isCompleted() const {
+        if((*valve < ProgramSettings::MAX_VALVES) && (status == TaskStatus::completed)){
+            *valve += 1;
+        }
         return status == TaskStatus::completed;
     }
 
@@ -70,12 +84,13 @@ public:
      *  @return int -1 if no more valve, otherwise returns the valve number
      *  ──────────────────────────────────────────────────────────────────────────── */
     int getCurrentValveId() const {
-        return (getValveOffsetStart() >= getNumberOfValves()) ? -1 : valves[getValveOffsetStart()];
+        return *valve;
+        //return (getValveOffsetStart() >= getNumberOfValves()) ? -1 : valves[getValveOffsetStart()];
     }
 
 #pragma region JSONDECODABLE
     static const char * decoderName() {
-        return "Task";
+        return "NowTask";
     }
 
     static constexpr size_t decodingSize() {
@@ -94,20 +109,7 @@ public:
             snprintf(notes, NOTES_LENGTH, "%s", source[NOTES].as<char *>());
         }
 
-        if (source.containsKey(VALVES)) {
-            JsonArray valve_array = source[VALVES].as<JsonArray>();
-            valves.resize(valve_array.size());
-            copyArray(valve_array, valves.data(), valve_array.size());
-            valveOffsetStart = source[VALVES_OFFSET];
-        }
-
         id             = source[ID];
-        if(source.containsKey(CREATED_AT)){
-            createdAt      = source[CREATED_AT];
-        }
-        if(source.containsKey(SCHEDULE)){
-            schedule       = source[SCHEDULE];
-        }
         status         = source[STATUS];
         flushTime      = source[FLUSH_TIME];
         flushVolume    = source[FLUSH_VOLUME];
@@ -116,13 +118,13 @@ public:
         sampleVolume   = source[SAMPLE_VOLUME];
         dryTime        = source[DRY_TIME];
         preserveTime   = source[PRESERVE_TIME];
-        timeBetween    = source[TIME_BETWEEN];
+        *valve         = source[CURR_VALVE];
     }
 #pragma endregion
 #pragma region JSONENCODABLE
 
     static const char * encoderName() {
-        return "Task";
+        return "NowTask";
     }
 
     static constexpr size_t encodingSize() {
@@ -136,8 +138,6 @@ public:
 			&& dst[NAME].set((char *)name) 
 			&& dst[NOTES].set((char *) notes)
 			&& dst[STATUS].set(status) 
-			&& dst[CREATED_AT].set(createdAt)
-			&& dst[SCHEDULE].set(schedule) 
 			&& dst[FLUSH_TIME].set(flushTime)
 			&& dst[FLUSH_VOLUME].set(flushVolume)
 			&& dst[SAMPLE_TIME].set(sampleTime)
@@ -145,10 +145,9 @@ public:
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[DRY_TIME].set(dryTime) 
 			&& dst[PRESERVE_TIME].set(preserveTime)
-			&& dst[TIME_BETWEEN].set(timeBetween) 
 			&& dst[VALVES_OFFSET].set(getValveOffsetStart())
 			&& dst[DELETE].set(deleteOnCompletion)
-			&& copyArray(valves.data(), valves.size(), dst.createNestedArray(VALVES));
+			&& dst[CURR_VALVE].set(*valve);
 	}  // clang-format on
 
     size_t printTo(Print & printer) const override {
@@ -159,7 +158,7 @@ public:
     }
 #pragma endregion
 
-    void operator()(NewStateController::Config & config) const {
+    void operator()(NowTaskStateController::Config & config) const {
         config.flushTime      = flushTime;
         config.sampleTime     = sampleTime;
         config.samplePressure = samplePressure;

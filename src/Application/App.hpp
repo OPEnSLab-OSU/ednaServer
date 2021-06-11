@@ -18,6 +18,7 @@
 #include <Components/Intake.hpp>
 
 #include <StateControllers/NewStateController.hpp>
+#include <StateControllers/NowTaskStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
 
 #include <Valve/Valve.hpp>
@@ -25,6 +26,9 @@
 
 #include <Task/Task.hpp>
 #include <Task/TaskManager.hpp>
+
+#include <Task/NowTask.hpp>
+#include <Task/NowTaskManager.hpp>
 
 #include <Utilities/JsonEncodableDecodable.hpp>
 
@@ -66,9 +70,12 @@ public:
     // MainStateController sm;
     NewStateController newStateController;
     HyperFlushStateController hyperFlushStateController;
+    NowTaskStateController nowTaskStateController;
+    time_t last_nowTask = now();
 
     ValveManager vm;
     TaskManager tm;
+    NowTaskManager ntm;
 
     SensorArray sensors{"sensor-array"};
 
@@ -84,6 +91,7 @@ private:
     }
 
 public:
+    void virtual setupButtonPress() {}
     void setup() override {
         KPSerialInput::sharedInstance().addObserver(this);
         Serial.begin(115200);
@@ -161,6 +169,13 @@ public:
 
         addComponent(hyperFlushStateController);
         hyperFlushStateController.idle();  // Wait in IDLE
+
+        //
+        //  ___ NOW TASK CONTROLLER ____________
+        //
+
+        addComponent(nowTaskStateController);
+        nowTaskStateController.idle();
 
         //
         // ─── NEW STATE CONTROLLER ────────────────────────────────────────
@@ -304,6 +319,30 @@ public:
         hyperFlushStateController.begin();
     }
 
+    void beginNowTask(){
+        time_t time_now = now();
+        NowTask task = ntm.task;
+        status.preventShutdown = false;
+        
+        if(time_now + nowTaskStateController.get_total_time() >= tm.tasks[tm.getActiveSortedTaskIds().front()].schedule){
+            invalidateTaskAndFreeUpValves(tm.tasks[tm.getActiveSortedTaskIds().front()]);
+        }
+        TimedAction NowTaskExecution;
+        const auto timeUntil = 10;
+        NowTaskExecution.interval = secsToMillis(timeUntil);
+        NowTaskExecution.callback = [this]() { nowTaskStateController.begin(); };
+        run(NowTaskExecution);  // async, will be execute later
+
+
+        //currentTaskId          = id;
+        status.preventShutdown = true;
+        vm.setValveStatus(*(task.valve), ValveStatus::operating);
+
+        println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
+        
+
+    }
+
     ValveBlock currentValveNumberToBlock() {
         return {
             shift.toRegisterIndex(status.currentValve) + 1, shift.toPinIndex(status.currentValve)};
@@ -433,6 +472,14 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void update() override {
         KPController::update();
+
+        if(status.buttonPressed){
+            NowTask task = ntm.task;
+            nowTaskStateController.configure(task);
+            if(now() - last_nowTask > nowTaskStateController.get_total_time()){
+                const auto & response = dispatchAPI<API::StartNowTask>();
+            }
+        }
         if (!status.isProgrammingMode() && !status.preventShutdown) {
             shutdown();
         }
