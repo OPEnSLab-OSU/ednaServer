@@ -117,6 +117,11 @@ private:
         return analogRead(HardwarePins::BATTERY_VOLTAGE) <= 860;  // 860 is around 12V of battery
     }
 
+    uint32_t batteryVolt() const {
+        analogReadResolution(10);
+        return 12 * (analogRead(HardwarePins::BATTERY_VOLTAGE) / 860 );
+    }
+
 public:
     /** ────────────────────────────────────────────────────────────────────────────
      *  @brief Override_Mode_Pin is connected to an external switch which is active low.
@@ -178,6 +183,7 @@ public:
 			&& dest[CURRENT_TASK].set(currentTaskName)
 			&& dest[CURRENT_STATE].set(currentStateName) 
             && dest[LOW_BATTERY].set(isBatteryLow())
+            && dest[BATTERY_VOLT].set(batteryVolt())
             && dest[SAMPLE_VOLUME].set(sampleVolume);
         // clang-format on
     }
