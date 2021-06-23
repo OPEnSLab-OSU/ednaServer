@@ -14,6 +14,7 @@
 #include <Components/Pump.hpp>
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
+#include <Components/NowSampleButton.hpp>
 #include <Components/SensorArray.hpp>
 #include <Components/Intake.hpp>
 
@@ -36,7 +37,7 @@
 
 #include <configuration.hpp>
 
-class App : public KPController, public KPSerialInputObserver, public TaskObserver {
+class App : public KPController, public KPSerialInputObserver, public TaskObserver, public NowTaskObserver {
 private:
     void setupAPI();
     void setupSerialRouting();
@@ -63,6 +64,7 @@ public:
     };
 
     Power power{"power"};
+    NowSampleButton nowSampleButton{"nowSampleButton"};
     BallIntake intake{shift};
     Config config{ProgramSettings::CONFIG_FILE_PATH};
     Status status;
@@ -133,7 +135,7 @@ public:
         addComponent(pump);
         addComponent(sensors);
         sensors.addObserver(status);
-
+        addComponent(nowSampleButton);
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
         //
@@ -221,6 +223,15 @@ public:
             println(scheduleNextActiveTask().description());
         });
 
+
+        nowSampleButton.onInterrupt([this](){
+            println(RED("Now Sampling!"));
+            NowTask task = ntm.task;
+            nowTaskStateController.configure(task);
+            if(now() - last_nowTask > nowTaskStateController.get_total_time()){
+                beginNowTask();
+            }
+        });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #ifdef DEBUG
         runForever(2000, "memLog", [&]() { printFreeRam(); });
@@ -472,14 +483,6 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void update() override {
         KPController::update();
-
-        if(status.buttonPressed){
-            NowTask task = ntm.task;
-            nowTaskStateController.configure(task);
-            if(now() - last_nowTask > nowTaskStateController.get_total_time()){
-                const auto & response = dispatchAPI<API::StartNowTask>();
-            }
-        }
         if (!status.isProgrammingMode() && !status.preventShutdown) {
             shutdown();
         }
@@ -511,7 +514,7 @@ public:
 
 private:
     void taskDidUpdate(const Task & task) override {}
-
+    void nowTaskDidUpdate(const NowTask & task) override {}
     void taskDidDelete(int id) override {
         if (currentTaskId == id) {
             currentTaskId = 0;

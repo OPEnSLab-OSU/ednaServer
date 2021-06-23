@@ -117,17 +117,6 @@ private:
         waterDepth = std::get<0>(values);
     }
 
-    void buttonDidUpdate(ButtonSensor::SensorData & values) override {
-        latestButtonPress = (bool)std::get<0>(values);
-        if (latestButtonPress != buttonTriggered && (unsigned long) (millis() - buttonStart) < 1000) {
-            buttonTriggered    = true;
-            buttonStart = millis();
-            
-        } else {
-            buttonPressed = latestButtonPress;
-        }
-    }
-
     bool isBatteryLow() const {
         analogReadResolution(10);
         return analogRead(HardwarePins::BATTERY_VOLTAGE) <= 860;  // 860 is around 12V of battery

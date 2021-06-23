@@ -19,6 +19,11 @@ void Main::Stop::enter(KPStateMachine & sm) {
     app.tm.advanceTask(currentTaskId);
     app.tm.writeToDirectory();
 
+    if(app.ntm.advanceTask()){
+        app.nowSampleButton.setSampleButton();
+    }
+    app.ntm.writeToDirectory();
+
     app.currentTaskId       = 0;
     app.status.currentValve = -1;
     sm.next();

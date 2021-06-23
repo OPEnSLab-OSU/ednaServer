@@ -57,13 +57,11 @@
 #include <Components/Sensors/TurbineFlowSensor.hpp>
 #include <Components/Sensors/PressureSensor.hpp>
 #include <Components/Sensors/BaroSensor.hpp>
-#include <Components/Sensors/ButtonSensor.hpp>
 
 #define PSAddr 0x08
 #define FSAddr 0x07
 #define BSAddr 0x77
 #define DSAddr 0x76
-#define BAddr 0x88 //CHANGE LATER
 
 inline bool checkForI2CConnection(unsigned char addr) {
     Wire.begin();
@@ -79,7 +77,6 @@ public:
     PressureSensor pressure{PSAddr};
     BaroSensor baro1{BSAddr};
     BaroSensor baro2{DSAddr};
-    ButtonSensor button{BAddr};
 
 
     void setup() override {
@@ -102,10 +99,6 @@ public:
             updateObservers(&SensorArrayObserver::baro2DidUpdate, data);
         };
 
-        button.enabled = checkForI2CConnection(BAddr);
-        button.onReceived = [this](ButtonSensor::SensorData & data){
-            updateObservers(&SensorArrayObserver::buttonDidUpdate, data);
-        };
     }
 
     void update() override {
@@ -113,6 +106,5 @@ public:
         pressure.update();
         baro1.update();
         baro2.update();
-        button.update();
     }
 };

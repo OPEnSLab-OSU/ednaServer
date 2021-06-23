@@ -39,25 +39,22 @@ public:
         return task;
     }
 
+*/
 
-    bool advanceTask(int id) {
-        if (!findTask(id)) {
-            return false;
-        }
+    bool advanceTask() {
 
-        auto & task = tasks[id];
         println(GREEN("Task Time betwen: "), task.timeBetween);
         task.schedule = now() + std::max(task.timeBetween, 5);
         if (++task.valveOffsetStart >= task.getNumberOfValves()) {
-            return markTaskAsCompleted(id);
+            return markTaskAsCompleted();
         }
 
-        return true;
+        return false;
     }
-*/
-    bool setTaskStatus(int id, TaskStatus status) {
+
+    bool setTaskStatus(TaskStatus status) {
         task.status = status;
-        updateObservers(&NowTaskObserver::taskDidUpdate, task);
+        updateObservers(&NowTaskObserver::nowTaskDidUpdate, task);
         return true;
     }
 
@@ -68,20 +65,15 @@ public:
         return 0;
     }
 
-    /*
-    bool markTaskAsCompleted(int id) {
-        task.valves.clear();
-        if (task.deleteOnCompletion) {
-            println("DELETED: ", id);
-            deleteTask(id);
-        } else {
-            task.status = TaskStatus::completed;
-            updateObservers(&TaskObserver::taskDidUpdate, task);
-        }
+    
+    bool markTaskAsCompleted() {
 
-        return true;
+        task.status = TaskStatus::completed;
+        updateObservers(&NowTaskObserver::nowTaskDidUpdate, task);
+
+        return task.isCompleted();
     }
-
+    /*
     bool findTask(int id) const {
         return tasks.find(id) != tasks.end();
     }
