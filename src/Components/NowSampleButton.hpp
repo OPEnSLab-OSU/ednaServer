@@ -52,7 +52,8 @@ public:
 
     void setupButton() {
         pinMode(HardwarePins::BUTTON_PIN, INPUT);
-
+        buttonFlag = 0;
+        attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, RISING);
         print("Button Set Up");
         println();
     }
@@ -71,9 +72,11 @@ public:
         }
 
         // Continue if button has a new press
-        if (buttonFlag) {
-            interruptCallback();
+        if (buttonFlag != 0) {
+            detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
             buttonTriggered = false;
+            interruptCallback();
+            
         }
     }
 
@@ -97,6 +100,7 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void setSampleButton() {
         buttonFlag = 0;
+        println("interrupt attached");
         attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, RISING);
     }
 

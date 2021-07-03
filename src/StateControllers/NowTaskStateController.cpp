@@ -15,6 +15,9 @@ void NowTaskStateController::setup() {
     registerState(SharedStates::OffshootClean(5), OFFSHOOT_CLEAN_1, FLUSH_2);
     registerState(SharedStates::Flush(), FLUSH_2, SAMPLE);
     registerState(SharedStates::Sample(), SAMPLE, [this](int code) {
+        #if DEBUG
+            return transitionTo(OFFSHOOT_CLEAN_2);
+        #else
         auto & app = *static_cast<App *>(controller);
         app.sensors.flow.stopMeasurement();
         app.logAfterSample();
@@ -25,6 +28,7 @@ void NowTaskStateController::setup() {
         default:
             halt(TRACE, "Unhandled state transition: ", code);
         }
+        #endif
     });
     registerState(SharedStates::OffshootClean(10), OFFSHOOT_CLEAN_2, DRY);
     registerState(SharedStates::Dry(), DRY, PRESERVE);

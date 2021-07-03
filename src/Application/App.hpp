@@ -73,7 +73,6 @@ public:
     NewStateController newStateController;
     HyperFlushStateController hyperFlushStateController;
     NowTaskStateController nowTaskStateController;
-    time_t last_nowTask = now();
 
     ValveManager vm;
     TaskManager tm;
@@ -160,6 +159,14 @@ public:
         tm.addObserver(this);
         tm.loadTasksFromDirectory(config.taskFolder);
 
+
+        //
+        // ___ ADDING NOW TASK MANAGER _____________________________________
+        //
+
+        ntm.init(config);
+        ntm.addObserver(this);
+        ntm.loadTasksFromDirectory(config.taskFolder);
         //
         // ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
         //
@@ -226,9 +233,10 @@ public:
 
         nowSampleButton.onInterrupt([this](){
             println(RED("Now Sampling!"));
-            NowTask task = ntm.task;
-            nowTaskStateController.configure(task);
-            if(now() - last_nowTask > nowTaskStateController.get_total_time()){
+            //NowTask task = ntm.task;
+            nowTaskStateController.configure(ntm.task);
+            if(now() - ntm.last_nowTask > nowTaskStateController.get_total_time()){
+                ntm.last_nowTask = now();
                 beginNowTask();
             }
         });

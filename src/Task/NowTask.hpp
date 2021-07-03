@@ -135,8 +135,6 @@ public:
         using namespace TaskKeys;
         // clang-format off
 		return dst[ID].set(id) 
-			&& dst[NAME].set((char *)name) 
-			&& dst[NOTES].set((char *) notes)
 			&& dst[STATUS].set(status) 
 			&& dst[FLUSH_TIME].set(flushTime)
 			&& dst[FLUSH_VOLUME].set(flushVolume)
@@ -145,8 +143,6 @@ public:
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[DRY_TIME].set(dryTime) 
 			&& dst[PRESERVE_TIME].set(preserveTime)
-			&& dst[VALVES_OFFSET].set(getValveOffsetStart())
-			&& dst[DELETE].set(deleteOnCompletion)
 			&& dst[CURR_VALVE].set(*valve);
 	}  // clang-format on
 

@@ -20,6 +20,8 @@ public:
     const char * taskFolder = nullptr;
     NowTask task;
 
+    time_t last_nowTask = now();
+
     NowTaskManager() : KPComponent("NowTaskManager") {}
 
     void init(Config & config) {
@@ -43,13 +45,18 @@ public:
 
     bool advanceTask() {
 
-        println(GREEN("Task Time betwen: "), task.timeBetween);
-        task.schedule = now() + std::max(task.timeBetween, 5);
-        if (++task.valveOffsetStart >= task.getNumberOfValves()) {
+        println(GREEN("Checking now task"));
+        if (now() >= task_length() + last_nowTask) {
+            println(GREEN("now task complete"));
             return markTaskAsCompleted();
         }
 
         return false;
+    }
+
+
+    int task_length() {
+        return task.flushTime + task.sampleTime + task.samplePressure + task.dryTime + task.preserveTime;
     }
 
     bool setTaskStatus(TaskStatus status) {
@@ -114,12 +121,11 @@ public:
         JsonFileLoader loader;
         loader.createDirectoryIfNeeded(dir);
 
-        // Load task index file and get the number of tasks
         auto start = millis();
-        KPStringBuilder<32> filepath(dir, "/NowTask.js");
+        KPStringBuilder<32> filepath(dir, "/nowtask.js");
         loader.load(filepath, task);
 
-        println(GREEN("Task Manager"), " finished reading in ", millis() - start, " ms\n");
+        println(GREEN("Now Task Manager"), " finished reading in ", millis() - start, " ms\n");
         // updateObservers(&TaskObserver::taskCollectionDidUpdate, tasks.begin());
     }
 
@@ -137,7 +143,7 @@ public:
 
         println("Writing Now Task");
 
-        KPStringBuilder<32> filename("NowTask.js");
+        KPStringBuilder<32> filename("nowtask.js");
         KPStringBuilder<64> filepath(dir, "/", filename);
         loader.save(filepath, task);
     }

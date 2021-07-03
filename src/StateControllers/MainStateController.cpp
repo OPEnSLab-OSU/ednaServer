@@ -20,6 +20,7 @@ void Main::Stop::enter(KPStateMachine & sm) {
     app.tm.writeToDirectory();
 
     if(app.ntm.advanceTask()){
+        println(BLUE("Setting now sample button to be pressed again"));
         app.nowSampleButton.setSampleButton();
     }
     app.ntm.writeToDirectory();
