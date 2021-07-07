@@ -37,6 +37,7 @@ private:
     void setupAPI();
     void setupSerialRouting();
     void setupServerRouting();
+    void testValve(int v);
     void commandReceived(const char * line, size_t size) override;
 
 public:
@@ -81,6 +82,21 @@ private:
 
     const char * TaskObserverName() const override {
         return "Application-Task Observer";
+    }
+
+
+    void testValve(int v) {
+            println("Valve: %i", v);
+            shift.setAllRegistersLow();
+            shift.writePin(v + shift.capacityPerRegister, HIGH);
+            shift.write();
+            println("press any key to continue: ");
+              while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
     }
 
 public:
@@ -209,6 +225,97 @@ public:
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #ifdef DEBUG
         runForever(2000, "memLog", [&]() { printFreeRam(); });
+#endif
+
+#ifdef COMPONENT_TEST
+
+            println();
+            println(BLUE("=================== RUNNING COMPONENT TEST =================="));
+
+            println("Press any key to start: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
+            for(int i = 0; i < 24; i++){
+                testValve(i);
+                delay(20);
+            }
+
+
+            shift.writeAllRegistersLow();
+            delay(1000);
+            println("Testing sensors...");
+            println("press any key to continue: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
+            
+            sensors.update();
+            delay(1000);
+            println("Testing pump...");
+            println("press any key to continue: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
+            pump.on();
+            delay(3000);
+            pump.off();
+            delay(3000);
+            pump.on(Direction::reverse);
+            delay(3000);
+            pump.off();
+
+            println("Testing air valve...");
+            println("press any key to continue: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
+            shift.setPin(TPICDevices::AIR_VALVE, HIGH);
+
+            println("Testing flush valve...");
+            println("press any key to continue: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
+            shift.writeAllRegistersLow();
+            shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+
+            
+            println("Testing alcohol valve...");
+            println("press any key to continue: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
+            shift.writeAllRegistersLow();
+            shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+
+            println("Testing complete");
+            println("press any key to continue: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                char t = Serial.read();
+            }
+            shift.writeAllRegistersLow();
 #endif
     }
 
@@ -436,6 +543,7 @@ public:
         if (!status.isProgrammingMode() && !status.preventShutdown) {
             shutdown();
         }
+        
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
