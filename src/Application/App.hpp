@@ -14,7 +14,6 @@
 #include <Components/Pump.hpp>
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
-#include <Components/NowSampleButton.hpp>
 #include <Components/SensorArray.hpp>
 #include <Components/Intake.hpp>
 
@@ -64,7 +63,7 @@ public:
     };
 
     Power power{"power"};
-    NowSampleButton nowSampleButton{"nowSampleButton"};
+    //nowSampleButton nowSampleButton{"nowSampleButton"};
     BallIntake intake{shift};
     Config config{ProgramSettings::CONFIG_FILE_PATH};
     Status status;
@@ -134,7 +133,7 @@ public:
         addComponent(pump);
         addComponent(sensors);
         sensors.addObserver(status);
-        addComponent(nowSampleButton);
+        //addComponent(nowSampleButton);
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
         //
@@ -231,7 +230,7 @@ public:
         });
 
 
-        nowSampleButton.onInterrupt([this](){
+        power.onButtonInterrupt([this](){
             println(RED("Now Sampling!"));
             //NowTask task = ntm.task;
             nowTaskStateController.configure(ntm.task);

@@ -18,7 +18,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
+/*
 #pragma once
 #include <KPFoundation.hpp>
 #include <SPI.h>
@@ -34,10 +34,7 @@
 //
 // 
 //
-
-extern volatile unsigned long buttonInterruptStart;
-extern volatile bool buttonTriggered;
-extern volatile int buttonFlag;
+;
 extern void button_isr();
 
 class NowSampleButton : public KPComponent {
@@ -66,16 +63,13 @@ public:
      *  Runtime update loop. Check if Button has been triggered.
 
      *  ──────────────────────────────────────────────────────────────────────────── */
-    void update() override {
+   /* void update() override {
         if (!buttonTriggered || !interruptCallback) {
             return;
         }
 
         // Continue if button has a new press
-        if (buttonFlag != 0) {
-            detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
-            buttonTriggered = false;
-            interruptCallback();
+        if (
             
         }
     }
@@ -88,7 +82,7 @@ public:
      *  Disable button
      *
      *  ──────────────────────────────────────────────────────────────────────────── */
-    void disableSampleButton() {
+    /*void disableSampleButton() {
         detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
     }
 
@@ -98,7 +92,7 @@ public:
     /** ────────────────────────────────────────────────────────────────────────────
      *  Set Button to be able to be pressed again
      *  ──────────────────────────────────────────────────────────────────────────── */
-    void setSampleButton() {
+  /*  void () {
         buttonFlag = 0;
         println("interrupt attached");
         attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, RISING);
@@ -106,4 +100,4 @@ public:
 
 
 
-};
+};*/
