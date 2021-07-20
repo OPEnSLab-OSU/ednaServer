@@ -61,6 +61,19 @@ void App::setupServerRouting() {
     });
 
     // ────────────────────────────────────────────────────────────────────────────────
+    // Get now task object
+    // ────────────────────────────────────────────────────────────────────────────────
+    server.get("/api/nowTask", [this](Request &, Response & res) {
+        StaticJsonDocument<TaskManager::encodingSize()> response;
+        encodeJSON(ntm, response.to<JsonArray>());
+
+        KPStringBuilder<10> length(measureJson(response));
+        res.setHeader("Content-Length", length);
+        res.json(response);
+        res.end();
+    });
+
+    // ────────────────────────────────────────────────────────────────────────────────
     // Get task with name
     // ────────────────────────────────────────────────────────────────────────────────
     server.post("/api/task/get", [this](Request & req, Response & res) {
