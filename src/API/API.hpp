@@ -50,6 +50,10 @@ namespace API {
         auto operator()(Arg<0>, Arg<1>) -> R;
     };
 
+    struct NowTaskSave : APISpec<JsonResponse<NowTask::encodingSize() + 500>(App &, JsonDocument &)> {
+        auto operator()(Arg<0>, Arg<1>) -> R;
+    };
+
     struct TaskDelete : APISpec<JsonResponse<500>(App &, JsonDocument &)> {
         auto operator()(Arg<0>, Arg<1>) -> R;
     };

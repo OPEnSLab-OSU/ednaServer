@@ -114,6 +114,18 @@ void App::setupServerRouting() {
     });
 
     // ────────────────────────────────────────────────────────────────────────────────
+    // Update existing task with incoming data
+    // ────────────────────────────────────────────────────────────────────────────────
+    server.post("/api/nowTask/save", [this](Request & req, Response & res) {
+        StaticJsonDocument<Task::encodingSize()> body;
+        deserializeJson(body, req.body);
+        serializeJsonPretty(body, Serial);
+
+        const auto & response = dispatchAPI<API::NowTaskSave>(body);
+        res.json(response);
+        res.end();
+    });
+    // ────────────────────────────────────────────────────────────────────────────────
     // Schedule a task (marking it active)
     // ────────────────────────────────────────────────────────────────────────────────
     server.post("/api/task/schedule", [this](Request & req, Response & res) {

@@ -45,11 +45,11 @@ extern volatile bool alarmTriggered;
 extern volatile unsigned long buttonInterruptStart;
 extern volatile bool buttonTriggered;
 extern volatile int buttonFlag;
-bool buttonCanTrigger;
 extern void rtc_isr();
 
 class Power : public KPComponent {
 public:
+    bool buttonCanTrigger;
     DS3232RTC rtc;
     std::function<void()> interruptCallback;
 	std::function<void()> buttonCallback;

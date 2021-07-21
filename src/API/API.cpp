@@ -103,6 +103,21 @@ namespace API {
         return response;
     }
 
+    auto NowTaskSave::operator()(Arg<0> & app, Arg<1> & input) -> R {
+        R response;
+        // Prarse incomming payload
+        NowTask incomingTask;
+        incomingTask.decodeJSON(input.as<JsonVariant>());
+
+
+        // Save
+        app.ntm.task = incomingTask;
+        app.ntm.writeToDirectory();
+
+        response["success"] = "Task successfully saved";
+        return response;
+    }
+
     auto TaskDelete::operator()(Arg<0> & app, Arg<1> & input) -> R {
         R response;
         int id = input["id"];
