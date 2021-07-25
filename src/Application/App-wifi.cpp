@@ -63,7 +63,8 @@ void App::setupServerRouting() {
     // ────────────────────────────────────────────────────────────────────────────────
     // Get now task object
     // ────────────────────────────────────────────────────────────────────────────────
-    server.get("/api/nowTask", [this](Request &, Response & res) {
+    server.get("/api/nowtask", [this](Request &, Response & res) {
+        println(BLUE("REQUESTING NOW TASK"));
         StaticJsonDocument<TaskManager::encodingSize()> response;
         encodeJSON(ntm, response.to<JsonArray>());
 
@@ -116,7 +117,8 @@ void App::setupServerRouting() {
     // ────────────────────────────────────────────────────────────────────────────────
     // Update existing task with incoming data
     // ────────────────────────────────────────────────────────────────────────────────
-    server.post("/api/nowTask/save", [this](Request & req, Response & res) {
+    server.post("/api/nowtask/save", [this](Request & req, Response & res) {
+        println(BLUE("SAVING NOW TASK"));
         StaticJsonDocument<Task::encodingSize()> body;
         deserializeJson(body, req.body);
         serializeJsonPretty(body, Serial);
