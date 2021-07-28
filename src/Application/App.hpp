@@ -227,14 +227,14 @@ public:
         power.onInterrupt([this]() {
             println(GREEN("RTC Interrupted!"));
             println(scheduleNextActiveTask().description());
+            power.disarmSampleNowButton();
         });
 
 
         power.onButtonInterrupt([this](){
-            println(RED("Now Sampling!"));
-            //NowTask task = ntm.task;
             nowTaskStateController.configure(ntm.task);
             if(now() - ntm.last_nowTask > nowTaskStateController.get_total_time()){
+                println(RED("Now Sampling!"));
                 ntm.last_nowTask = now();
                 beginNowTask();
             }
@@ -344,6 +344,19 @@ public:
         
         if(time_now + nowTaskStateController.get_total_time() >= tm.tasks[tm.getActiveSortedTaskIds().front()].schedule){
             invalidateTaskAndFreeUpValves(tm.tasks[tm.getActiveSortedTaskIds().front()]);
+        }
+        if(vm.valves[*(task.valve)].status != ValveStatus::free){
+            *(task.valve) = -1;
+            for(int i = 0; i < vm.valves.size(); i++){
+                if(vm.valves[i].status == ValveStatus::free){
+                    *(task.valve) = i;
+                    break;
+                }
+            }
+            if(*(task.valve) == -1){
+                print(RED("No free valves to sample!"));
+                return;
+            }
         }
         TimedAction NowTaskExecution;
         const auto timeUntil = 10;

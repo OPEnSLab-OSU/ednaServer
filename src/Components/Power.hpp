@@ -317,4 +317,8 @@ public:
 		buttonFlag = 0;
 		buttonCanTrigger = true;
 	}
+
+    void disarmSampleNowButton(){
+        buttonCanTrigger = false;
+    }
 };
