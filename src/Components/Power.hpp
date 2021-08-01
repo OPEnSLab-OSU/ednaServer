@@ -314,6 +314,7 @@ public:
     }
 	
 	void setSampleButton() {
+        digitalWrite(LED_BUILTIN, LOW);
 		buttonFlag = 0;
 		buttonCanTrigger = true;
 	}

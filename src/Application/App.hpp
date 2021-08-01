@@ -166,6 +166,7 @@ public:
         ntm.init(config);
         ntm.addObserver(this);
         ntm.loadTasksFromDirectory(config.taskFolder);
+        pinMode(LED_BUILTIN, OUTPUT);
         //
         // ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
         //
@@ -235,6 +236,7 @@ public:
             nowTaskStateController.configure(ntm.task);
             if(now() - ntm.last_nowTask > nowTaskStateController.get_total_time()){
                 println(RED("Now Sampling!"));
+                digitalWrite(LED_BUILTIN, HIGH);
                 ntm.last_nowTask = now();
                 beginNowTask();
             }
