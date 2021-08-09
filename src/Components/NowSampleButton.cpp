@@ -5,7 +5,9 @@ volatile bool buttonTriggered             = false;
 volatile int buttonFlag                    = 0;
 
 void button_isr() {
-    if ((unsigned long) (millis() - buttonInterruptStart) < 200) {
+    println(BLUE("BUTTON PRESS DETECTED"));
+    if ((millis() - buttonInterruptStart) < 200) {
+        print(RED("Debounce detected"));
         return;
     }
 
