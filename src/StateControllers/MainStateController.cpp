@@ -18,13 +18,13 @@ void Main::Stop::enter(KPStateMachine & sm) {
     auto currentTaskId = app.currentTaskId;
     if(app.tm.advanceTask(currentTaskId)){
         println(BLUE("Setting now sample button to be pressed again"));
-        app.power.setSampleButton();
+        app.nowSampleButton.setSampleButton();
     };
     app.tm.writeToDirectory();
 
     if(app.ntm.advanceTask()){
         println(BLUE("Setting now sample button to be pressed again"));
-        app.power.setSampleButton();
+        app.nowSampleButton.setSampleButton();
     }
     app.ntm.writeToDirectory();
 

@@ -14,6 +14,7 @@
 #include <Components/Pump.hpp>
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
+#include <Components/NowSampleButton.hpp>
 #include <Components/SensorArray.hpp>
 #include <Components/Intake.hpp>
 
@@ -63,7 +64,7 @@ public:
     };
 
     Power power{"power"};
-    //nowSampleButton nowSampleButton{"nowSampleButton"};
+    NowSampleButton nowSampleButton{"nowSampleButton"};
     BallIntake intake{shift};
     Config config{ProgramSettings::CONFIG_FILE_PATH};
     Status status;
@@ -228,16 +229,14 @@ public:
         power.onInterrupt([this]() {
             println(GREEN("RTC Interrupted!"));
             println(scheduleNextActiveTask().description());
-            power.disarmSampleNowButton();
         });
 
 
-        power.onButtonInterrupt([this](){
-            nowTaskStateController.configure(ntm.task);
-            if(now() - ntm.last_nowTask > nowTaskStateController.get_total_time()){
+         nowSampleButton.onInterrupt([this](){
+            //check to make sure task isn't running that disables button
+            if(buttonFlag != 0){
                 println(RED("Now Sampling!"));
                 digitalWrite(LED_BUILTIN, HIGH);
-                ntm.last_nowTask = now();
                 beginNowTask();
             }
         });
@@ -343,13 +342,13 @@ public:
         time_t time_now = now();
         NowTask task = ntm.task;
         status.preventShutdown = false;
-        
+        nowTaskStateController.configure(ntm.task);
         if(time_now + nowTaskStateController.get_total_time() >= tm.tasks[tm.getActiveSortedTaskIds().front()].schedule){
             invalidateTaskAndFreeUpValves(tm.tasks[tm.getActiveSortedTaskIds().front()]);
         }
         if(vm.valves[*(task.valve)].status != ValveStatus::free){
             *(task.valve) = -1;
-            for(int i = 0; i < vm.valves.size(); i++){
+            for(unsigned int i = 0; i < vm.valves.size(); i++){
                 if(vm.valves[i].status == ValveStatus::free){
                     *(task.valve) = i;
                     break;
@@ -420,10 +419,15 @@ public:
             }
 
             if (time_now >= task.schedule - 10) {
+                if(buttonFlag != 0){
+                    println(RED("Sample Now Task Occuring"));
+                    invalidateTaskAndFreeUpValves(task);
+                    continue;
+                }
                 // Wake up between 10 secs of the actual schedule time
                 // Prepare an action to execute at exact time
                 const auto timeUntil = task.schedule - time_now;
-
+                nowSampleButton.disableSampleButton();
                 TimedAction delayTaskExecution;
                 delayTaskExecution.name     = "delayTaskExecution";
                 delayTaskExecution.interval = secsToMillis(timeUntil);

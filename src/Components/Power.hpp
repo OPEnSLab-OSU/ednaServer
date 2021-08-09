@@ -42,27 +42,18 @@
 
 extern volatile unsigned long rtcInterruptStart;
 extern volatile bool alarmTriggered;
-extern volatile unsigned long buttonInterruptStart;
-extern volatile bool buttonTriggered;
-extern volatile int buttonFlag;
 extern void rtc_isr();
 
 class Power : public KPComponent {
 public:
-    bool buttonCanTrigger;
     DS3232RTC rtc;
     std::function<void()> interruptCallback;
-	std::function<void()> buttonCallback;
 
     Power(const char * name) : KPComponent(name), rtc(false) {}
 
     void onInterrupt(std::function<void()> callbcak) {
         interruptCallback = callbcak;
     }
-	
-	void onButtonInterrupt(std::function<void()> callback){
-		buttonCallback = callback;
-	}
 
     void setupRTC() {
         // Initilize RTC I2C Bus
@@ -81,7 +72,6 @@ public:
         print("RTC startup time: ");
         printCurrentTime();
         println();
-		
     }
 
     void setup() override {
@@ -92,26 +82,16 @@ public:
         // so we need this internal one. INPUT_PULLUP is required.
         pinMode(HardwarePins::RTC_INTERRUPT, INPUT_PULLUP);
         pinMode(HardwarePins::POWER_MODULE, OUTPUT);
-		
-		//init button pin
-		pinMode(HardwarePins::BUTTON_PIN, INPUT);
-		buttonCanTrigger = true;
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
      *  Runtime update loop. Check if RTC has been triggered.
-
      *  ──────────────────────────────────────────────────────────────────────────── */
     void update() override {
-        if (!alarmTriggered || !buttonTriggered || !interruptCallback) {
+        if (!alarmTriggered || !interruptCallback) {
             return;
         }
 
-		if(buttonFlag != 0 && buttonCanTrigger) {
-            buttonCanTrigger = false;
-            buttonTriggered = false;
-            buttonCallback();
-			}
         // Check if the interrupt is comming from RTC
         // This is important in noisy environment
         if (rtc.alarm(1) || rtc.alarm(2)) {
@@ -311,15 +291,5 @@ public:
         // Add FUDGE factor to allow for time to compile
         constexpr time_t FUDGE = 10;
         return t + FUDGE;
-    }
-	
-	void setSampleButton() {
-        digitalWrite(LED_BUILTIN, LOW);
-		buttonFlag = 0;
-		buttonCanTrigger = true;
-	}
-
-    void disarmSampleNowButton(){
-        buttonCanTrigger = false;
     }
 };
