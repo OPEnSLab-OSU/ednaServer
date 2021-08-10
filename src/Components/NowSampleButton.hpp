@@ -89,7 +89,7 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void disableSampleButton() {
         buttonFlag = 0;
-       // detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
+        detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
     }
 
 
