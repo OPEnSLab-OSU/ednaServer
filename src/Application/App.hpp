@@ -359,9 +359,11 @@ public:
             }
             if(*(task.valve) == -1){
                 print(RED("No free valves to sample!"));
+                nowSampleButton.setSampleButton();
                 return;
             }
         }
+        nowSampleButton.disableSampleButton();
         TimedAction NowTaskExecution;
         const auto timeUntil = 10;
         NowTaskExecution.interval = secsToMillis(timeUntil);
@@ -427,10 +429,11 @@ public:
                     invalidateTaskAndFreeUpValves(task);
                     continue;
                 }
+
+                nowSampleButton.disableSampleButton();
                 // Wake up between 10 secs of the actual schedule time
                 // Prepare an action to execute at exact time
                 const auto timeUntil = task.schedule - time_now;
-                nowSampleButton.disableSampleButton();
                 TimedAction delayTaskExecution;
                 delayTaskExecution.name     = "delayTaskExecution";
                 delayTaskExecution.interval = secsToMillis(timeUntil);
