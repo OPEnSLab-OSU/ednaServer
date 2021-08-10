@@ -346,13 +346,9 @@ public:
     }
 
     void beginNowTask(){
-        time_t time_now = now();
         NowTask task = ntm.task;
         status.preventShutdown = false;
         nowTaskStateController.configure(ntm.task);
-        if(time_now + nowTaskStateController.get_total_time() >= tm.tasks[tm.getActiveSortedTaskIds().front()].schedule){
-            invalidateTaskAndFreeUpValves(tm.tasks[tm.getActiveSortedTaskIds().front()]);
-        }
         if(vm.valves[*(task.valve)].status != ValveStatus::free){
             *(task.valve) = -1;
             for(unsigned int i = 0; i < vm.valves.size(); i++){
