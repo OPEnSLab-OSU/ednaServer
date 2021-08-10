@@ -135,6 +135,13 @@ public:
         addComponent(sensors);
         sensors.addObserver(status);
         addComponent(nowSampleButton);
+
+        TimedAction ArmSampleNowButton;
+        const auto timeUntil = 20;
+        ArmSampleNowButton.interval = secsToMillis(timeUntil);
+        ArmSampleNowButton.callback = [this]() { nowSampleButton.setSampleButton(); };
+        run(ArmSampleNowButton);  // async, will be execute later
+
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
         //

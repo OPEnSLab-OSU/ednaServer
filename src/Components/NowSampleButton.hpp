@@ -51,11 +51,7 @@ public:
     }
 
     void setupButton() {
-        pinMode(HardwarePins::BUTTON_PIN, INPUT);
-        buttonFlag = 0;
-        attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, FALLING);
-        print(RED("Interrupt Button Set Up"));
-        println();
+        pinMode(HardwarePins::BUTTON_PIN, INPUT_PULLUP);
     }
 
     void setup() override {
