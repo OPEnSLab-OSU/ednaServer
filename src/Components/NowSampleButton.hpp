@@ -54,7 +54,7 @@ public:
         pinMode(HardwarePins::BUTTON_PIN, INPUT);
         buttonFlag = 0;
         attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, FALLING);
-        print("Button Set Up");
+        print(RED("Interrupt Button Set Up"));
         println();
     }
 
@@ -89,7 +89,7 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void disableSampleButton() {
         buttonFlag = 0;
-        detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
+       // detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
     }
 
 

@@ -134,7 +134,7 @@ public:
         addComponent(pump);
         addComponent(sensors);
         sensors.addObserver(status);
-        //addComponent(nowSampleButton);
+        addComponent(nowSampleButton);
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
         //
