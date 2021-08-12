@@ -137,7 +137,7 @@ public:
         addComponent(nowSampleButton);
 
         TimedAction ArmSampleNowButton;
-        const auto timeUntil = 20;
+        const auto timeUntil = 5;
         ArmSampleNowButton.interval = secsToMillis(timeUntil);
         ArmSampleNowButton.callback = [this]() { nowSampleButton.setSampleButton(); };
         run(ArmSampleNowButton);  // async, will be execute later
@@ -242,7 +242,7 @@ public:
          nowSampleButton.onInterrupt([this](){
             //check to make sure task isn't running that disables button
             if(buttonFlag != 0){
-                println(RED("Now Sampling!"));
+                println(GREEN("Sample Now Button Interrupted!"));
                 digitalWrite(LED_BUILTIN, HIGH);
                 beginNowTask();
             }
@@ -363,7 +363,7 @@ public:
                 return;
             }
         }
-        nowSampleButton.disableSampleButton();
+        
         TimedAction NowTaskExecution;
         const auto timeUntil = 10;
         NowTaskExecution.interval = secsToMillis(timeUntil);
@@ -376,8 +376,11 @@ public:
         vm.setValveStatus(*(task.valve), ValveStatus::operating);
 
         println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
-        
-
+        TimedAction DisableButton;
+        const auto delay = 0.5;
+        DisableButton.interval = secsToMillis(delay);
+        DisableButton.callback = [this]() {nowSampleButton.disableSampleButton(); };
+        run(DisableButton);
     }
 
     ValveBlock currentValveNumberToBlock() {
