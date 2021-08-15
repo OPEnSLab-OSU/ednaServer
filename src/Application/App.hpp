@@ -37,7 +37,7 @@ private:
     void setupAPI();
     void setupSerialRouting();
     void setupServerRouting();
-    void testValve(int v);
+//    void testValve(int v);
     void commandReceived(const char * line, size_t size) override;
 
 public:
@@ -95,7 +95,7 @@ private:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
     }
 
@@ -237,7 +237,7 @@ public:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
             for(int i = 0; i < 24; i++){
                 testValve(i);
@@ -253,7 +253,7 @@ public:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
             
             sensors.update();
@@ -264,7 +264,7 @@ public:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
             pump.on();
             delay(3000);
@@ -280,7 +280,7 @@ public:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
             shift.setPin(TPICDevices::AIR_VALVE, HIGH);
 
@@ -290,7 +290,7 @@ public:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
             shift.writeAllRegistersLow();
             shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
@@ -302,7 +302,7 @@ public:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
             shift.writeAllRegistersLow();
             shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
@@ -313,7 +313,7 @@ public:
                 yield();
             }
             while(Serial.available() > 0){
-                char t = Serial.read();
+                Serial.read();
             }
             shift.writeAllRegistersLow();
 #endif
