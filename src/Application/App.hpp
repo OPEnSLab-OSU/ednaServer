@@ -286,6 +286,24 @@ public:
         while(Serial.available() > 0){
             Serial.read();
         }
+
+        if(sensors.pressure.enabled){
+            println("Pressure sensor detected");
+        } else {
+            println(RED("Pressure sensor not detected"));
+        }
+        if(sensors.baro1.enabled){
+            println("Baro1 sensor detected");
+        }else{
+            println(RED("Baro1 sensor not detected"));
+        }
+        if(sensors.baro2.enabled){
+            println("Baro2 sensor detected");
+        }else{
+            println(RED("Baro2 sensor not detected"));
+        }
+
+        println(BLUE("=================== COMPONENT TEST COMPLETE =================="));
 #endif
     }
 
