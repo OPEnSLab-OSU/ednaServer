@@ -248,34 +248,6 @@ public:
 
             shift.writeAllRegistersLow();
             delay(500);
-            println();
-            println("Testing sensors...");
-            println("press any key to continue: ");
-            while (!Serial.available()) {
-                yield();
-            }
-            while(Serial.available() > 0){
-                Serial.read();
-            }
-            
-            sensors.update();
-            delay(500);
-            println();
-            println("Testing pump...");
-            println("press any key to continue: ");
-            while (!Serial.available()) {
-                yield();
-            }
-            while(Serial.available() > 0){
-                Serial.read();
-            }
-            pump.on();
-            delay(3000);
-            pump.off();
-            delay(3000);
-            pump.on(Direction::reverse);
-            delay(3000);
-            pump.off();
 
             println();
             println("Testing air valve...");
@@ -287,6 +259,7 @@ public:
                 Serial.read();
             }
             shift.setPin(TPICDevices::AIR_VALVE, HIGH);
+            shift.write();
             println();
             println("Testing flush valve...");
             println("press any key to continue: ");
@@ -298,7 +271,7 @@ public:
             }
             shift.writeAllRegistersLow();
             shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-
+            shift.write();
             println();
             println("Testing alcohol valve...");
             println("press any key to continue: ");
@@ -310,8 +283,9 @@ public:
             }
             shift.writeAllRegistersLow();
             shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+            shift.write();
             println();
-            println("Testing complete");
+            println("Testing ball valve");
             println("press any key to continue: ");
             while (!Serial.available()) {
                 yield();
@@ -321,6 +295,29 @@ public:
             }
             shift.writeAllRegistersLow();
             println();
+            intake.on();
+            println();
+            println("Testing pump...");
+            println("press any key to continue: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                Serial.read();
+            }
+            intake.off();
+            shift.writeAllRegistersLow();
+            shift.setPin(TPICDevices::AIR_VALVE, HIGH);
+            shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+            shift.write();
+            pump.on();
+            delay(3000);
+            pump.off();
+            delay(3000);
+            pump.on(Direction::reverse);
+            delay(3000);
+            pump.off();
+
 #endif
     }
 
