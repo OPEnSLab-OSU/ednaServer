@@ -86,7 +86,7 @@ private:
 
 
     void testValve(int v) {
-            println("Valve: %i", v);
+            println("Valve: ", v);
             shift.setAllRegistersLow();
             shift.writePin(v + shift.capacityPerRegister, HIGH);
             shift.write();
@@ -228,7 +228,7 @@ public:
 #endif
 
 #ifdef COMPONENT_TEST
-
+            while (!Serial) {};
             println();
             println(BLUE("=================== RUNNING COMPONENT TEST =================="));
 
@@ -240,13 +240,15 @@ public:
                 Serial.read();
             }
             for(int i = 0; i < 24; i++){
+                println();
                 testValve(i);
                 delay(20);
             }
 
 
             shift.writeAllRegistersLow();
-            delay(1000);
+            delay(500);
+            println();
             println("Testing sensors...");
             println("press any key to continue: ");
             while (!Serial.available()) {
@@ -257,7 +259,8 @@ public:
             }
             
             sensors.update();
-            delay(1000);
+            delay(500);
+            println();
             println("Testing pump...");
             println("press any key to continue: ");
             while (!Serial.available()) {
@@ -274,6 +277,7 @@ public:
             delay(3000);
             pump.off();
 
+            println();
             println("Testing air valve...");
             println("press any key to continue: ");
             while (!Serial.available()) {
@@ -283,7 +287,7 @@ public:
                 Serial.read();
             }
             shift.setPin(TPICDevices::AIR_VALVE, HIGH);
-
+            println();
             println("Testing flush valve...");
             println("press any key to continue: ");
             while (!Serial.available()) {
@@ -295,7 +299,7 @@ public:
             shift.writeAllRegistersLow();
             shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
 
-            
+            println();
             println("Testing alcohol valve...");
             println("press any key to continue: ");
             while (!Serial.available()) {
@@ -306,7 +310,7 @@ public:
             }
             shift.writeAllRegistersLow();
             shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
-
+            println();
             println("Testing complete");
             println("press any key to continue: ");
             while (!Serial.available()) {
@@ -316,6 +320,7 @@ public:
                 Serial.read();
             }
             shift.writeAllRegistersLow();
+            println();
 #endif
     }
 
