@@ -29,6 +29,7 @@ void Main::Stop::enter(KPStateMachine & sm) {
     app.ntm.writeToDirectory();
 
     app.currentTaskId       = 0;
+    app.sampleNowActive = false;
     app.status.currentValve = -1;
     sm.next();
 }

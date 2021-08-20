@@ -81,6 +81,7 @@ public:
     SensorArray sensors{"sensor-array"};
 
     int currentTaskId = 0;
+    bool sampleNowActive = false;
 
 private:
     const char * KPSerialInputObserverName() const override {
@@ -241,11 +242,9 @@ public:
 
          nowSampleButton.onInterrupt([this](){
             //check to make sure task isn't running that disables button
-            if(buttonFlag != 0){
-                println(GREEN("Sample Now Button Interrupted!"));
-                digitalWrite(LED_BUILTIN, HIGH);
-                beginNowTask();
-            }
+            println(GREEN("Sample Now Button Interrupted!"));
+            digitalWrite(LED_BUILTIN, HIGH);
+            beginNowTask();
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #ifdef DEBUG
@@ -347,11 +346,13 @@ public:
 
     void beginNowTask(){
         NowTask task = ntm.task;
-        status.preventShutdown = false;
+        println("retrieved task");
         nowTaskStateController.configure(ntm.task);
+        println("task configured");
         if(vm.valves[*(task.valve)].status != ValveStatus::free){
             *(task.valve) = -1;
             for(unsigned int i = 0; i < vm.valves.size(); i++){
+                println("Test");
                 if(vm.valves[i].status == ValveStatus::free){
                     *(task.valve) = i;
                     break;
@@ -372,12 +373,13 @@ public:
 
 
         //currentTaskId          = id;
+        sampleNowActive = true;
         status.preventShutdown = true;
         vm.setValveStatus(*(task.valve), ValveStatus::operating);
 
         println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
         TimedAction DisableButton;
-        const auto delay = 0.5;
+        const auto delay = 0.25;
         DisableButton.interval = secsToMillis(delay);
         DisableButton.callback = [this]() {nowSampleButton.disableSampleButton(); };
         run(DisableButton);
@@ -427,7 +429,7 @@ public:
             }
 
             if (time_now >= task.schedule - 10) {
-                if(buttonFlag != 0){
+                if(sampleNowActive){
                     println(RED("Sample Now Task Occuring"));
                     invalidateTaskAndFreeUpValves(task);
                     continue;

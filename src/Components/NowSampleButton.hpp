@@ -37,13 +37,11 @@
 
 extern volatile unsigned long buttonInterruptStart;
 extern volatile bool buttonTriggered;
-extern volatile int buttonFlag;
 extern void button_isr();
 
 class NowSampleButton : public KPComponent {
 public:
     std::function<void()> interruptCallback;
-    bool initButtonPress;
 
     NowSampleButton(const char * name) : KPComponent(name) {}
 
@@ -68,11 +66,8 @@ public:
         }
 
         // Continue if button has a new press
-        if (buttonFlag != 0 && initButtonPress) {
-            buttonTriggered = false;
-            initButtonPress = false;
-            interruptCallback();
-        }
+        buttonTriggered = false;
+        interruptCallback();
     }
 
 
@@ -85,7 +80,6 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void disableSampleButton() {
         buttonTriggered = false;
-        initButtonPress = false;
         detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
     }
 
@@ -96,8 +90,6 @@ public:
      *  Set Button to be able to be pressed again
      *  ──────────────────────────────────────────────────────────────────────────── */
     void setSampleButton() {
-        buttonFlag = 0;
-        initButtonPress = true;
         println("interrupt attached");
         digitalWrite(LED_BUILTIN, LOW);
         attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, FALLING);
