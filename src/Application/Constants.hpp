@@ -34,7 +34,7 @@ namespace HardwarePins {
     __k_auto BATTERY_VOLTAGE   = A2;
     //A4 is unused but would be ANALOG_SENSOR_2
     __k_auto ANALOG_SENSOR_1   = A3;
-    __k_auto BUTTON_PIN   = 13;
+    __k_auto BUTTON_PIN   = A4; //originally 13, but that's built-in led and may cause conflicts
     __k_auto SHUTDOWN_OVERRIDE = A5;
     __k_auto MOTOR_REVERSE     = 5;
     __k_auto MOTOR_FORWARD     = 6;

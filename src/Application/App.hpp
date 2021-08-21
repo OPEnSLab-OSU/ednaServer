@@ -137,11 +137,7 @@ public:
         sensors.addObserver(status);
         addComponent(nowSampleButton);
 
-        TimedAction ArmSampleNowButton;
-        const auto timeUntil = 5;
-        ArmSampleNowButton.interval = secsToMillis(timeUntil);
-        ArmSampleNowButton.callback = [this]() { nowSampleButton.setSampleButton(); };
-        run(ArmSampleNowButton);  // async, will be execute later
+
 
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
@@ -243,13 +239,14 @@ public:
          nowSampleButton.onInterrupt([this](){
             //check to make sure task isn't running that disables button
             println(GREEN("Sample Now Button Interrupted!"));
-            digitalWrite(LED_BUILTIN, HIGH);
+            //digitalWrite(LED_BUILTIN, HIGH);
             beginNowTask();
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #ifdef DEBUG
         runForever(2000, "memLog", [&]() { printFreeRam(); });
 #endif
+       nowSampleButton.setSampleButton();
     }
 
     void logDetail(const char * filename) {

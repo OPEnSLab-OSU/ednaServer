@@ -91,7 +91,7 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void setSampleButton() {
         println("interrupt attached");
-        digitalWrite(LED_BUILTIN, LOW);
+        //digitalWrite(LED_BUILTIN, LOW);
         attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, FALLING);
     }
 
