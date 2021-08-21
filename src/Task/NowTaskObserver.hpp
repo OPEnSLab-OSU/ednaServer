@@ -13,6 +13,7 @@ public:
         return "<Unnamed> Now Task Observer";
     }
 
-    virtual void nowTaskDidUpdate(const NowTask & task) = 0;
+    virtual void nowTaskDidUpdate(const NowTask & task)     = 0;
+    virtual void nowTaskDidComplete(const NowTask & task)   = 0;
     //virtual void taskDidDelete(int id)            = 0;
 };

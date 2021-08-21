@@ -76,7 +76,7 @@ public:
     bool markTaskAsCompleted() {
 
         task.status = TaskStatus::completed;
-        updateObservers(&NowTaskObserver::nowTaskDidUpdate, task);
+        updateObservers(&NowTaskObserver::nowTaskDidComplete, task);
 
         return task.isCompleted();
     }

@@ -554,4 +554,14 @@ private:
             currentTaskId = 0;
         }
     }
+
+    void taskDidComplete() override {
+        println(BLUE("Setting now sample button to be pressed again"));
+        nowSampleButton.setSampleButton();
+    }
+
+    void nowTaskDidComplete(const NowTask & task) override {
+        println(BLUE("Setting now sample button to be pressed again"));
+        nowSampleButton.setSampleButton();
+    }
 };
