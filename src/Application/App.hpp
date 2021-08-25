@@ -171,7 +171,7 @@ public:
         ntm.init(config);
         ntm.addObserver(this);
         ntm.loadTasksFromDirectory(config.taskFolder);
-        pinMode(LED_BUILTIN, OUTPUT);
+        //pinMode(LED_BUILTIN, OUTPUT);
         //
         // ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
         //
@@ -240,7 +240,7 @@ public:
             //check to make sure task isn't running that disables button
             println(GREEN("Sample Now Button Interrupted!"));
             //digitalWrite(LED_BUILTIN, HIGH);
-            beginNowTask();
+            println(beginNowTask().description());
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #ifdef DEBUG
@@ -253,14 +253,49 @@ public:
         if (currentTaskId) {
             SD.begin(HardwarePins::SD_CARD);
             File log    = SD.open(filename, FILE_WRITE);
-            Task & task = tm.tasks.at(currentTaskId);
-
+            
             char formattedTime[64];
             auto utc = now();
             sprintf(
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
 
+            Task & task = tm.tasks.at(currentTaskId);
+            KPStringBuilder<512> data{
+                utc,
+                ",",
+                formattedTime,
+                ",",
+                task.name,
+                ",",
+                status.currentValve,
+                ",",
+                status.currentStateName,
+                ",",
+                task.sampleTime,
+                ",",
+                task.samplePressure,
+                ",",
+                task.sampleVolume,
+                ",",
+                status.temperature,
+                ",",
+                status.pressure,
+                ",",
+                status.waterVolume};
+            log.println(data);
+            log.flush();
+            log.close();
+        } else if (sampleNowActive) {
+            SD.begin(HardwarePins::SD_CARD);
+            File log    = SD.open(filename, FILE_WRITE);
+            
+            char formattedTime[64];
+            auto utc = now();
+            sprintf(
+                formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                hour(utc), minute(utc), second(utc));
+            NowTask & task = ntm.task;
             KPStringBuilder<512> data{
                 utc,
                 ",",
@@ -290,41 +325,79 @@ public:
     }
 
     void logAfterSample() {
-        SD.begin(HardwarePins::SD_CARD);
-        File log    = SD.open(config.logFile, FILE_WRITE);
-        Task & task = tm.tasks.at(currentTaskId);
+        if(currentTaskId){
+            SD.begin(HardwarePins::SD_CARD);
+            File log    = SD.open(config.logFile, FILE_WRITE);
+            
+            Task & task = tm.tasks.at(currentTaskId);
 
-        char formattedTime[64];
-        auto utc = now();
-        sprintf(
-            formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
-            hour(utc), minute(utc), second(utc));
+            char formattedTime[64];
+            auto utc = now();
+            sprintf(
+                formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                hour(utc), minute(utc), second(utc));
 
-        KPStringBuilder<512> data{
-            utc,
-            ",",
-            formattedTime,
-            ",",
-            task.name,
-            ",",
-            status.currentValve,
-            ",",
-            status.currentStateName,
-            ",",
-            task.sampleTime,
-            ",",
-            task.samplePressure,
-            ",",
-            task.sampleVolume,
-            ",",
-            status.temperature,
-            ",",
-            status.maxPressure,
-            ",",
-            status.waterVolume};
-        log.println(data);
-        log.flush();
-        log.close();
+            KPStringBuilder<512> data{
+                utc,
+                ",",
+                formattedTime,
+                ",",
+                task.name,
+                ",",
+                status.currentValve,
+                ",",
+                status.currentStateName,
+                ",",
+                task.sampleTime,
+                ",",
+                task.samplePressure,
+                ",",
+                task.sampleVolume,
+                ",",
+                status.temperature,
+                ",",
+                status.maxPressure,
+                ",",
+                status.waterVolume};
+            log.println(data);
+            log.flush();
+            log.close();
+        } else if (sampleNowActive){
+            SD.begin(HardwarePins::SD_CARD);
+            File log    = SD.open(config.logFile, FILE_WRITE);
+            NowTask & task = ntm.task;
+            char formattedTime[64];
+            auto utc = now();
+            sprintf(
+                formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                hour(utc), minute(utc), second(utc));
+
+            KPStringBuilder<512> data{
+                utc,
+                ",",
+                formattedTime,
+                ",",
+                task.name,
+                ",",
+                status.currentValve,
+                ",",
+                status.currentStateName,
+                ",",
+                task.sampleTime,
+                ",",
+                task.samplePressure,
+                ",",
+                task.sampleVolume,
+                ",",
+                status.temperature,
+                ",",
+                status.maxPressure,
+                ",",
+                status.waterVolume};
+            log.println(data);
+            log.flush();
+            log.close();
+        }
     }
 
     template <typename T, typename... Args>
@@ -341,45 +414,41 @@ public:
         hyperFlushStateController.begin();
     }
 
-    void beginNowTask(){
+    ScheduleReturnCode beginNowTask(){
         NowTask task = ntm.task;
-        println("retrieved task");
-        nowTaskStateController.configure(ntm.task);
-        println("task configured");
-        if(vm.valves[*(task.valve)].status != ValveStatus::free){
-            *(task.valve) = -1;
+        status.preventShutdown = false;
+        if(task.valve < 0 || task.valve > config.numberOfValves || vm.valves[task.valve].status != ValveStatus::free){
+            task.valve = -1;
+             println(GREEN("Current sample now valve not free"));
             for(unsigned int i = 0; i < vm.valves.size(); i++){
-                println("Test");
                 if(vm.valves[i].status == ValveStatus::free){
-                    *(task.valve) = i;
+                    task.valve = i;
+                    println("Current valve is ", i);
                     break;
                 }
             }
-            if(*(task.valve) == -1){
+            if(task.valve == -1){
                 print(RED("No free valves to sample!"));
                 nowSampleButton.setSampleButton();
-                return;
+                return ScheduleReturnCode::unavailable;
             }
         }
         
         TimedAction NowTaskExecution;
         const auto timeUntil = 10;
         NowTaskExecution.interval = secsToMillis(timeUntil);
+        NowTaskExecution.name     = "NowTaskExecution";
         NowTaskExecution.callback = [this]() { nowTaskStateController.begin(); };
         run(NowTaskExecution);  // async, will be execute later
 
+        nowTaskStateController.configure(task);
 
-        //currentTaskId          = id;
         sampleNowActive = true;
         status.preventShutdown = true;
-        vm.setValveStatus(*(task.valve), ValveStatus::operating);
+        vm.setValveStatus(task.valve, ValveStatus::operating);
 
         println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
-        TimedAction DisableButton;
-        const auto delay = 0.25;
-        DisableButton.interval = secsToMillis(delay);
-        DisableButton.callback = [this]() {nowSampleButton.disableSampleButton(); };
-        run(DisableButton);
+        return ScheduleReturnCode::scheduled;
     }
 
     ValveBlock currentValveNumberToBlock() {

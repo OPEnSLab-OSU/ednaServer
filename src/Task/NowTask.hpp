@@ -18,7 +18,7 @@ struct NowTask : public JsonEncodable,
 public:
     friend class NowTaskManager;
 
-    int id;
+    int id         = 0;
     char name[TaskSettings::NAME_LENGTH]{0};
     char notes[TaskSettings::NOTES_LENGTH]{0};
 
@@ -37,29 +37,19 @@ public:
     int preserveTime   = 0;
 
     bool deleteOnCompletion = false;
-    int* valve;
+    int valve = 0;
 //    std::vector<uint8_t> valves;
 
 public:
     int valveOffsetStart = 0;
 
 public:
-    NowTask() {
-        valve = (int*) malloc(sizeof(int));
-        *valve = 0; 
-    }
-    NowTask(const NowTask & other) {
-        valve = (int*) malloc(sizeof(int));
-        *valve = *other.valve;
-    };
+    NowTask() = default;
+    NowTask(const NowTask & other) = default;
     NowTask & operator=(const NowTask &) = default;
 
     explicit NowTask(const JsonObject & data) {
         decodeJSON(data);
-    }
-
-    ~NowTask() {
-        free(valve);
     }
 
     int getValveOffsetStart() const {
@@ -72,20 +62,7 @@ public:
     }
 
     bool isCompleted() const {
-        if((*valve < ProgramSettings::MAX_VALVES) && (status == TaskStatus::completed)){
-            *valve += 1;
-        }
         return status == TaskStatus::completed;
-    }
-
-    /** ────────────────────────────────────────────────────────────────────────────
-     *  @brief Get the Current Valve ID
-     *
-     *  @return int -1 if no more valve, otherwise returns the valve number
-     *  ──────────────────────────────────────────────────────────────────────────── */
-    int getCurrentValveId() const {
-        return *valve;
-        //return (getValveOffsetStart() >= getNumberOfValves()) ? -1 : valves[getValveOffsetStart()];
     }
 
 #pragma region JSONDECODABLE
@@ -118,7 +95,7 @@ public:
         sampleVolume   = source[SAMPLE_VOLUME];
         dryTime        = source[DRY_TIME];
         preserveTime   = source[PRESERVE_TIME];
-        *valve         = source[CURR_VALVE];
+        valve         = source[CURR_VALVE];
     }
 #pragma endregion
 #pragma region JSONENCODABLE
@@ -134,7 +111,8 @@ public:
     bool encodeJSON(const JsonVariant & dst) const override {
         using namespace TaskKeys;
         // clang-format off
-		return dst[ID].set(id) 
+		return dst[ID].set(id)
+            && dst[NAME].set((char *)name)  
 			&& dst[STATUS].set(status) 
 			&& dst[FLUSH_TIME].set(flushTime)
 			&& dst[FLUSH_VOLUME].set(flushVolume)
@@ -143,7 +121,7 @@ public:
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[DRY_TIME].set(dryTime) 
 			&& dst[PRESERVE_TIME].set(preserveTime)
-			&& dst[CURR_VALVE].set(*valve);
+			&& dst[CURR_VALVE].set(valve);
 	}  // clang-format on
 
     size_t printTo(Print & printer) const override {
@@ -155,6 +133,15 @@ public:
 #pragma endregion
 
     void operator()(NowTaskStateController::Config & config) const {
+        config.flushTime      = flushTime;
+        config.sampleTime     = sampleTime;
+        config.samplePressure = samplePressure;
+        config.sampleVolume   = sampleVolume;
+        config.dryTime        = dryTime;
+        config.preserveTime   = preserveTime;
+    }
+
+    void operator()(NewStateController::Config & config) const {
         config.flushTime      = flushTime;
         config.sampleTime     = sampleTime;
         config.samplePressure = samplePressure;

@@ -16,7 +16,9 @@ void Main::Stop::enter(KPStateMachine & sm) {
     app.vm.writeToDirectory();
 
     auto currentTaskId = app.currentTaskId;
-    app.tm.advanceTask(currentTaskId);
+    if(currentTaskId){
+        app.tm.advanceTask(currentTaskId);
+    }
     app.tm.writeToDirectory();
 
     app.ntm.advanceTask();

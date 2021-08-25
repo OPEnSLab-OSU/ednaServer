@@ -3,7 +3,7 @@
 #include <States/Shared.hpp>
 #include <StateControllers/MainStateController.hpp>
 
-namespace NowT{
+namespace NowT {
     STATE(IDLE);
     STATE(FLUSH_1);
     STATE(OFFSHOOT_CLEAN_1);
@@ -22,15 +22,13 @@ namespace NowT{
         decltype(SharedStates::Sample::volume) sampleVolume;
         decltype(SharedStates::Dry::time) dryTime;
         decltype(SharedStates::Preserve::time) preserveTime;
-        decltype(SharedStates::OffshootPreload::preloadTime) preloadTime;
     };
 
-    class Controller : public StateControllerWithConfig<Config> {
+    class Controller : public StateController, public StateControllerConfig<Config> {
     public:
-        Controller() : StateControllerWithConfig("nowtask-state-controller") {}
+        Controller() : StateController("nowtask-state-controller") {}
 
         void setup();
-
         void configureStates() {
             decltype(auto) flush1 = getState<SharedStates::Flush>(FLUSH_1);
             flush1.time           = config.flushTime;
@@ -63,10 +61,10 @@ namespace NowT{
             transitionTo(IDLE);
         }
 
-        unsigned long get_total_time() {
-            return config.flushTime + config.flushTime + config.sampleTime + config.dryTime + config.preserveTime;
+        bool isStop() {
+            return getCurrentState()->getName() == STOP;
         }
     };
-}  // namespace HyperFlush
+};  // namespace HyperFlush
 
 using NowTaskStateController = NowT::Controller;

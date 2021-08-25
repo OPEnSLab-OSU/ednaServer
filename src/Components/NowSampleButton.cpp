@@ -4,9 +4,7 @@ volatile unsigned long buttonInterruptStart = 0;
 volatile bool buttonTriggered             = false;
 
 void button_isr() {
-    println("Button interrupt");
-    if ((unsigned long) (millis() - buttonInterruptStart) < 1000) {
-        println("Debounce detected!");
+    if ((unsigned long) (millis() - buttonInterruptStart) < 3000) {
         return;
     }
 

@@ -21,7 +21,6 @@
 
 #pragma once
 #include <KPFoundation.hpp>
-#include <SPI.h>
 #include <functional>
 
 #include <Application/Constants.hpp>
@@ -66,6 +65,7 @@ public:
         }
 
         // Continue if button has a new press
+        disableSampleButton();
         buttonTriggered = false;
         interruptCallback();
     }
@@ -79,7 +79,7 @@ public:
      *
      *  ──────────────────────────────────────────────────────────────────────────── */
     void disableSampleButton() {
-        buttonTriggered = false;
+        println("Disabled sample now button");
         detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
     }
 
@@ -91,7 +91,7 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void setSampleButton() {
         println("interrupt attached");
-        //digitalWrite(LED_BUILTIN, LOW);
+        buttonInterruptStart = millis();
         attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, FALLING);
     }
 

@@ -187,7 +187,7 @@ void App::setupServerRouting() {
             vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
         }
         vm.writeToDirectory();
-        *(ntm.task.valve) = 0;
+        ntm.task.valve = 0;
         res.end();
     });
 }

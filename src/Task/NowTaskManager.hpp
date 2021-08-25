@@ -48,6 +48,7 @@ public:
         println(GREEN("Checking now task"));
         if (now() >= task_length() + last_nowTask) {
             println(GREEN("now task complete"));
+            task.valve++;
             return markTaskAsCompleted();
         }
 
