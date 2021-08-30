@@ -26,6 +26,10 @@ namespace API {
         auto operator()(Arg<0>) -> R;
     };
 
+    struct StartDebubble : APISpec<JsonResponse<300>(App &)> {
+        auto operator()(Arg<0>) -> R;
+    };
+
     struct StatusGet : APISpec<JsonResponse<Status::encodingSize()>(App &)> {
         auto operator()(Arg<0>) -> R;
     };
