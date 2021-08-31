@@ -25,7 +25,7 @@ namespace TPICDevices {
 // turn on
 namespace HardwarePins {
     __k_auto POWER_MODULE = A0;
-#ifdef LIVE
+#if  defined(LIVE) || defined(COMPONENT_TEST)
     // A1 is eDNA, 12 for HYPNOS
     __k_auto RTC_INTERRUPT = A1;
 #else
