@@ -108,8 +108,10 @@ public:
         KPSerialInput::sharedInstance().addObserver(this);
         Serial.begin(115200);
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(COMPONENT_TEST)
         while (!Serial) {};
+#endif
+#ifdef DEBUG
         println();
         println(BLUE("=================================================="));
         println(BLUE("                   DEBUG MODE"));
@@ -232,7 +234,6 @@ public:
 #endif
 
 #ifdef COMPONENT_TEST
-        while (!Serial) {};
         println();
         println(BLUE("=================== RUNNING COMPONENT TEST =================="));
 
