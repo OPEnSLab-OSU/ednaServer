@@ -25,7 +25,7 @@ namespace TPICDevices {
 // turn on
 namespace HardwarePins {
     __k_auto POWER_MODULE = A0;
-#ifdef LIVE
+#if  defined(LIVE) || defined(COMPONENT_TEST)
     // A1 is eDNA, 12 for HYPNOS
     __k_auto RTC_INTERRUPT = A1;
 #else
@@ -49,7 +49,7 @@ namespace ProgramSettings {
     __k_auto SD_FILE_NAME_LENGTH       = 13;
     __k_auto CONFIG_JSON_BUFFER_SIZE   = 800;
     __k_auto STATUS_JSON_BUFFER_SIZE   = 800;
-    __k_auto TASK_JSON_BUFFER_SIZE     = 800;
+    __k_auto TASK_JSON_BUFFER_SIZE     = 1000;
     __k_auto TASKREF_JSON_BUFFER_SIZE  = 50;
     __k_auto MAX_VALVES                = 24;
     __k_auto VALVE_JSON_BUFFER_SIZE    = 500;
