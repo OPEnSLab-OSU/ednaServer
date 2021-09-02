@@ -162,4 +162,15 @@ namespace SharedStates {
 
         setTimeCondition(time, [&]() { sm.next(); });
     }
+
+    void AlcoholPurge::enter(KPStateMachine & sm) {
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.writeAllRegistersLow();
+        app.intake.off();
+        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+        app.shift.write();
+        app.pump.on();
+
+        setTimeCondition(time, [&]() { sm.next(); });
+    }
 }  // namespace SharedStates

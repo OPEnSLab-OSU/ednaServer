@@ -26,6 +26,11 @@ void App::setupSerialRouting() {
         serializeJson(response, Serial);
     };
 
+    mapNameToCallback["debubble"] = [this](SerialRequest req) {
+        const auto response = dispatchAPI<API::StartDebubble>();
+        serializeJson(response, Serial);
+    };
+
     mapNameToCallback["query"] = [this](SerialRequest req) {
         const char * endpoint = req.path[1];
         if (strcmp(endpoint, "status") == 0) {

@@ -19,6 +19,7 @@
 
 #include <StateControllers/NewStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
+#include <StateControllers/DebubbleStateController.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -67,6 +68,7 @@ public:
     // MainStateController sm;
     NewStateController newStateController;
     HyperFlushStateController hyperFlushStateController;
+    DebubbleStateController debubbleStateController;
 
     ValveManager vm;
     TaskManager tm;
@@ -183,6 +185,17 @@ public:
 
         addComponent(hyperFlushStateController);
         hyperFlushStateController.idle();  // Wait in IDLE
+
+        //
+        // ─── Debubbler CONTROLLER ──────────────────────────────────────
+        //
+
+        debubbleStateController.configure([](Debubble::Config & config) {
+            config.time   = 10;
+        });
+
+        addComponent(debubbleStateController);
+        debubbleStateController.idle();  // Wait in IDLE
 
         //
         // ─── NEW STATE CONTROLLER ────────────────────────────────────────
@@ -398,6 +411,10 @@ public:
 public:
     void beginHyperFlush() {
         hyperFlushStateController.begin();
+    }
+
+    void beginDebubble() {
+        debubbleStateController.begin();
     }
 
     ValveBlock currentValveNumberToBlock() {
