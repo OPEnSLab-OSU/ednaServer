@@ -23,8 +23,9 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Desktop (complete the following information if relevant):**
- - Browser [e.g. chrome, safari]
+**Specifications of sampler:**
+ - Browser used [e.g. chrome, safari]
+ - Sampler version
 
 **Additional context**
 Add any other context about the problem here.

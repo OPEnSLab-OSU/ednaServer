@@ -10,10 +10,10 @@ assignees: ''
 **What causes this?**
 A clear and concise description of what the bug is.
 
-**What does this problem look like?**
+**What does this problem look like? When would someone experience this problem?**
 What someone would experience if they were having this issue.
 
-**How to resolve/avoid this issue?r**
+**How to resolve/avoid this issue?**
 A clear description of what to do to solve this issue.
 
 **Additional context**
