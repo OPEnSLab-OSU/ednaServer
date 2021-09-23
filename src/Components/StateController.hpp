@@ -4,6 +4,7 @@
 #include <KPState.hpp>
 #include <type_traits>
 
+
 #define STATE(x) constexpr const char * x = #x "_STATE"
 
 template <typename T>

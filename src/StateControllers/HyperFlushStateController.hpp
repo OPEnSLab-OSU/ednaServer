@@ -17,13 +17,8 @@ namespace HyperFlush {
     public:
         Controller() : StateControllerWithConfig("hyperflush-state-machine") {}
 
-        // FLUSH -> OFFSHOOT_PRELOAD -> STOP -> IDLE
-        void setup() override {
-            registerState(SharedStates::Flush(), FLUSH, OFFSHOOT_PRELOAD);
-            registerState(SharedStates::OffshootPreload(), OFFSHOOT_PRELOAD, STOP);
-            registerState(SharedStates::Stop(), STOP, IDLE);
-            registerState(SharedStates::Idle(), IDLE);
-        }
+        void setup();
+
 
         void begin() override {
             decltype(auto) flush = getState<SharedStates::Flush>(FLUSH);

@@ -113,6 +113,8 @@ namespace SharedStates {
         // Turnoff only the flush valve
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, LOW);
+        app.sensors.flow.resetVolume();
+        app.sensors.flow.startMeasurement();
         app.intake.on();
 
         // Reserving space ahead of time for performance
