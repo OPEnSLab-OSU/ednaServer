@@ -66,6 +66,7 @@ public:
 
         // Continue if button has a new press
         disableSampleButton();
+        noInterrupts();
         buttonTriggered = false;
         interruptCallback();
     }

@@ -96,6 +96,7 @@ public:
         // This is important in noisy environment
         if (rtc.alarm(1) || rtc.alarm(2)) {
             disarmAlarms();
+            noInterrupts();
             interruptCallback();
             alarmTriggered = false;
         }

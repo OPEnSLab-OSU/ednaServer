@@ -267,14 +267,15 @@ public:
         power.onInterrupt([this]() {
             println(GREEN("RTC Interrupted!"));
             println(scheduleNextActiveTask().description());
+            interrupts();
         });
 
 
          nowSampleButton.onInterrupt([this](){
             //check to make sure task isn't running that disables button
             println(GREEN("Sample Now Button Interrupted!"));
-            //digitalWrite(LED_BUILTIN, HIGH);
             println(beginNowTask().description());
+            interrupts();
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #if defined(DEBUG) || defined(COMPONENT_TEST)
@@ -524,6 +525,8 @@ public:
     }
 
     ScheduleReturnCode beginNowTask(){
+        if(currentTaskId)
+            return ScheduleReturnCode::unavailable;
         NowTask task = ntm.task;
         status.preventShutdown = false;
         if(task.valve < 0 || task.valve > config.numberOfValves || vm.valves[task.valve].status != ValveStatus::free){
