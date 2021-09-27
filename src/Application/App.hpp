@@ -21,6 +21,7 @@
 #include <StateControllers/NewStateController.hpp>
 #include <StateControllers/NowTaskStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
+#include <StateControllers/DebubbleStateController.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -74,6 +75,7 @@ public:
     NewStateController newStateController;
     HyperFlushStateController hyperFlushStateController;
     NowTaskStateController nowTaskStateController;
+    DebubbleStateController debubbleStateController;
 
     ValveManager vm;
     TaskManager tm;
@@ -212,6 +214,16 @@ public:
 
         addComponent(nowTaskStateController);
         nowTaskStateController.idle();
+        
+        // ─── Debubbler CONTROLLER ──────────────────────────────────────
+        //
+
+        debubbleStateController.configure([](Debubble::Config & config) {
+            config.time   = 10;
+        });
+
+        addComponent(debubbleStateController);
+        debubbleStateController.idle();  // Wait in IDLE
 
         //
         // ─── NEW STATE CONTROLLER ────────────────────────────────────────
@@ -546,6 +558,10 @@ public:
 
         println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
         return ScheduleReturnCode::scheduled;
+    }
+    
+    void beginDebubble() {
+        debubbleStateController.begin();
     }
 
     ValveBlock currentValveNumberToBlock() {

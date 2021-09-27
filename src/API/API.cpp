@@ -25,6 +25,18 @@ namespace API {
         } else {
             response["error"] = "Already Sampling";
         }
+    }
+    
+    auto StartDebubble::operator()(App & app) -> R {
+        decltype(auto) debubbleName = app.debubbleStateController.getCurrentState()->getName();
+
+        R response;
+        if (strcmp(Debubble::IDLE, debubbleName) == 0) {
+            app.beginDebubble();
+            response["success"] = "Begin preloading water";
+        } else {
+            response["error"] = "Preloading water is already in operation";
+        }
 
         return response;
     }
