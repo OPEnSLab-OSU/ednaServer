@@ -20,45 +20,16 @@ public:
     const char * taskFolder = nullptr;
     NowTask task;
 
-    time_t last_nowTask = now();
-
     NowTaskManager() : KPComponent("NowTaskManager") {}
 
     void init(Config & config) {
         taskFolder = config.taskFolder;
     }
 
-    int generateTaskId() const {
-        return random(1, RAND_MAX);
-    }
-/*
-    Task createTask() {
-        const auto timenow = now();
-        Task task;
-        task.id        = generateTaskId();
-        task.createdAt = timenow;
-        task.schedule  = timenow;
-        return task;
-    }
-
-*/
-
     bool advanceTask() {
-
-        println(GREEN("Checking now task"));
-        if (now() >= task_length() + last_nowTask) {
-            println(GREEN("now task complete"));
-            task.valve++;
-            return markTaskAsCompleted();
-        }
-
-        return false;
-    }
-
-
-    int task_length() {
-        return task.flushTime + task.sampleTime + task.samplePressure + task.dryTime + task.preserveTime;
-    }
+        task.valve++;
+        return markTaskAsCompleted();
+}
 
     bool setTaskStatus(TaskStatus status) {
         task.status = status;
@@ -81,35 +52,6 @@ public:
 
         return task.isCompleted();
     }
-    /*
-    bool findTask(int id) const {
-        return tasks.find(id) != tasks.end();
-    }
-
-    bool deleteTask(int id) {
-        if (tasks.erase(id)) {
-            updateObservers(&TaskObserver::taskDidDelete, id);
-            return true;
-        }
-
-        return false;
-    }
-
-    int deleteIf(std::function<bool(const Task &)> predicate) {
-        int oldSize = tasks.size();
-        for (auto it = tasks.begin(); it != tasks.end();) {
-            if (predicate(it->second)) {
-                auto id = it->first;
-                it      = tasks.erase(it);
-                updateObservers(&TaskObserver::taskDidDelete, id);
-            } else {
-                it++;
-            }
-        }
-
-        return oldSize - tasks.size();
-    }
-    */
 
     /** ────────────────────────────────────────────────────────────────────────────
      *  @brief Load all tasks object from the specified directory in the SD card

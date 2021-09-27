@@ -18,11 +18,12 @@ void Main::Stop::enter(KPStateMachine & sm) {
     auto currentTaskId = app.currentTaskId;
     if(currentTaskId){
         app.tm.advanceTask(currentTaskId);
+        app.tm.writeToDirectory();
     }
-    app.tm.writeToDirectory();
-
-    app.ntm.advanceTask();
-    app.ntm.writeToDirectory();
+    if(app.sampleNowActive){
+        app.ntm.advanceTask();
+        app.ntm.writeToDirectory();
+    }
     app.currentTaskId       = 0;
     app.sampleNowActive = false;
     app.status.currentValve = -1;
