@@ -26,6 +26,7 @@ void Main::Stop::enter(KPStateMachine & sm) {
     }
     app.currentTaskId       = 0;
     app.sampleNowActive = false;
+    app.nowSampleButton.setSampleButton();
     app.status.currentValve = -1;
     sm.next();
 }
