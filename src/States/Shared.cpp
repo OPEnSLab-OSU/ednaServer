@@ -168,6 +168,7 @@ namespace SharedStates {
         app.shift.writeAllRegistersLow();
         app.intake.off();
         app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
         app.pump.on();
 
