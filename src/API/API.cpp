@@ -25,6 +25,8 @@ namespace API {
         } else {
             response["error"] = "Already Sampling";
         }
+        
+        return response;
     }
     
     auto StartDebubble::operator()(App & app) -> R {
