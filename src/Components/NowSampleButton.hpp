@@ -81,6 +81,7 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void disableSampleButton() {
         println("Disabled sample now button");
+        buttonTriggered = false;
         detachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN));
     }
 

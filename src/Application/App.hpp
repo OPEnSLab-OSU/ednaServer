@@ -272,9 +272,10 @@ public:
 
 
          nowSampleButton.onInterrupt([this](){
-            //check to make sure task isn't running that disables button
-            println(GREEN("Sample Now Button Interrupted!"));
-            println(beginNowTask().description());
+             if(!power.rtc.alarm(1) && !power.rtc.alarm(2)){
+                println(GREEN("Sample Now Button Interrupted!"));
+                println(beginNowTask().description());
+             }
             interrupts();
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
@@ -583,6 +584,7 @@ public:
      *  @return false if task is either missed schedule or no active task available.
      *  ──────────────────────────────────────────────────────────────────────────── */
     ScheduleReturnCode scheduleNextActiveTask(bool shouldStopCurrentTask = false) {
+        nowSampleButton.disableSampleButton();
         status.preventShutdown = false;
         for (auto id : tm.getActiveSortedTaskIds()) {
             Task & task     = tm.tasks[id];
@@ -617,7 +619,7 @@ public:
                     continue;
                 }
 
-                nowSampleButton.disableSampleButton();
+                
                 // Wake up between 10 secs of the actual schedule time
                 // Prepare an action to execute at exact time
                 const auto timeUntil = task.schedule - time_now;
@@ -638,11 +640,13 @@ public:
             } else {
                 // Wake up before not due to alarm, reschedule anyway
                 power.scheduleNextAlarm(task.schedule - 8);  // 3 < x < 10
+                nowSampleButton.setSampleButton();
                 return ScheduleReturnCode::scheduled;
             }
         }
 
         currentTaskId = 0;
+        nowSampleButton.setSampleButton();
         return ScheduleReturnCode::unavailable;
     }
 
