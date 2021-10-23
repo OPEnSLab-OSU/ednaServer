@@ -256,9 +256,24 @@ namespace SharedStates {
         app.shift.writeAllRegistersLow();
         app.intake.off();
         app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
         app.pump.on();
 
         setTimeCondition(time, [&]() { sm.next(); });
     }
+
+    void AlcoholPurge::update(KPStateMachine & sm){
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+    }
+
 }  // namespace SharedStates

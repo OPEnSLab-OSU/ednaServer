@@ -138,5 +138,8 @@ namespace SharedStates {
     public:
         unsigned long time = 0;
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 }  // namespace SharedStates
