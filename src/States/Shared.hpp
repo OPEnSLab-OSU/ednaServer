@@ -30,6 +30,9 @@ namespace SharedStates {
     public:
         unsigned long time = 10;
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -41,6 +44,9 @@ namespace SharedStates {
         unsigned long time   = 10;
         unsigned long volume = 1000;
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -51,6 +57,9 @@ namespace SharedStates {
     public:
         unsigned long time = 15;
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -66,6 +75,9 @@ namespace SharedStates {
         const char * condition;
 
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -76,6 +88,9 @@ namespace SharedStates {
     public:
         unsigned long time = 10;
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -87,6 +102,9 @@ namespace SharedStates {
         unsigned long time = 5;
         OffshootClean(unsigned long time) : time(time) {}
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -107,5 +125,8 @@ namespace SharedStates {
     public:
         unsigned long time = 0;
         void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
     };
 }  // namespace SharedStates
