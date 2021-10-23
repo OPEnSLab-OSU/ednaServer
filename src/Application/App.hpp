@@ -74,7 +74,6 @@ public:
     // MainStateController sm;
     NewStateController newStateController;
     HyperFlushStateController hyperFlushStateController;
-    NowTaskStateController nowTaskStateController;
     DebubbleStateController debubbleStateController;
 
     ValveManager vm;
@@ -209,12 +208,6 @@ public:
         hyperFlushStateController.idle();  // Wait in IDLE
 
         //
-        //  ___ NOW TASK CONTROLLER ____________
-        //
-
-        addComponent(nowTaskStateController);
-        nowTaskStateController.idle();
-        
         // ─── Debubbler CONTROLLER ──────────────────────────────────────
         //
 
@@ -524,46 +517,7 @@ public:
     void beginHyperFlush() {
         hyperFlushStateController.begin();
     }
-
-    ScheduleReturnCode beginNowTask(){
-        if(currentTaskId)
-            return ScheduleReturnCode::unavailable;
-        NowTask task = ntm.task;
-        status.preventShutdown = false;
-        if(task.valve < 0 || task.valve > config.numberOfValves || vm.valves[task.valve].status != ValveStatus::free){
-            task.valve = -1;
-             println(GREEN("Current sample now valve not free"));
-            for(unsigned int i = 0; i < vm.valves.size(); i++){
-                if(vm.valves[i].status == ValveStatus::free){
-                    task.valve = i;
-                    println("Current valve is ", i);
-                    break;
-                }
-            }
-            if(task.valve == -1){
-                print(RED("No free valves to sample!"));
-                nowSampleButton.setSampleButton();
-                return ScheduleReturnCode::unavailable;
-            }
-        }
-        
-        TimedAction NowTaskExecution;
-        const auto timeUntil = 10;
-        NowTaskExecution.interval = secsToMillis(timeUntil);
-        NowTaskExecution.name     = "NowTaskExecution";
-        NowTaskExecution.callback = [this]() { nowTaskStateController.begin(); };
-        run(NowTaskExecution);  // async, will be execute later
-
-        nowTaskStateController.configure(task);
-
-        sampleNowActive = true;
-        status.preventShutdown = true;
-        vm.setValveStatus(task.valve, ValveStatus::operating);
-
-        println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
-        return ScheduleReturnCode::scheduled;
-    }
-    
+  
     void beginDebubble() {
         debubbleStateController.begin();
     }

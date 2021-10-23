@@ -26,10 +26,6 @@ namespace API {
         auto operator()(Arg<0>) -> R;
     };
 
-    struct StartNowTask : APISpec<JsonResponse<300>(App &)> {
-        auto operator()(Arg<0>) -> R;
-    };
-
     struct StartDebubble : APISpec<JsonResponse<300>(App &)> {
         auto operator()(Arg<0>) -> R;
     };

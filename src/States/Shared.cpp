@@ -237,7 +237,6 @@ namespace SharedStates {
         setTimeCondition(time, [&]() { sm.next(); });
     }
 
-
     void Preserve::update(KPStateMachine & sm){
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
@@ -250,7 +249,7 @@ namespace SharedStates {
         app.shift.setPin(app.currentValveIdToPin(), HIGH);
         app.shift.write();
     }
-
+  
     void AlcoholPurge::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();

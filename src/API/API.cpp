@@ -15,20 +15,6 @@ namespace API {
         return response;
     }
 
-    auto StartNowTask::operator()(App & app) -> R {
-        decltype(auto) nowTaskName = app.nowTaskStateController.getCurrentState()->getName();
-
-        R response;
-        if (strcmp(NowT::IDLE, nowTaskName) == 0) {
-            app.beginNowTask();
-            response["success"] = "Beginning Now Task";
-        } else {
-            response["error"] = "Already Sampling";
-        }
-        
-        return response;
-    }
-    
     auto StartDebubble::operator()(App & app) -> R {
         decltype(auto) debubbleName = app.debubbleStateController.getCurrentState()->getName();
 
