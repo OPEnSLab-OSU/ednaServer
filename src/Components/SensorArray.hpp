@@ -49,6 +49,7 @@
 // };
 
 #pragma once
+#include <Application/App.hpp> //Not a pretty implementation but hopefully works for now
 #include <vector>
 #include <KPSubject.hpp>
 #include <Components/SensorArrayObserver.hpp>
@@ -77,6 +78,7 @@ public:
     BaroSensor baro1{BSAddr};
     BaroSensor baro2{DSAddr};
 
+
     void setup() override {
         flow.enabled    = true;
         flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
@@ -96,6 +98,7 @@ public:
         baro2.onReceived = [this](BaroSensor::SensorData & data) {
             updateObservers(&SensorArrayObserver::baro2DidUpdate, data);
         };
+
     }
 
     void update() override {

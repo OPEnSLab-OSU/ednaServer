@@ -15,6 +15,34 @@ namespace API {
         return response;
     }
 
+    auto StartNowTask::operator()(App & app) -> R {
+        decltype(auto) nowTaskName = app.nowTaskStateController.getCurrentState()->getName();
+
+        R response;
+        if (strcmp(NowT::IDLE, nowTaskName) == 0) {
+            app.beginNowTask();
+            response["success"] = "Beginning Now Task";
+        } else {
+            response["error"] = "Already Sampling";
+        }
+        
+        return response;
+    }
+    
+    auto StartDebubble::operator()(App & app) -> R {
+        decltype(auto) debubbleName = app.debubbleStateController.getCurrentState()->getName();
+
+        R response;
+        if (strcmp(Debubble::IDLE, debubbleName) == 0) {
+            app.beginDebubble();
+            response["success"] = "Begin preloading water";
+        } else {
+            response["error"] = "Preloading water is already in operation";
+        }
+
+        return response;
+    }
+
     auto StatusGet::operator()(App & app) -> R {
         R response;
         encodeJSON(app.status, response.to<JsonObject>());
@@ -84,6 +112,21 @@ namespace API {
         // Save
         app.tm.tasks[incomingTask.id] = incomingTask;
         app.tm.writeToDirectory();
+
+        response["success"] = "Task successfully saved";
+        return response;
+    }
+
+    auto NowTaskSave::operator()(Arg<0> & app, Arg<1> & input) -> R {
+        R response;
+        // Prarse incomming payload
+        NowTask incomingTask;
+        incomingTask.decodeJSON(input.as<JsonVariant>());
+
+
+        // Save
+        app.ntm.task = incomingTask;
+        app.ntm.writeToDirectory();
 
         response["success"] = "Task successfully saved";
         return response;

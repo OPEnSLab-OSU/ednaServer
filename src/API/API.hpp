@@ -26,6 +26,14 @@ namespace API {
         auto operator()(Arg<0>) -> R;
     };
 
+    struct StartNowTask : APISpec<JsonResponse<300>(App &)> {
+        auto operator()(Arg<0>) -> R;
+    };
+
+    struct StartDebubble : APISpec<JsonResponse<300>(App &)> {
+        auto operator()(Arg<0>) -> R;
+    };
+
     struct StatusGet : APISpec<JsonResponse<Status::encodingSize()>(App &)> {
         auto operator()(Arg<0>) -> R;
     };
@@ -43,6 +51,10 @@ namespace API {
     };
 
     struct TaskSave : APISpec<JsonResponse<Task::encodingSize() + 500>(App &, JsonDocument &)> {
+        auto operator()(Arg<0>, Arg<1>) -> R;
+    };
+
+    struct NowTaskSave : APISpec<JsonResponse<NowTask::encodingSize() + 500>(App &, JsonDocument &)> {
         auto operator()(Arg<0>, Arg<1>) -> R;
     };
 

@@ -20,6 +20,12 @@ void App::setupServerRouting() {
         res.end();
     });
 
+    server.get("/api/alcohol-debubbler", [this](Request &, Response & res) {
+        const auto & response = dispatchAPI<API::StartDebubble>();
+        res.json(response);
+        res.end();
+    });
+
     // ────────────────────────────────────────────────────────────────────────────────
     // Get the current status
     // ────────────────────────────────────────────────────────────────────────────────
@@ -53,6 +59,20 @@ void App::setupServerRouting() {
     server.get("/api/tasks", [this](Request &, Response & res) {
         StaticJsonDocument<TaskManager::encodingSize()> response;
         encodeJSON(tm, response.to<JsonArray>());
+
+        KPStringBuilder<10> length(measureJson(response));
+        res.setHeader("Content-Length", length);
+        res.json(response);
+        res.end();
+    });
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Get now task object
+    // ────────────────────────────────────────────────────────────────────────────────
+    server.get("/api/nowtask", [this](Request &, Response & res) {
+        println(BLUE("REQUESTING NOW TASK"));
+        StaticJsonDocument<TaskManager::encodingSize()> response;
+        encodeJSON(ntm, response.to<JsonArray>());
 
         KPStringBuilder<10> length(measureJson(response));
         res.setHeader("Content-Length", length);
@@ -100,6 +120,19 @@ void App::setupServerRouting() {
         res.end();
     });
 
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Update existing task with incoming data
+    // ────────────────────────────────────────────────────────────────────────────────
+    server.post("/api/nowtask/save", [this](Request & req, Response & res) {
+        println(BLUE("SAVING NOW TASK"));
+        StaticJsonDocument<Task::encodingSize()> body;
+        deserializeJson(body, req.body);
+        serializeJsonPretty(body, Serial);
+
+        const auto & response = dispatchAPI<API::NowTaskSave>(body);
+        res.json(response);
+        res.end();
+    });
     // ────────────────────────────────────────────────────────────────────────────────
     // Schedule a task (marking it active)
     // ────────────────────────────────────────────────────────────────────────────────
@@ -160,6 +193,7 @@ void App::setupServerRouting() {
             vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
         }
         vm.writeToDirectory();
+        ntm.task.valve = 0;
         res.end();
     });
 }

@@ -129,4 +129,14 @@ namespace SharedStates {
         unsigned long updateDelay = 1000;
         void update(KPStateMachine & sm) override;
     };
+
+    /** ────────────────────────────────────────────────────────────────────────────
+     *  A state used to remove air bubbles from a alcohol bag
+     *
+     *  ──────────────────────────────────────────────────────────────────────────── */
+    class AlcoholPurge : public KPState {
+    public:
+        unsigned long time = 0;
+        void enter(KPStateMachine & sm) override;
+    };
 }  // namespace SharedStates
