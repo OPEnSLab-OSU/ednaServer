@@ -107,7 +107,11 @@ namespace SharedStates {
             }
 
             if (app.status.pressure >= pressure) {
-                this->condition = "pressure";
+                if(pressureTrigger <= millis()){
+                    this->condition = "pressure";
+                }
+            } else {
+                pressureTrigger = pressureDelay + millis();
             }
 
             if (timeSinceLastTransition() >= secsToMillis(time)) {

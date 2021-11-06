@@ -77,6 +77,8 @@ namespace SharedStates {
         void enter(KPStateMachine & sm) override;
         unsigned long updateTime = millis();
         unsigned long updateDelay = 1000;
+        unsigned long pressureDelay = 5000;
+        unsigned long pressureTrigger = millis() + pressureDelay;
         void update(KPStateMachine & sm) override;
     };
 
