@@ -16,6 +16,7 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.on();
+        delay(5000);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
         app.pump.on();
@@ -36,10 +37,17 @@ namespace SharedStates {
         app.shift.write();
     }
 
+    void Flush::leave(KPStateMachine & sm) {
+        auto & app = *static_cast<App *>(sm.controller);
+        app.pump.off();
+        delay(1000);
+    }
+
     void FlushVolume::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.on();
+        delay(5000);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
         app.pump.on();
@@ -89,6 +97,7 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.on();
+        delay(5000);
         app.shift.setPin(app.currentValveIdToPin(), HIGH);
         app.shift.write();
         app.pump.on();
@@ -136,6 +145,7 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.off();
+        delay(5000);
         app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
         app.shift.setPin(app.currentValveIdToPin(), HIGH);
         app.shift.write();
@@ -161,6 +171,7 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();  // Reset shift registers
         app.intake.on();
+        delay(5000);        // Delay to ensure ball intake is set properly
         app.shift.setPin(app.currentValveIdToPin(), HIGH);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
@@ -182,12 +193,20 @@ namespace SharedStates {
         app.shift.write();
     }
 
+    void OffshootClean::leave(KPStateMachine & sm){
+        auto & app = *static_cast<App *>(sm.controller);
+        app.pump.off();
+        delay(1000);
+    }
+
     void OffshootPreload::enter(KPStateMachine & sm) {
         // Intake valve is opened and the motor is runnning ...
         // Turnoff only the flush valve
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, LOW);
         app.intake.on();
+        delay(5000);
+        app.pump.on();
 
         // Reserving space ahead of time for performance
         reserve(app.vm.numberOfValvesInUse + 1);
@@ -229,6 +248,7 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();
         app.intake.off();
+        delay(5000);
         app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
         app.shift.setPin(app.currentValveIdToPin(), HIGH);
         app.shift.write();
@@ -255,6 +275,7 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();
         app.intake.off();
+        delay(5000);
         app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
