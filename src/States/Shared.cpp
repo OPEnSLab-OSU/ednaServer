@@ -204,6 +204,7 @@ namespace SharedStates {
         // Turnoff only the flush valve
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, LOW);
+        app.shift.write();
         app.intake.on();
         delay(5000);
         app.pump.on();
@@ -226,12 +227,16 @@ namespace SharedStates {
                     // Turn off the previous valve
                     app.shift.setPin(prevValvePin, LOW);
                     app.pump.off();
-                    delay(1000);
+                    app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+                    app.shift.write();
+                    delay(500);
                     println("done");
                 }
 
                 app.shift.setPin(valvePin, HIGH);
+                app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
                 app.shift.write();
+                delay(500);
                 app.pump.on();
                 print("Flushing offshoot ", valvePin - app.shift.capacityPerRegister, "...");
             });
@@ -241,7 +246,7 @@ namespace SharedStates {
         }
 
         // Transition to the next state after the last valve
-        setRelativeTimeCondition(counter * preloadTime, [&]() {
+        setRelativeTimeCondition(counter * preloadTime + counter, [&]() {
             println("done");
             sm.next();
         });
