@@ -5,6 +5,7 @@
 #include <KPSerialInput.hpp>
 #include <KPServer.hpp>
 #include <Action.hpp>
+#include <string.h>
 
 #include <Application/Config.hpp>
 #include <Application/Constants.hpp>
@@ -101,6 +102,40 @@ private:
                 Serial.read();
             }
             delay(20);
+    }
+
+    bool parseCommand(char *command){
+       
+        if(strcmp(command, "quit") == 0){
+            return false;
+        }
+        //println(command);
+        char *token = strtok(command, " \n");
+
+        if(strcmp(token, "quit") == 0){
+            return false;
+        }
+        
+        if(strcmp(token, "open") == 0){
+            println("OPEN COMMAND RECEIVED");
+            token = strtok(NULL, " ");
+            while(token != NULL){
+               shift.setPin( atoi(token) + shift.capacityPerRegister, HIGH);
+               println(atoi(token));
+               token = strtok(NULL, " ");
+            }
+        } else {
+            if(strcmp(token, "close") == 0){
+            println("CLOSE COMMAND RECEIVED");
+            token = strtok(NULL, " ");
+            while(token != NULL){
+               shift.setPin( atoi(token) + shift.capacityPerRegister, LOW);
+               token = strtok(NULL, " ");
+            }
+            }
+        }
+        shift.write();
+        return true;
     }
 
 public:
@@ -236,6 +271,24 @@ public:
 #ifdef COMPONENT_TEST
         println();
         println(BLUE("=================== RUNNING COMPONENT TEST =================="));
+
+        String command;
+        char *s2;
+        while(true){
+            println("Enter command: ");
+            while (!Serial.available()) {
+                yield();
+            }
+            while(Serial.available() > 0){
+                command = Serial.readString();
+            }
+            
+            s2 = (char *)alloca(command.length() + 1);
+            memcpy(s2, command.c_str(), command.length() + 1);
+            if(!parseCommand(s2)){
+                break;
+            }
+        }
 
         println("Press any key to start: ");
         while (!Serial.available()) {
@@ -447,7 +500,6 @@ public:
                 // Wake up between 10 secs of the actual schedule time
                 // Prepare an action to execute at exact time
                 const auto timeUntil = task.schedule - time_now;
-
                 TimedAction delayTaskExecution;
                 delayTaskExecution.name     = "delayTaskExecution";
                 delayTaskExecution.interval = secsToMillis(timeUntil);
