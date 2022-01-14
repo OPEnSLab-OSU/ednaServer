@@ -38,7 +38,6 @@ private:
     void setupAPI();
     void setupSerialRouting();
     void setupServerRouting();
-//    void testValve(int v);
     void commandReceived(const char * line, size_t size) override;
 
 public:
@@ -83,59 +82,6 @@ private:
 
     const char * TaskObserverName() const override {
         return "Application-Task Observer";
-    }
-
-
-    void testValve(int v, const char * name) {
-            println("=========");
-            print("Testing valve: ");
-            print(name);
-            println();
-            shift.setAllRegistersLow();
-            shift.writePin(v + shift.capacityPerRegister, HIGH);
-            shift.write();
-            println("press any key to continue: ");
-              while (!Serial.available()) {
-                yield();
-            }
-            while(Serial.available() > 0){
-                Serial.read();
-            }
-            delay(20);
-    }
-
-    bool parseCommand(char *command){
-       
-        if(strcmp(command, "quit") == 0){
-            return false;
-        }
-        //println(command);
-        char *token = strtok(command, " \n");
-
-        if(strcmp(token, "quit") == 0){
-            return false;
-        }
-        
-        if(strcmp(token, "open") == 0){
-            println("OPEN COMMAND RECEIVED");
-            token = strtok(NULL, " ");
-            while(token != NULL){
-               shift.setPin( atoi(token) + shift.capacityPerRegister, HIGH);
-               println(atoi(token));
-               token = strtok(NULL, " ");
-            }
-        } else {
-            if(strcmp(token, "close") == 0){
-            println("CLOSE COMMAND RECEIVED");
-            token = strtok(NULL, " ");
-            while(token != NULL){
-               shift.setPin( atoi(token) + shift.capacityPerRegister, LOW);
-               token = strtok(NULL, " ");
-            }
-            }
-        }
-        shift.write();
-        return true;
     }
 
 public:
@@ -264,100 +210,8 @@ public:
         });
 
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
-#if defined(DEBUG) || defined(COMPONENT_TEST)
+#if defined(DEBUG)
         runForever(2000, "memLog", [&]() { printFreeRam(); });
-#endif
-
-#ifdef COMPONENT_TEST
-        println();
-        println(BLUE("=================== RUNNING COMPONENT TEST =================="));
-
-        String command;
-        char *s2;
-        while(true){
-            println("Enter command: ");
-            while (!Serial.available()) {
-                yield();
-            }
-            while(Serial.available() > 0){
-                command = Serial.readString();
-            }
-            
-            s2 = (char *)alloca(command.length() + 1);
-            memcpy(s2, command.c_str(), command.length() + 1);
-            if(!parseCommand(s2)){
-                break;
-            }
-        }
-
-        println("Press any key to start: ");
-        while (!Serial.available()) {
-            yield();
-        }
-        while(Serial.available() > 0){
-            Serial.read();
-        }
-        char buffer [50];
-        for(int i = 0; i < 24; i++){
-            std::sprintf(buffer, "%d", i);
-            testValve(i, buffer);
-        }
-
-        testValve(TPICDevices::AIR_VALVE, "Air valve");
-        testValve(TPICDevices::FLUSH_VALVE, "Flush valve");
-        testValve(TPICDevices::ALCHOHOL_VALVE, "Alcohol valve");
-
-        println("Testing ball valve");
-
-        shift.writeAllRegistersLow();
-        intake.on();
-        println("press any key to continue: ");
-        while (!Serial.available()) {
-            yield();
-        }
-        while(Serial.available() > 0){
-            Serial.read();
-        }
-        intake.off();
-
-        println();
-        println("Testing pump...");
-        shift.writeAllRegistersLow();
-        shift.setPin(TPICDevices::AIR_VALVE, HIGH);
-        shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        shift.write();
-        pump.on();
-        delay(3000);
-        pump.off();
-        delay(3000);
-        pump.on(Direction::reverse);
-        delay(3000);
-        pump.off();
-        println("press any key to continue: ");
-        while (!Serial.available()) {
-            yield();
-        }
-        while(Serial.available() > 0){
-            Serial.read();
-        }
-
-        if(sensors.pressure.enabled){
-            println("Pressure sensor detected");
-        } else {
-            println(RED("Pressure sensor not detected"));
-        }
-        if(sensors.baro1.enabled){
-            println("Baro1 sensor detected");
-        }else{
-            println(RED("Baro1 sensor not detected"));
-        }
-        if(sensors.baro2.enabled){
-            println("Baro2 sensor detected");
-        }else{
-            println(RED("Baro2 sensor not detected"));
-        }
-
-        println(BLUE("=================== COMPONENT TEST COMPLETE =================="));
 #endif
     }
 

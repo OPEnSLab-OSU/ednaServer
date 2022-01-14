@@ -2,6 +2,12 @@
 #include <Components/Sensors/FlowSensor.hpp>
 
 namespace {
+
+    using func = std::function<void(std::vector<std::string> args)>;
+    struct func_args {
+        func function;
+        unsigned short n_args;
+    };
     struct SerialRequest {
         const char * cmd;
         const JsonArray & path;
@@ -9,7 +15,7 @@ namespace {
     };
 
     using FunctionType = std::function<void(SerialRequest req)>;
-    using StringToFunc = std::unordered_map<std::string, FunctionType>;
+    using StringToFunc = std::unordered_map<std::string, func>;
     StringToFunc mapNameToCallback;
 
     constexpr const char EOT = '\4';
@@ -17,17 +23,70 @@ namespace {
     void endTransmission() {
         print(EOT);
     }
+
+    // https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c
+    bool is_number(const std::string& s)
+    {
+        std::string::const_iterator it = s.begin();
+        while (it != s.end() && std::isdigit(*it)) ++it;
+        return !s.empty() && it == s.end();
+    }
+
+    int string_to_tpic(const std::string& s){
+        if(s == "air"){
+            return TPICDevices::AIR_VALVE;
+        }
+        if(s == "alcohol"){
+            return TPICDevices::ALCHOHOL_VALVE;
+        }
+        if(s == "flush"){
+            return TPICDevices::FLUSH_VALVE;
+        }
+        return -1;
+    }
 }  // namespace
 
 // Registering Top-level serial commands
 void App::setupSerialRouting() {
-    mapNameToCallback["hyperflush"] = [this](SerialRequest req) {
-        const auto response = dispatchAPI<API::StartHyperFlush>();
-        serializeJson(response, Serial);
+    mapNameToCallback["open"] = [this](std::vector<std::string> args) {
+        //assume that it is a list of valveIDs
+        if(is_number(args[1])){
+            for(unsigned int i = 1; i < args.size(); i++){
+                shift.setPin( std::stoi(args[i]) + shift.capacityPerRegister, HIGH);
+            }
+            shift.write();
+        } else {
+            if(string_to_tpic(args[1]) != -1){
+                shift.setPin(string_to_tpic(args[1]), HIGH);
+            }
+        }
     };
 
-    mapNameToCallback["query"] = [this](SerialRequest req) {
-        const char * endpoint = req.path[1];
+    mapNameToCallback["close"] = [this](std::vector<std::string> args) {
+        if(is_number(args[1])){
+            for(unsigned int i = 1; i < args.size(); i++){
+                shift.setPin( std::stoi(args[i]) + shift.capacityPerRegister, LOW);
+            }
+            shift.write();
+        } else {
+            if(string_to_tpic(args[1]) != -1){
+                shift.setPin(string_to_tpic(args[1]), LOW);
+            }
+        }
+    };
+
+    mapNameToCallback["pump"] = [this](std::vector<std::string> args) {
+        const char * endpoint = args[1].c_str();
+        if (strcmp(endpoint, "on") == 0) {
+            pump.on();
+        }
+        if (strcmp(endpoint, "status") == 0) {
+            pump.off();
+        }
+    };
+
+    mapNameToCallback["query"] = [this](std::vector<std::string> args) {
+        const char * endpoint = args[1].c_str();
         if (strcmp(endpoint, "status") == 0) {
             const auto & response = dispatchAPI<API::StatusGet>();
             serializeJson(response, Serial);
@@ -47,10 +106,28 @@ void App::setupSerialRouting() {
             endTransmission();
             return;
         }
+
+        if (strcmp(endpoint, "sensors") == 0) {
+            if(sensors.pressure.enabled){
+                println("Pressure sensor detected");
+            } else {
+                println(RED("Pressure sensor not detected"));
+            }
+            if(sensors.baro1.enabled){
+                println("Baro1 sensor detected");
+            }else{
+                println(RED("Baro1 sensor not detected"));
+            }
+            if(sensors.baro2.enabled){
+                println("Baro2 sensor detected");
+            }else{
+                println(RED("Baro2 sensor not detected"));
+            }
+        }
     };
 
-    mapNameToCallback["reset"] = [this](SerialRequest req) {
-        const char * endpoint = req.path[1];
+    mapNameToCallback["reset"] = [this](std::vector<std::string> args) {
+        const char * endpoint = args[1].c_str();
         if (strcmp(endpoint, "valves") == 0) {
             for (int i = 0; i < config.numberOfValves; i++) {
                 vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
@@ -77,17 +154,37 @@ void App::setupSerialRouting() {
  */
 
 void App::commandReceived(const char * msg, size_t size) {
-    if (msg[0] == '{') {
-        StaticJsonDocument<512> input;
-        deserializeJson(input, msg);
 
-        for (auto & item : mapNameToCallback) {
-            if (item.first == input["cmd"].as<const char *>()) {
-                item.second({input["cmd"], input["path"], input});
+    std::vector<std::string> args;
+		char str[80];
+		strcpy(str, msg);
+		println("Received: ", str);
+		const char delim[2] = " ";
+		const char * tok	= strtok(str, delim);
+		int i				= 0;
+		while (tok != NULL) {
+			args.push_back(tok);
+			tok		= strtok(NULL, delim);
+			++i;
+		}
+        for(auto & command : mapNameToCallback) {
+            if(command.first == args[0]){
+                command.second({args});
                 break;
             }
         }
-    }
+
+    //if (msg[0] == '{') {
+    //    StaticJsonDocument<512> input;
+    //    deserializeJson(input, msg);
+
+    //    for (auto & item : mapNameToCallback) {
+    //        if (item.first == input["cmd"].as<const char *>()) {
+    //            item.second({input["cmd"], input["path"], input});
+    //            break;
+    //        }
+    //    }
+    //}
 
     // if (strcmp(msg, "flow temp")) {
     // 	// auto response = FlowSensor::read();
@@ -106,9 +203,9 @@ void App::commandReceived(const char * msg, size_t size) {
     // 	// dispatch(doc["cmd"].as<const char *>(), doc, response);
     // }
 
-    if (strcmp(msg, "status")) {
-        println(status);
-    }
+    //if (strcmp(msg, "status")) {
+    //    println(status);
+    //}
 
     // if (line == "print config") {
     // 	println(config);
@@ -127,11 +224,11 @@ void App::commandReceived(const char * msg, size_t size) {
     // 	println(scheduleNextActiveTask().description());
     // }
 
-    if (strcmp(msg, "reset valves") == 0) {
-        for (int i = 0; i < config.numberOfValves; i++) {
-            vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
-        }
-    }
+    //if (strcmp(msg, "reset valves") == 0) {
+    //    for (int i = 0; i < config.numberOfValves; i++) {
+    //        vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
+    //    }
+    //}
 
     // 	vm.writeToDirectory();
     // }
