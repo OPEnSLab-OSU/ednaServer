@@ -205,6 +205,7 @@ namespace SharedStates {
     void OffshootClean::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();  // Reset shift registers
+        app.pump.off();
         app.intake.on();
        // Delay to ensure ball intake is set properly
         setTimeCondition(5, [&app](){
@@ -282,7 +283,7 @@ namespace SharedStates {
                 print("Flushing offshoot ", valvePin - app.shift.capacityPerRegister, "...");
             });
 
-            setTimeCondition(counter * preloadTime + counter + 5, [&app, prevValvePin, valvePin]() {
+            setTimeCondition(counter * preloadTime + 6, [&app, prevValvePin, valvePin]() {
                 app.pump.on();
             });
 
@@ -291,7 +292,7 @@ namespace SharedStates {
         }
 
         // Transition to the next state after the last valve
-        setTimeCondition(counter * preloadTime + counter + 5, [&]() {
+        setTimeCondition(counter * preloadTime + 6, [&]() {
             println("done");
             sm.next();
         });
@@ -299,6 +300,7 @@ namespace SharedStates {
 
     void Preserve::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
+        app.pump.off();
         app.shift.writeAllRegistersLow();
         app.intake.off();
         setTimeCondition(5, [&app](){
