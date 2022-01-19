@@ -54,12 +54,12 @@ void App::setupSerialRouting() {
             for(unsigned int i = 1; i < args.size(); i++){
                 shift.setPin( std::stoi(args[i]) + shift.capacityPerRegister, HIGH);
             }
-            shift.write();
         } else {
             if(string_to_tpic(args[1]) != -1){
                 shift.setPin(string_to_tpic(args[1]), HIGH);
             }
         }
+        shift.write();
     };
 
     mapNameToCallback["close"] = [this](std::vector<std::string> args) {
@@ -67,12 +67,12 @@ void App::setupSerialRouting() {
             for(unsigned int i = 1; i < args.size(); i++){
                 shift.setPin( std::stoi(args[i]) + shift.capacityPerRegister, LOW);
             }
-            shift.write();
         } else {
             if(string_to_tpic(args[1]) != -1){
                 shift.setPin(string_to_tpic(args[1]), LOW);
             }
         }
+        shift.write();
     };
 
     mapNameToCallback["pump"] = [this](std::vector<std::string> args) {
@@ -80,8 +80,18 @@ void App::setupSerialRouting() {
         if (strcmp(endpoint, "on") == 0) {
             pump.on();
         }
-        if (strcmp(endpoint, "status") == 0) {
+        if (strcmp(endpoint, "off") == 0) {
             pump.off();
+        }
+    };
+
+    mapNameToCallback["intake"] = [this](std::vector<std::string> args){
+        const char * endpoint = args[1].c_str();
+        if(strcmp(endpoint, "on") == 0){
+            intake.on();
+        }
+        if(strcmp(endpoint, "off") == 0){
+            intake.off();
         }
     };
 
@@ -107,6 +117,11 @@ void App::setupSerialRouting() {
             return;
         }
 
+        if(strcmp(endpoint, "time") == 0) {
+            power.printCurrentTime();
+            return;
+        }
+
         if (strcmp(endpoint, "sensors") == 0) {
             if(sensors.pressure.enabled){
                 println("Pressure sensor detected");
@@ -123,7 +138,14 @@ void App::setupSerialRouting() {
             }else{
                 println(RED("Baro2 sensor not detected"));
             }
+            return;
         }
+    };
+
+    mapNameToCallback["alarm"] = [this](std::vector<std::string> args) {
+        long time = std::labs(std::stol(args[1]));
+        power.scheduleNextAlarm(time + now());
+        return;
     };
 
     mapNameToCallback["reset"] = [this](std::vector<std::string> args) {
