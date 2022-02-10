@@ -183,7 +183,7 @@ namespace SharedStates {
             app.pump.on();
         });
 
-        setRelativeTimeCondition(time + 6, [&]() { sm.next(); });
+        setTimeCondition(time + 6, [&]() { sm.next(); });
     }
 
     void Dry::update(KPStateMachine & sm) {
