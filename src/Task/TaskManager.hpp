@@ -81,6 +81,7 @@ public:
             return false;
         }
 
+        updateObservers(&TaskObserver::taskDidComplete);
         auto & task = tasks[id];
         task.valves.clear();
         if (task.deleteOnCompletion) {

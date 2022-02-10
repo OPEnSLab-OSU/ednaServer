@@ -14,10 +14,12 @@
 #include <Components/Pump.hpp>
 #include <Components/ShiftRegister.hpp>
 #include <Components/Power.hpp>
+#include <Components/NowSampleButton.hpp>
 #include <Components/SensorArray.hpp>
 #include <Components/Intake.hpp>
 
 #include <StateControllers/NewStateController.hpp>
+#include <StateControllers/NowTaskStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
 #include <StateControllers/DebubbleStateController.hpp>
 
@@ -27,13 +29,16 @@
 #include <Task/Task.hpp>
 #include <Task/TaskManager.hpp>
 
+#include <Task/NowTask.hpp>
+#include <Task/NowTaskManager.hpp>
+
 #include <Utilities/JsonEncodableDecodable.hpp>
 
 #include <API/API.hpp>
 
 #include <configuration.hpp>
 
-class App : public KPController, public KPSerialInputObserver, public TaskObserver {
+class App : public KPController, public KPSerialInputObserver, public TaskObserver, public NowTaskObserver {
 private:
     void setupAPI();
     void setupSerialRouting();
@@ -61,6 +66,7 @@ public:
     };
 
     Power power{"power"};
+    NowSampleButton nowSampleButton{"nowSampleButton"};
     BallIntake intake{shift};
     Config config{ProgramSettings::CONFIG_FILE_PATH};
     Status status;
@@ -68,14 +74,17 @@ public:
     // MainStateController sm;
     NewStateController newStateController;
     HyperFlushStateController hyperFlushStateController;
+    NowTaskStateController nowTaskStateController;
     DebubbleStateController debubbleStateController;
 
     ValveManager vm;
     TaskManager tm;
+    NowTaskManager ntm;
 
     SensorArray sensors{"sensor-array"};
 
     int currentTaskId = 0;
+    bool sampleNowActive = false;
 
 private:
     const char * KPSerialInputObserverName() const override {
@@ -106,6 +115,7 @@ private:
     }
 
 public:
+    void virtual setupButtonPress() {}
     void setup() override {
         KPSerialInput::sharedInstance().addObserver(this);
         Serial.begin(115200);
@@ -149,6 +159,9 @@ public:
         addComponent(pump);
         addComponent(sensors);
         sensors.addObserver(status);
+        addComponent(nowSampleButton);
+
+
 
         //
         // ─── LOADING CONFIG FILE ─────────────────────────────────────────
@@ -174,6 +187,15 @@ public:
         tm.addObserver(this);
         tm.loadTasksFromDirectory(config.taskFolder);
 
+
+        //
+        // ___ ADDING NOW TASK MANAGER _____________________________________
+        //
+
+        ntm.init(config);
+        ntm.addObserver(this);
+        ntm.loadTasksFromDirectory(config.taskFolder);
+        //pinMode(LED_BUILTIN, OUTPUT);
         //
         // ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
         //
@@ -187,6 +209,13 @@ public:
         hyperFlushStateController.idle();  // Wait in IDLE
 
         //
+
+        //  ___ NOW TASK CONTROLLER ____________
+        //
+
+        addComponent(nowTaskStateController);
+        nowTaskStateController.idle();
+        
         // ─── Debubbler CONTROLLER ──────────────────────────────────────
         //
 
@@ -239,14 +268,25 @@ public:
         power.onInterrupt([this]() {
             println(GREEN("RTC Interrupted!"));
             println(scheduleNextActiveTask().description());
+            interrupts();
         });
 
+
+         nowSampleButton.onInterrupt([this](){
+             if(!power.rtc.alarm(1) && !power.rtc.alarm(2)){
+                println(GREEN("Sample Now Button Interrupted!"));
+                println(beginNowTask().description());
+             }
+            interrupts();
+        });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #if defined(DEBUG) || defined(COMPONENT_TEST)
         runForever(2000, "memLog", [&]() { printFreeRam(); });
 #endif
 
-#ifdef COMPONENT_TEST
+#ifndef COMPONENT_TEST
+       nowSampleButton.setSampleButton();
+#else
         println();
         println(BLUE("=================== RUNNING COMPONENT TEST =================="));
 
@@ -325,14 +365,50 @@ public:
         if (currentTaskId) {
             SD.begin(HardwarePins::SD_CARD);
             File log    = SD.open(filename, FILE_WRITE);
-            Task & task = tm.tasks.at(currentTaskId);
-
+            
             char formattedTime[64];
             auto utc = now();
             sprintf(
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
-
+            Task & task = tm.tasks.at(currentTaskId);
+            KPStringBuilder<544> data{
+                utc,
+                ",",
+                formattedTime,
+                ",",
+                task.name,
+                ",",
+                status.currentValve,
+                ",",
+                status.currentStateName,
+                ",",
+                task.sampleTime,
+                ",",
+                task.samplePressure,
+                ",",
+                task.sampleVolume,
+                ",",
+                status.temperature,
+                ",",
+                status.pressure,
+                ",",
+                status.waterVolume,
+                ",",
+                status.waterFlow};
+            log.println(data);
+            log.flush();
+            log.close();
+        } else if (sampleNowActive) {
+            SD.begin(HardwarePins::SD_CARD);
+            File log    = SD.open(filename, FILE_WRITE);
+            
+            char formattedTime[64];
+            auto utc = now();
+            sprintf(
+                formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                hour(utc), minute(utc), second(utc));
+            NowTask & task = ntm.task;
             KPStringBuilder<544> data{
                 utc,
                 ",",
@@ -364,43 +440,83 @@ public:
     }
 
     void logAfterSample() {
-        SD.begin(HardwarePins::SD_CARD);
-        File log    = SD.open(config.logFile, FILE_WRITE);
-        Task & task = tm.tasks.at(currentTaskId);
+        if(currentTaskId){
+            SD.begin(HardwarePins::SD_CARD);
+            File log    = SD.open(config.logFile, FILE_WRITE);
+            
+            Task & task = tm.tasks.at(currentTaskId);
 
-        char formattedTime[64];
-        auto utc = now();
-        sprintf(
-            formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
-            hour(utc), minute(utc), second(utc));
+            char formattedTime[64];
+            auto utc = now();
+            sprintf(
+                formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                hour(utc), minute(utc), second(utc));
 
-        KPStringBuilder<544> data{
-            utc,
-            ",",
-            formattedTime,
-            ",",
-            task.name,
-            ",",
-            status.currentValve,
-            ",",
-            status.currentStateName,
-            ",",
-            task.sampleTime,
-            ",",
-            task.samplePressure,
-            ",",
-            task.sampleVolume,
-            ",",
-            status.temperature,
-            ",",
-            status.maxPressure,
-            ",",
-            status.waterVolume,
-            ",",
-            status.waterFlow};
-        log.println(data);
-        log.flush();
-        log.close();
+            KPStringBuilder<544> data{
+                utc,
+                ",",
+                formattedTime,
+                ",",
+                task.name,
+                ",",
+                status.currentValve,
+                ",",
+                status.currentStateName,
+                ",",
+                task.sampleTime,
+                ",",
+                task.samplePressure,
+                ",",
+                task.sampleVolume,
+                ",",
+                status.temperature,
+                ",",
+                status.maxPressure,
+                ",",
+                status.waterVolume,
+                ",",
+                status.waterFlow};
+            log.println(data);
+            log.flush();
+            log.close();
+        } else if (sampleNowActive){
+            SD.begin(HardwarePins::SD_CARD);
+            File log    = SD.open(config.logFile, FILE_WRITE);
+            NowTask & task = ntm.task;
+            char formattedTime[64];
+            auto utc = now();
+            sprintf(
+                formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
+                hour(utc), minute(utc), second(utc));
+
+            KPStringBuilder<544> data{
+                utc,
+                ",",
+                formattedTime,
+                ",",
+                task.name,
+                ",",
+                status.currentValve,
+                ",",
+                status.currentStateName,
+                ",",
+                task.sampleTime,
+                ",",
+                task.samplePressure,
+                ",",
+                task.sampleVolume,
+                ",",
+                status.temperature,
+                ",",
+                status.maxPressure,
+                ",",
+                status.waterVolume,
+                ",",
+                status.waterFlow};
+            log.println(data);
+            log.flush();
+            log.close();
+        }
     }
 
     template <typename T, typename... Args>
@@ -417,6 +533,45 @@ public:
         hyperFlushStateController.begin();
     }
 
+    ScheduleReturnCode beginNowTask(){
+        if(currentTaskId)
+            return ScheduleReturnCode::unavailable;
+        NowTask task = ntm.task;
+        status.preventShutdown = false;
+        if(task.valve < 0 || task.valve > config.numberOfValves || vm.valves[task.valve].status != ValveStatus::free){
+            task.valve = -1;
+             println(GREEN("Current sample now valve not free"));
+            for(unsigned int i = 0; i < vm.valves.size(); i++){
+                if(vm.valves[i].status == ValveStatus::free){
+                    task.valve = i;
+                    println("Current valve is ", i);
+                    break;
+                }
+            }
+            if(task.valve == -1){
+                print(RED("No free valves to sample!"));
+                nowSampleButton.setSampleButton();
+                return ScheduleReturnCode::unavailable;
+            }
+        }
+        
+        TimedAction NowTaskExecution;
+        const auto timeUntil = 10;
+        NowTaskExecution.interval = secsToMillis(timeUntil);
+        NowTaskExecution.name     = "NowTaskExecution";
+        NowTaskExecution.callback = [this]() { nowTaskStateController.begin(); };
+        run(NowTaskExecution);  // async, will be execute later
+
+        nowTaskStateController.configure(task);
+
+        sampleNowActive = true;
+        status.preventShutdown = true;
+        vm.setValveStatus(task.valve, ValveStatus::operating);
+
+        println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
+        return ScheduleReturnCode::scheduled;
+    }
+    
     void beginDebubble() {
         debubbleStateController.begin();
     }
@@ -437,6 +592,7 @@ public:
      *  @return false if task is either missed schedule or no active task available.
      *  ──────────────────────────────────────────────────────────────────────────── */
     ScheduleReturnCode scheduleNextActiveTask(bool shouldStopCurrentTask = false) {
+        nowSampleButton.disableSampleButton();
         status.preventShutdown = false;
         for (auto id : tm.getActiveSortedTaskIds()) {
             Task & task     = tm.tasks[id];
@@ -465,10 +621,16 @@ public:
             }
 
             if (time_now >= task.schedule - 10) {
+                if(sampleNowActive){
+                    println(RED("Sample Now Task Occuring"));
+                    invalidateTaskAndFreeUpValves(task);
+                    continue;
+                }
+
+                
                 // Wake up between 10 secs of the actual schedule time
                 // Prepare an action to execute at exact time
                 const auto timeUntil = task.schedule - time_now;
-
                 TimedAction delayTaskExecution;
                 delayTaskExecution.name     = "delayTaskExecution";
                 delayTaskExecution.interval = secsToMillis(timeUntil);
@@ -486,11 +648,13 @@ public:
             } else {
                 // Wake up before not due to alarm, reschedule anyway
                 power.scheduleNextAlarm(task.schedule - 8);  // 3 < x < 10
+                nowSampleButton.setSampleButton();
                 return ScheduleReturnCode::scheduled;
             }
         }
 
         currentTaskId = 0;
+        nowSampleButton.setSampleButton();
         return ScheduleReturnCode::unavailable;
     }
 
@@ -582,10 +746,20 @@ public:
 
 private:
     void taskDidUpdate(const Task & task) override {}
-
+    void nowTaskDidUpdate(const NowTask & task) override {}
     void taskDidDelete(int id) override {
         if (currentTaskId == id) {
             currentTaskId = 0;
         }
+    }
+
+    void taskDidComplete() override {
+        println(BLUE("Setting now sample button to be pressed again"));
+        nowSampleButton.setSampleButton();
+    }
+
+    void nowTaskDidComplete(const NowTask & task) override {
+        println(BLUE("Setting now sample button to be pressed again"));
+        nowSampleButton.setSampleButton();
     }
 };
