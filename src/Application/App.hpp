@@ -209,6 +209,7 @@ public:
         hyperFlushStateController.idle();  // Wait in IDLE
 
         //
+
         //  ___ NOW TASK CONTROLLER ____________
         //
 
@@ -244,10 +245,10 @@ public:
         // Regular log header
         if (!SD.exists(config.logFile)) {
             File file = SD.open(config.logFile, FILE_WRITE);
-            KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
+            KPStringBuilder<404> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
-                                        "Max Pressure Recorded, Volume Recorded\n"};
+                                        "Max Pressure Recorded, Volume Recorded, Flow Rate\n"};
             file.println(header);
             file.close();
         }
@@ -255,10 +256,10 @@ public:
         // Detail log header
         if (!SD.exists("detail.csv")) {
             File file = SD.open("detail.csv", FILE_WRITE);
-            KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
+            KPStringBuilder<404> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
-                                        "Pressure Recorded, Volume Recorded\n"};
+                                        "Pressure Recorded, Volume Recorded, Flow Rate\n"};
             file.println(header);
             file.close();
         }
@@ -370,9 +371,8 @@ public:
             sprintf(
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
-
             Task & task = tm.tasks.at(currentTaskId);
-            KPStringBuilder<512> data{
+            KPStringBuilder<544> data{
                 utc,
                 ",",
                 formattedTime,
@@ -393,7 +393,9 @@ public:
                 ",",
                 status.pressure,
                 ",",
-                status.waterVolume};
+                status.waterVolume,
+                ",",
+                status.waterFlow};
             log.println(data);
             log.flush();
             log.close();
@@ -407,7 +409,7 @@ public:
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
             NowTask & task = ntm.task;
-            KPStringBuilder<512> data{
+            KPStringBuilder<544> data{
                 utc,
                 ",",
                 formattedTime,
@@ -428,7 +430,9 @@ public:
                 ",",
                 status.pressure,
                 ",",
-                status.waterVolume};
+                status.waterVolume,
+                ",",
+                status.waterFlow};
             log.println(data);
             log.flush();
             log.close();
@@ -448,7 +452,7 @@ public:
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
 
-            KPStringBuilder<512> data{
+            KPStringBuilder<544> data{
                 utc,
                 ",",
                 formattedTime,
@@ -469,7 +473,9 @@ public:
                 ",",
                 status.maxPressure,
                 ",",
-                status.waterVolume};
+                status.waterVolume,
+                ",",
+                status.waterFlow};
             log.println(data);
             log.flush();
             log.close();
@@ -483,7 +489,7 @@ public:
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
 
-            KPStringBuilder<512> data{
+            KPStringBuilder<544> data{
                 utc,
                 ",",
                 formattedTime,
@@ -504,7 +510,9 @@ public:
                 ",",
                 status.maxPressure,
                 ",",
-                status.waterVolume};
+                status.waterVolume,
+                ",",
+                status.waterFlow};
             log.println(data);
             log.flush();
             log.close();

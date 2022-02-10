@@ -15,6 +15,7 @@ namespace API {
         return response;
     }
 
+
     auto StartNowTask::operator()(App & app) -> R {
         decltype(auto) nowTaskName = app.nowTaskStateController.getCurrentState()->getName();
 
