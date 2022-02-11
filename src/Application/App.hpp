@@ -17,7 +17,7 @@
 #include <Components/SensorArray.hpp>
 #include <Components/Intake.hpp>
 
-#include <StateControllers/NewStateController.hpp>
+#include <StateControllers/TaskStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
 #include <StateControllers/DebubbleStateController.hpp>
 
@@ -66,7 +66,7 @@ public:
     Status status;
 
     // MainStateController sm;
-    NewStateController newStateController;
+    TaskStateController taskStateController;
     HyperFlushStateController hyperFlushStateController;
     DebubbleStateController debubbleStateController;
 
@@ -201,9 +201,9 @@ public:
         // ─── NEW STATE CONTROLLER ────────────────────────────────────────
         //
 
-        addComponent(newStateController);
-        newStateController.addObserver(status);
-        newStateController.idle();  // Wait in IDLE
+        addComponent(taskStateController);
+        taskStateController.addObserver(status);
+        taskStateController.idle();  // Wait in IDLE
 
         // Print WiFi status
         if (server.enabled()) {
@@ -447,7 +447,7 @@ public:
                 if (shouldStopCurrentTask) {
                     cancel("delayTaskExecution");
                     // if (status.currentStateName != HyperFlush::STOP) {
-                    // 	newStateController.stop();
+                    // 	taskStateController.stop();
                     // }
 
                     continue;
@@ -472,10 +472,10 @@ public:
                 TimedAction delayTaskExecution;
                 delayTaskExecution.name     = "delayTaskExecution";
                 delayTaskExecution.interval = secsToMillis(timeUntil);
-                delayTaskExecution.callback = [this]() { newStateController.begin(); };
+                delayTaskExecution.callback = [this]() { taskStateController.begin(); };
                 run(delayTaskExecution);  // async, will be execute later
 
-                newStateController.configure(task);
+                taskStateController.configure(task);
 
                 currentTaskId          = id;
                 status.preventShutdown = true;

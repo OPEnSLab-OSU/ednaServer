@@ -160,7 +160,7 @@ namespace API {
         Task & task = app.tm.tasks[id];
         if (app.currentTaskId == task.id) {
             app.invalidateTaskAndFreeUpValves(task);
-            app.newStateController.stop();
+            app.taskStateController.stop();
         } else {
             app.invalidateTaskAndFreeUpValves(task);
             app.tm.writeToDirectory();
