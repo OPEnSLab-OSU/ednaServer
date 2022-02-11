@@ -51,18 +51,6 @@ namespace SharedStates {
         delay(1000);
     }
 
-    void Flush::update(KPStateMachine & sm) {
-        if ((unsigned long) (millis() - updateTime) < updateDelay) {
-            return;
-        }
-
-        updateTime = millis();
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setAllRegistersLow();
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-    }
-
     void FlushVolume::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
@@ -97,17 +85,6 @@ namespace SharedStates {
         app.shift.write();
     }
 
-    void FlushVolume::update(KPStateMachine & sm) {
-        if ((unsigned long) (millis() - updateTime) < updateDelay) {
-            return;
-        }
-
-        updateTime = millis();
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setAllRegistersLow();
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-    }
 
     void AirFlush::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
@@ -121,18 +98,6 @@ namespace SharedStates {
         });
 
         setTimeCondition(time + 1, [&]() { sm.next(); });
-    }
-
-    void AirFlush::update(KPStateMachine & sm) {
-        if ((unsigned long) (millis() - updateTime) < updateDelay) {
-            return;
-        }
-
-        updateTime = millis();
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setAllRegistersLow();
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
     }
 
     void AirFlush::update(KPStateMachine & sm) {
@@ -238,19 +203,6 @@ namespace SharedStates {
         app.shift.write();
     }
 
-    void Dry::update(KPStateMachine & sm) {
-        if ((unsigned long) (millis() - updateTime) < updateDelay) {
-            return;
-        }
-
-        updateTime = millis();
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setAllRegistersLow();
-        app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
-        app.shift.setPin(app.currentValveIdToPin(), HIGH);
-        app.shift.write();
-    }
-
     void OffshootClean::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();  // Reset shift registers
@@ -279,19 +231,6 @@ namespace SharedStates {
         if( timeSinceLastTransition() < 5000){
             return;
         }
-        if ((unsigned long) (millis() - updateTime) < updateDelay) {
-            return;
-        }
-
-        updateTime = millis();
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setAllRegistersLow();
-        app.shift.setPin(app.currentValveIdToPin(), HIGH);
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-    }
-
-    void OffshootClean::update(KPStateMachine & sm){
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
@@ -413,45 +352,6 @@ namespace SharedStates {
         if(timeSinceLastTransition() < 5000){
             return;
         }
-        if ((unsigned long) (millis() - updateTime) < updateDelay) {
-            return;
-        }
-
-        updateTime = millis();
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setAllRegistersLow();
-        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-    }
-
-
-    void Preserve::update(KPStateMachine & sm){
-        if ((unsigned long) (millis() - updateTime) < updateDelay) {
-            return;
-        }
-
-        updateTime = millis();
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setAllRegistersLow();
-        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
-        app.shift.setPin(app.currentValveIdToPin(), HIGH);
-        app.shift.write();
-    }
-  
-    void AlcoholPurge::enter(KPStateMachine & sm) {
-        auto & app = *static_cast<App *>(sm.controller);
-        app.shift.writeAllRegistersLow();
-        app.intake.off();
-        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-        app.pump.on();
-
-        setTimeCondition(time, [&]() { sm.next(); });
-    }
-
-    void AlcoholPurge::update(KPStateMachine & sm){
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
