@@ -16,7 +16,7 @@ void NewStateController::setup() {
     registerState(SharedStates::Flush(), FLUSH_2, SAMPLE);
     registerState(SharedStates::Sample(), SAMPLE, [this](int code) {
         auto & app = *static_cast<App *>(controller);
-        app.sensors.flow.stopMeasurement();
+        //app.sensors.flow.stopMeasurement();
         app.logAfterSample();
 
         switch (code) {
