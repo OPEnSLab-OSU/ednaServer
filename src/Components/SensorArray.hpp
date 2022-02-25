@@ -49,7 +49,6 @@
 // };
 
 #pragma once
-#include <Application/App.hpp> //Not a pretty implementation but hopefully works for now
 #include <vector>
 #include <KPSubject.hpp>
 #include <Components/SensorArrayObserver.hpp>
@@ -57,6 +56,8 @@
 #include <Components/Sensors/TurbineFlowSensor.hpp>
 #include <Components/Sensors/PressureSensor.hpp>
 #include <Components/Sensors/BaroSensor.hpp>
+#include <Components/Sensors/AnalogFlowSensor.hpp>
+#include <Application/Constants.hpp>
 
 #define PSAddr 0x08
 #define FSAddr 0x07
@@ -73,16 +74,16 @@ class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
     using KPComponent::KPComponent;
 
-    TurbineFlowSensor flow;
+    //TurbineFlowSensor flow;
+    AnalogFlowSensor flow{HardwarePins::ANALOG_SENSOR_1};
     PressureSensor pressure{PSAddr};
     BaroSensor baro1{BSAddr};
     BaroSensor baro2{DSAddr};
 
-
     void setup() override {
         flow.enabled    = true;
-        flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
-            updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
+        flow.onReceived = [this](AnalogFlowSensor::SensorData & data) {
+            updateObservers(&SensorArrayObserver::analogFlowSensorDidUpdate, data);
         };
 
         pressure.enabled    = checkForI2CConnection(PSAddr);
@@ -98,7 +99,6 @@ public:
         baro2.onReceived = [this](BaroSensor::SensorData & data) {
             updateObservers(&SensorArrayObserver::baro2DidUpdate, data);
         };
-
     }
 
     void update() override {
