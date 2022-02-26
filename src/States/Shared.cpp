@@ -9,6 +9,7 @@ namespace SharedStates {
         app.pump.off();
         app.shift.writeAllRegistersLow();
         app.intake.off();
+        app.sensors.flow.stopMeasurement();
         sm.next();
     }
 

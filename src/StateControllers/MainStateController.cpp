@@ -11,6 +11,7 @@ void Main::Stop::enter(KPStateMachine & sm) {
     app.pump.off();
     app.shift.writeAllRegistersLow();
     app.intake.off();
+    app.sensors.flow.stopMeasurement();
 
     app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
     app.vm.writeToDirectory();
