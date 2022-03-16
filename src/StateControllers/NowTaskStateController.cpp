@@ -32,6 +32,6 @@ void NowTaskStateController::setup() {
     registerState(SharedStates::AirFlush(), AIR_FLUSH, STOP);
 
     // Reusing STOP and IDLE states from MainStateController
-    registerState(Main::Stop(), STOP, IDLE);
-    registerState(Main::Idle(), IDLE);
+    registerState(SharedStates::Stop(), STOP, IDLE);
+    registerState(SharedStates::Idle(), IDLE);
 };

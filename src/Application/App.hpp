@@ -18,8 +18,7 @@
 #include <Components/SensorArray.hpp>
 #include <Components/Intake.hpp>
 
-#include <StateControllers/NewStateController.hpp>
-#include <StateControllers/NowTaskStateController.hpp>
+#include <StateControllers/TaskStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
 #include <StateControllers/DebubbleStateController.hpp>
 
@@ -43,7 +42,6 @@ private:
     void setupAPI();
     void setupSerialRouting();
     void setupServerRouting();
-//    void testValve(int v);
     void commandReceived(const char * line, size_t size) override;
 
 public:
@@ -72,7 +70,7 @@ public:
     Status status;
 
     // MainStateController sm;
-    NewStateController newStateController;
+    TaskStateController taskStateController;
     HyperFlushStateController hyperFlushStateController;
     NowTaskStateController nowTaskStateController;
     DebubbleStateController debubbleStateController;
@@ -95,35 +93,14 @@ private:
         return "Application-Task Observer";
     }
 
-
-    void testValve(int v, const char * name) {
-            println("=========");
-            print("Testing valve: ");
-            print(name);
-            println();
-            shift.setAllRegistersLow();
-            shift.writePin(v + shift.capacityPerRegister, HIGH);
-            shift.write();
-            println("press any key to continue: ");
-              while (!Serial.available()) {
-                yield();
-            }
-            while(Serial.available() > 0){
-                Serial.read();
-            }
-            delay(20);
-    }
-
 public:
     void virtual setupButtonPress() {}
     void setup() override {
         KPSerialInput::sharedInstance().addObserver(this);
         Serial.begin(115200);
 
-#if defined(DEBUG) || defined(COMPONENT_TEST)
-        while (!Serial) {};
-#endif
 #ifdef DEBUG
+        while (!Serial) {};
         println();
         println(BLUE("=================================================="));
         println(BLUE("                   DEBUG MODE"));
@@ -230,9 +207,9 @@ public:
         // ─── NEW STATE CONTROLLER ────────────────────────────────────────
         //
 
-        addComponent(newStateController);
-        newStateController.addObserver(status);
-        newStateController.idle();  // Wait in IDLE
+        addComponent(taskStateController);
+        taskStateController.addObserver(status);
+        taskStateController.idle();  // Wait in IDLE
 
         // Print WiFi status
         if (server.enabled()) {
@@ -280,84 +257,8 @@ public:
             interrupts();
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
-#if defined(DEBUG) || defined(COMPONENT_TEST)
+#ifdef DEBUG
         runForever(2000, "memLog", [&]() { printFreeRam(); });
-#endif
-
-#ifndef COMPONENT_TEST
-       nowSampleButton.setSampleButton();
-#else
-        println();
-        println(BLUE("=================== RUNNING COMPONENT TEST =================="));
-
-        println("Press any key to start: ");
-        while (!Serial.available()) {
-            yield();
-        }
-        while(Serial.available() > 0){
-            Serial.read();
-        }
-        char buffer [50];
-        for(int i = 0; i < 24; i++){
-            std::sprintf(buffer, "%d", i);
-            testValve(i, buffer);
-        }
-
-        testValve(TPICDevices::AIR_VALVE, "Air valve");
-        testValve(TPICDevices::FLUSH_VALVE, "Flush valve");
-        testValve(TPICDevices::ALCHOHOL_VALVE, "Alcohol valve");
-
-        println("Testing ball valve");
-
-        shift.writeAllRegistersLow();
-        intake.on();
-        println("press any key to continue: ");
-        while (!Serial.available()) {
-            yield();
-        }
-        while(Serial.available() > 0){
-            Serial.read();
-        }
-        intake.off();
-
-        println();
-        println("Testing pump...");
-        shift.writeAllRegistersLow();
-        shift.setPin(TPICDevices::AIR_VALVE, HIGH);
-        shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        shift.write();
-        pump.on();
-        delay(3000);
-        pump.off();
-        delay(3000);
-        pump.on(Direction::reverse);
-        delay(3000);
-        pump.off();
-        println("press any key to continue: ");
-        while (!Serial.available()) {
-            yield();
-        }
-        while(Serial.available() > 0){
-            Serial.read();
-        }
-
-        if(sensors.pressure.enabled){
-            println("Pressure sensor detected");
-        } else {
-            println(RED("Pressure sensor not detected"));
-        }
-        if(sensors.baro1.enabled){
-            println("Baro1 sensor detected");
-        }else{
-            println(RED("Baro1 sensor not detected"));
-        }
-        if(sensors.baro2.enabled){
-            println("Baro2 sensor detected");
-        }else{
-            println(RED("Baro2 sensor not detected"));
-        }
-
-        println(BLUE("=================== COMPONENT TEST COMPLETE =================="));
 #endif
     }
 
@@ -603,7 +504,7 @@ public:
                 if (shouldStopCurrentTask) {
                     cancel("delayTaskExecution");
                     // if (status.currentStateName != HyperFlush::STOP) {
-                    // 	newStateController.stop();
+                    // 	taskStateController.stop();
                     // }
 
                     continue;
@@ -634,10 +535,10 @@ public:
                 TimedAction delayTaskExecution;
                 delayTaskExecution.name     = "delayTaskExecution";
                 delayTaskExecution.interval = secsToMillis(timeUntil);
-                delayTaskExecution.callback = [this]() { newStateController.begin(); };
+                delayTaskExecution.callback = [this]() { taskStateController.begin(); };
                 run(delayTaskExecution);  // async, will be execute later
 
-                newStateController.configure(task);
+                taskStateController.configure(task);
 
                 currentTaskId          = id;
                 status.preventShutdown = true;
@@ -717,7 +618,6 @@ public:
         if (!status.isProgrammingMode() && !status.preventShutdown) {
             shutdown();
         }
-        
     }
 
     /** ────────────────────────────────────────────────────────────────────────────

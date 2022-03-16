@@ -141,7 +141,7 @@ public:
         config.preserveTime   = preserveTime;
     }
 
-    void operator()(NewStateController::Config & config) const {
+    void operator()(TaskStateController::Config & config) const {
         config.flushTime      = flushTime;
         config.sampleTime     = sampleTime;
         config.samplePressure = samplePressure;

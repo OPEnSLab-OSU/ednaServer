@@ -9,12 +9,12 @@
 #include <Utilities/JsonFileLoader.hpp>
 
 #include <Task/TaskStatus.hpp>
-#include <StateControllers/NewStateController.hpp>
+#include <StateControllers/TaskStateController.hpp>
 
 struct Task : public JsonEncodable,
               public JsonDecodable,
               public Printable,
-              public NewStateController::Configurator {
+              public TaskStateController::Configurator {
 public:
     friend class TaskManager;
 
@@ -159,7 +159,7 @@ public:
     }
 #pragma endregion
 
-    void operator()(NewStateController::Config & config) const {
+    void operator()(TaskStateController::Config & config) const {
         config.flushTime      = flushTime;
         config.sampleTime     = sampleTime;
         config.samplePressure = samplePressure;
