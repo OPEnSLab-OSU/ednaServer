@@ -1,6 +1,6 @@
-#include <StateControllers/HyperFlushStateController.hpp>
+#include <StateControllers/TaskStateController.hpp>
 #include <Application/App.hpp>
-void NewStateController::setup() {
+void TaskStateController::setup() {
     // registerState(SharedStates::Flush(), FLUSH1, [this](int code) {
     // 	switch (code) {
     // 	case 0:
@@ -30,8 +30,6 @@ void NewStateController::setup() {
     registerState(SharedStates::Dry(), DRY, PRESERVE);
     registerState(SharedStates::Preserve(), PRESERVE, AIR_FLUSH);
     registerState(SharedStates::AirFlush(), AIR_FLUSH, STOP);
-
-    // Reusing STOP and IDLE states from MainStateController
-    registerState(Main::Stop(), STOP, IDLE);
-    registerState(Main::Idle(), IDLE);
+    registerState(SharedStates::Stop(), STOP, IDLE);
+    registerState(SharedStates::Idle(), IDLE);
 };

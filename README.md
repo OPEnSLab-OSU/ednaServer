@@ -40,3 +40,10 @@ You should be able to compile at this point. If so stop here, else please let me
 ```shell
 git submodule update --remote --rebase
 ```
+
+### Branch Naming Convention
+- (no prefix) - version release or main branch
+- (feature) - creating a new feature based on a feature request
+- (experimental) - created for testing out something
+- (bugfix) - created for fixing a non-critical issue with the code
+- (hotfix) - created for fixing a critical issue with code or an issue with a particular sampler

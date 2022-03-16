@@ -20,6 +20,12 @@ void App::setupServerRouting() {
         res.end();
     });
 
+    server.get("/api/alcohol-debubbler", [this](Request &, Response & res) {
+        const auto & response = dispatchAPI<API::StartDebubble>();
+        res.json(response);
+        res.end();
+    });
+
     // ────────────────────────────────────────────────────────────────────────────────
     // Get the current status
     // ────────────────────────────────────────────────────────────────────────────────
@@ -153,7 +159,7 @@ void App::setupServerRouting() {
     // ────────────────────────────────────────────────────────────────────────────────
     // Emergency stop
     // ────────────────────────────────────────────────────────────────────────────────
-    server.get("/stop", [this](Request & req, Response & res) { newStateController.stop(); });
+    server.get("/stop", [this](Request & req, Response & res) { taskStateController.stop(); });
 
     server.get("/api/valves/reset", [this](Request & req, Response & res) {
         for (int i = 0; i < config.numberOfValves; i++) {

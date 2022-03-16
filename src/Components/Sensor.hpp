@@ -108,6 +108,9 @@ public:
         }
 
         // Lazy evaluation: last_update will never be initialized if the sensor is not enabled;
+        // last_update is initialized to millis() here in the first call, and then set below
+        // see link for another examples of static vars in functions: 
+        // https://www.tutorialspoint.com/what-is-the-lifetime-of-a-static-variable-in-a-cplusplus-function
         static long last_update = millis();
         if ((millis() - last_update) < updateInterval) {
             return ErrorCode::notReady;

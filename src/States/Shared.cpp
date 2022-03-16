@@ -2,13 +2,26 @@
 #include <Application/App.hpp>
 
 namespace SharedStates {
-    void Idle::enter(KPStateMachine & sm) {}
+    void Idle::enter(KPStateMachine & sm) {
+        auto & app = *static_cast<App *>(sm.controller);
+        println(app.scheduleNextActiveTask().description());
+    }
 
     void Stop::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.pump.off();
         app.shift.writeAllRegistersLow();
         app.intake.off();
+
+        app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
+        app.vm.writeToDirectory();
+
+        auto currentTaskId = app.currentTaskId;
+        app.tm.advanceTask(currentTaskId);
+        app.tm.writeToDirectory();
+
+        app.currentTaskId       = 0;
+        app.status.currentValve = -1;
         sm.next();
     }
 
@@ -24,6 +37,18 @@ namespace SharedStates {
         setTimeCondition(time, [&]() { sm.next(); });
     }
 
+    void Flush::update(KPStateMachine & sm) {
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+    }
+
     void FlushVolume::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
@@ -37,6 +62,18 @@ namespace SharedStates {
         setTimeCondition(time, [&]() { sm.next(); });
     }
 
+    void FlushVolume::update(KPStateMachine & sm) {
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+    }
+
     void AirFlush::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();
@@ -46,6 +83,18 @@ namespace SharedStates {
         app.pump.on();
 
         setTimeCondition(time, [&]() { sm.next(); });
+    }
+
+    void AirFlush::update(KPStateMachine & sm) {
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
     }
 
     void Sample::enter(KPStateMachine & sm) {
@@ -84,6 +133,18 @@ namespace SharedStates {
         setCondition(condition, [&]() { sm.next(); });
     }
 
+    void Sample::update(KPStateMachine & sm){
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(app.currentValveIdToPin(), HIGH);
+        app.shift.write();
+    }
+
     void Dry::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
@@ -94,6 +155,19 @@ namespace SharedStates {
         app.pump.on();
 
         setTimeCondition(time, [&]() { sm.next(); });
+    }
+
+    void Dry::update(KPStateMachine & sm) {
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
+        app.shift.setPin(app.currentValveIdToPin(), HIGH);
+        app.shift.write();
     }
 
     void OffshootClean::enter(KPStateMachine & sm) {
@@ -107,6 +181,19 @@ namespace SharedStates {
 
         setTimeCondition(time, [&]() { sm.next(); });
     };
+
+    void OffshootClean::update(KPStateMachine & sm){
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(app.currentValveIdToPin(), HIGH);
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+    }
 
     void OffshootPreload::enter(KPStateMachine & sm) {
         // Intake valve is opened and the motor is runnning ...
@@ -164,4 +251,44 @@ namespace SharedStates {
 
         setTimeCondition(time, [&]() { sm.next(); });
     }
+
+
+    void Preserve::update(KPStateMachine & sm){
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+        app.shift.setPin(app.currentValveIdToPin(), HIGH);
+        app.shift.write();
+    }
+  
+    void AlcoholPurge::enter(KPStateMachine & sm) {
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.writeAllRegistersLow();
+        app.intake.off();
+        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+        app.pump.on();
+
+        setTimeCondition(time, [&]() { sm.next(); });
+    }
+
+    void AlcoholPurge::update(KPStateMachine & sm){
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+    }
+
 }  // namespace SharedStates

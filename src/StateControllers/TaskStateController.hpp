@@ -1,7 +1,6 @@
 #pragma once
 #include <Components/StateController.hpp>
 #include <States/Shared.hpp>
-#include <StateControllers/MainStateController.hpp>
 
 namespace New {
     STATE(IDLE);
@@ -67,4 +66,4 @@ namespace New {
     };
 };  // namespace New
 
-using NewStateController = New::Controller;
+using TaskStateController = New::Controller;

@@ -15,6 +15,20 @@ namespace API {
         return response;
     }
 
+    auto StartDebubble::operator()(App & app) -> R {
+        decltype(auto) debubbleName = app.debubbleStateController.getCurrentState()->getName();
+
+        R response;
+        if (strcmp(Debubble::IDLE, debubbleName) == 0) {
+            app.beginDebubble();
+            response["success"] = "Begin preloading water";
+        } else {
+            response["error"] = "Preloading water is already in operation";
+        }
+
+        return response;
+    }
+
     auto StatusGet::operator()(App & app) -> R {
         R response;
         encodeJSON(app.status, response.to<JsonObject>());
@@ -146,7 +160,7 @@ namespace API {
         Task & task = app.tm.tasks[id];
         if (app.currentTaskId == task.id) {
             app.invalidateTaskAndFreeUpValves(task);
-            app.newStateController.stop();
+            app.taskStateController.stop();
         } else {
             app.invalidateTaskAndFreeUpValves(task);
             app.tm.writeToDirectory();

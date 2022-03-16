@@ -18,8 +18,9 @@
 #include <Components/SensorArray.hpp>
 #include <Components/Intake.hpp>
 
-#include <StateControllers/NewStateController.hpp>
+#include <StateControllers/TaskStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
+#include <StateControllers/DebubbleStateController.hpp>
 
 #include <Valve/Valve.hpp>
 #include <Valve/ValveManager.hpp>
@@ -65,8 +66,9 @@ public:
     Status status;
 
     // MainStateController sm;
-    NewStateController newStateController;
+    TaskStateController taskStateController;
     HyperFlushStateController hyperFlushStateController;
+    DebubbleStateController debubbleStateController;
 
     ValveManager vm;
     TaskManager tm;
@@ -166,12 +168,23 @@ public:
         hyperFlushStateController.idle();  // Wait in IDLE
 
         //
+        // ─── Debubbler CONTROLLER ──────────────────────────────────────
+        //
+
+        debubbleStateController.configure([](Debubble::Config & config) {
+            config.time   = 10;
+        });
+
+        addComponent(debubbleStateController);
+        debubbleStateController.idle();  // Wait in IDLE
+
+        //
         // ─── NEW STATE CONTROLLER ────────────────────────────────────────
         //
 
-        addComponent(newStateController);
-        newStateController.addObserver(status);
-        newStateController.idle();  // Wait in IDLE
+        addComponent(taskStateController);
+        taskStateController.addObserver(status);
+        taskStateController.idle();  // Wait in IDLE
 
         // Print WiFi status
         if (server.enabled()) {
@@ -184,10 +197,10 @@ public:
         // Regular log header
         if (!SD.exists(config.logFile)) {
             File file = SD.open(config.logFile, FILE_WRITE);
-            KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
+            KPStringBuilder<404> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
-                                        "Max Pressure Recorded, Volume Recorded\n"};
+                                        "Max Pressure Recorded, Volume Recorded, Flow Rate\n"};
             file.println(header);
             file.close();
         }
@@ -195,10 +208,10 @@ public:
         // Detail log header
         if (!SD.exists("detail.csv")) {
             File file = SD.open("detail.csv", FILE_WRITE);
-            KPStringBuilder<384> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
+            KPStringBuilder<404> header{"UTC, Formatted Time, Task Name, Valve Number, Current "
                                         "State, Config Sample Time, Config Sample "
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
-                                        "Pressure Recorded, Volume Recorded\n"};
+                                        "Pressure Recorded, Volume Recorded, Flow Rate\n"};
             file.println(header);
             file.close();
         }
@@ -227,7 +240,7 @@ public:
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
 
-            KPStringBuilder<512> data{
+            KPStringBuilder<544> data{
                 utc,
                 ",",
                 formattedTime,
@@ -248,7 +261,9 @@ public:
                 ",",
                 status.pressure,
                 ",",
-                status.waterVolume};
+                status.waterVolume,
+                ",",
+                status.waterFlow};
             log.println(data);
             log.flush();
             log.close();
@@ -266,7 +281,7 @@ public:
             formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
             hour(utc), minute(utc), second(utc));
 
-        KPStringBuilder<512> data{
+        KPStringBuilder<544> data{
             utc,
             ",",
             formattedTime,
@@ -287,7 +302,9 @@ public:
             ",",
             status.maxPressure,
             ",",
-            status.waterVolume};
+            status.waterVolume,
+            ",",
+            status.waterFlow};
         log.println(data);
         log.flush();
         log.close();
@@ -305,6 +322,10 @@ public:
 public:
     void beginHyperFlush() {
         hyperFlushStateController.begin();
+    }
+
+    void beginDebubble() {
+        debubbleStateController.begin();
     }
 
     ValveBlock currentValveNumberToBlock() {
@@ -333,7 +354,7 @@ public:
                 if (shouldStopCurrentTask) {
                     cancel("delayTaskExecution");
                     // if (status.currentStateName != HyperFlush::STOP) {
-                    // 	newStateController.stop();
+                    // 	taskStateController.stop();
                     // }
 
                     continue;
@@ -357,10 +378,10 @@ public:
                 TimedAction delayTaskExecution;
                 delayTaskExecution.name     = "delayTaskExecution";
                 delayTaskExecution.interval = secsToMillis(timeUntil);
-                delayTaskExecution.callback = [this]() { newStateController.begin(); };
+                delayTaskExecution.callback = [this]() { taskStateController.begin(); };
                 run(delayTaskExecution);  // async, will be execute later
 
-                newStateController.configure(task);
+                taskStateController.configure(task);
 
                 currentTaskId          = id;
                 status.preventShutdown = true;
