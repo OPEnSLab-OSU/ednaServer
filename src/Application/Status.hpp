@@ -28,6 +28,11 @@ public:
     float waterFlow    = 0;
     float sampleVolume = 0;
 
+    bool buttonPressed = false;
+    bool buttonTriggered = false;
+    bool latestButtonPress = false;
+    unsigned long buttonStart = 0;
+
     float maxPressure = 0;
 
     bool isFull          = false;

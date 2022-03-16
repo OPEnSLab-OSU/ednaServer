@@ -86,7 +86,6 @@ public:
 
     /** ────────────────────────────────────────────────────────────────────────────
      *  Runtime update loop. Check if RTC has been triggered.
-
      *  ──────────────────────────────────────────────────────────────────────────── */
     void update() override {
         if (!alarmTriggered || !interruptCallback) {
@@ -97,6 +96,7 @@ public:
         // This is important in noisy environment
         if (rtc.alarm(1) || rtc.alarm(2)) {
             disarmAlarms();
+            noInterrupts();
             interruptCallback();
             alarmTriggered = false;
         }

@@ -67,6 +67,20 @@ void App::setupServerRouting() {
     });
 
     // ────────────────────────────────────────────────────────────────────────────────
+    // Get now task object
+    // ────────────────────────────────────────────────────────────────────────────────
+    server.get("/api/nowtask", [this](Request &, Response & res) {
+        println(BLUE("REQUESTING NOW TASK"));
+        StaticJsonDocument<TaskManager::encodingSize()> response;
+        encodeJSON(ntm, response.to<JsonArray>());
+
+        KPStringBuilder<10> length(measureJson(response));
+        res.setHeader("Content-Length", length);
+        res.json(response);
+        res.end();
+    });
+
+    // ────────────────────────────────────────────────────────────────────────────────
     // Get task with name
     // ────────────────────────────────────────────────────────────────────────────────
     server.post("/api/task/get", [this](Request & req, Response & res) {
@@ -106,6 +120,19 @@ void App::setupServerRouting() {
         res.end();
     });
 
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Update existing task with incoming data
+    // ────────────────────────────────────────────────────────────────────────────────
+    server.post("/api/nowtask/save", [this](Request & req, Response & res) {
+        println(BLUE("SAVING NOW TASK"));
+        StaticJsonDocument<Task::encodingSize()> body;
+        deserializeJson(body, req.body);
+        serializeJsonPretty(body, Serial);
+
+        const auto & response = dispatchAPI<API::NowTaskSave>(body);
+        res.json(response);
+        res.end();
+    });
     // ────────────────────────────────────────────────────────────────────────────────
     // Schedule a task (marking it active)
     // ────────────────────────────────────────────────────────────────────────────────
@@ -166,6 +193,7 @@ void App::setupServerRouting() {
             vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
         }
         vm.writeToDirectory();
+        ntm.task.valve = 0;
         res.end();
     });
 }

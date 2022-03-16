@@ -29,15 +29,28 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.on();
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-        app.pump.on();
+        // 5 seconds needed to turn ball intake on
+        setTimeCondition(5, [&app](){
+            app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+            app.shift.write();
+        });
+        //wait 1 second after valve opens before during on pump
+        setTimeCondition(6, [&app](){
+            app.pump.on();
+        });
+
 
         // To next state after 10 secs
-        setTimeCondition(time, [&]() { sm.next(); });
+        setTimeCondition(time + 6, [&]() { sm.next(); });
     }
 
     void Flush::update(KPStateMachine & sm) {
+        //don't update valve status during first 5 seconds
+        //because valve isn't supposed to be on
+        if(timeSinceLastTransition() < 5000){
+            return;
+        }
+        // returns if it has already updated in the last second
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
@@ -47,22 +60,37 @@ namespace SharedStates {
         app.shift.setAllRegistersLow();
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
+    }
+
+    void Flush::leave(KPStateMachine & sm) {
+        auto & app = *static_cast<App *>(sm.controller);
+        app.pump.off();
+        delay(1000);
     }
 
     void FlushVolume::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.on();
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-        app.pump.on();
+        setTimeCondition(5, [&app](){
+            app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+            app.shift.write();
+            app.pump.on();
+        });
+
+        setTimeCondition(6, [&app](){
+            app.pump.on();
+        });
 
         auto condition = [&]() { return app.status.waterVolume >= 500; };
         setCondition(condition, [&]() { sm.next(1); });
-        setTimeCondition(time, [&]() { sm.next(); });
+        setTimeCondition(time + 6, [&]() { sm.next(); });
     }
 
     void FlushVolume::update(KPStateMachine & sm) {
+        if(timeSinceLastTransition() < 5000){
+            return;
+        }
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
@@ -73,6 +101,7 @@ namespace SharedStates {
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
     }
+
 
     void AirFlush::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
@@ -80,9 +109,12 @@ namespace SharedStates {
         app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
-        app.pump.on();
 
-        setTimeCondition(time, [&]() { sm.next(); });
+        setTimeCondition(1, [&app](){
+            app.pump.on();
+        });
+
+        setTimeCondition(time + 1, [&]() { sm.next(); });
     }
 
     void AirFlush::update(KPStateMachine & sm) {
@@ -102,10 +134,15 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.on();
-        app.shift.setPin(app.currentValveIdToPin(), HIGH);
-        app.shift.write();
-        app.pump.on();
+        setTimeCondition(5, [&app](){
+            app.shift.setPin(app.currentValveIdToPin(), HIGH);
+            app.shift.write();
+        });
 
+        setTimeCondition(6,  [&app](){
+           app.pump.on(); 
+        });
+        
         app.sensors.flow.resetVolume();
         app.sensors.flow.startMeasurement();
 
@@ -123,7 +160,7 @@ namespace SharedStates {
                 this->condition = "pressure";
             }
 
-            if (timeSinceLastTransition() >= secsToMillis(time)) {
+            if (timeSinceLastTransition() - 6 >= secsToMillis(time)) { //minus 6 to account for delay
                 this->condition = "time";
             }
 
@@ -134,6 +171,10 @@ namespace SharedStates {
     }
 
     void Sample::update(KPStateMachine & sm){
+        if(timeSinceLastTransition() < 5000){
+            return;
+        }
+
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
@@ -149,15 +190,24 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.off();
-        app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
-        app.shift.setPin(app.currentValveIdToPin(), HIGH);
-        app.shift.write();
-        app.pump.on();
 
-        setTimeCondition(time, [&]() { sm.next(); });
+        setTimeCondition(5, [&app](){
+            app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
+            app.shift.setPin(app.currentValveIdToPin(), HIGH);
+            app.shift.write();
+        });
+
+        setTimeCondition(6, [&app](){
+            app.pump.on();
+        });
+
+        setTimeCondition(time + 6, [&]() { sm.next(); });
     }
 
     void Dry::update(KPStateMachine & sm) {
+        if(timeSinceLastTransition() < 5000){
+            return;
+        }
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
@@ -173,16 +223,31 @@ namespace SharedStates {
     void OffshootClean::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();  // Reset shift registers
+        app.pump.off();
         app.intake.on();
-        app.shift.setPin(app.currentValveIdToPin(), HIGH);
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-        app.pump.on(Direction::reverse);
+       // Delay to ensure ball intake is set properly
+        setTimeCondition(5, [&app](){
+            app.shift.setPin(app.currentValveIdToPin(), HIGH);
+            app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+            app.shift.write();
+        });
 
-        setTimeCondition(time, [&]() { sm.next(); });
+        setTimeCondition(6, [&app](){
+            app.pump.on(Direction::reverse);
+        });
+
+        //turn off pump right before state transition (leave function would be harder to have time delay)
+        setTimeCondition(time + 6, [&app](){
+            app.pump.off();
+        });
+
+        setTimeCondition(time + 7, [&]() { sm.next(); });
     };
 
     void OffshootClean::update(KPStateMachine & sm){
+        if( timeSinceLastTransition() < 5000){
+            return;
+        }
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
@@ -200,8 +265,12 @@ namespace SharedStates {
         // Turnoff only the flush valve
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, LOW);
+        app.shift.write();
         app.intake.on();
-
+        setTimeCondition(5, [&app](){
+            app.pump.on();
+        });
+        
         // Reserving space ahead of time for performance
         reserve(app.vm.numberOfValvesInUse + 1);
         println("Begin preloading procedure for ", app.vm.numberOfValvesInUse, " valves...");
@@ -215,16 +284,25 @@ namespace SharedStates {
 
             // Skip the first register
             auto valvePin = valve.id + app.shift.capacityPerRegister;
-            setTimeCondition(counter * preloadTime, [&app, prevValvePin, valvePin]() {
+            setTimeCondition(counter * preloadTime + 5, [&app, prevValvePin, valvePin]() {
                 if (prevValvePin) {
                     // Turn off the previous valve
                     app.shift.setPin(prevValvePin, LOW);
+                    app.pump.off();
+                    app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+                    app.shift.write();
                     println("done");
                 }
 
                 app.shift.setPin(valvePin, HIGH);
+                app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
                 app.shift.write();
+                
                 print("Flushing offshoot ", valvePin - app.shift.capacityPerRegister, "...");
+            });
+
+            setTimeCondition(counter * preloadTime + 6, [&app, prevValvePin, valvePin]() {
+                app.pump.on();
             });
 
             prevValvePin = valvePin;
@@ -232,7 +310,7 @@ namespace SharedStates {
         }
 
         // Transition to the next state after the last valve
-        setTimeCondition(counter * preloadTime, [&]() {
+        setTimeCondition(counter * preloadTime + 6, [&]() {
             println("done");
             sm.next();
         });
@@ -240,18 +318,26 @@ namespace SharedStates {
 
     void Preserve::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
+        app.pump.off();
         app.shift.writeAllRegistersLow();
         app.intake.off();
-        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
-        app.shift.setPin(app.currentValveIdToPin(), HIGH);
-        app.shift.write();
-        app.pump.on();
+        setTimeCondition(5, [&app](){
+            app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+            app.shift.setPin(app.currentValveIdToPin(), HIGH);
+            app.shift.write();
+        });
 
-        setTimeCondition(time, [&]() { sm.next(); });
+        setTimeCondition(6, [&app](){
+            app.pump.on();
+        });
+        setTimeCondition(time + 6, [&]() { sm.next(); });
     }
 
 
     void Preserve::update(KPStateMachine & sm){
+        if(timeSinceLastTransition() < 5000){
+            return;
+        }
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
@@ -268,15 +354,21 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();
         app.intake.off();
-        app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
-        app.shift.write();
-        app.pump.on();
-
-        setTimeCondition(time, [&]() { sm.next(); });
+        setTimeCondition(5, [&app](){
+            app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
+            app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+            app.shift.write();
+        });
+        setTimeCondition(6, [&app](){
+            app.pump.on();
+        });
+        setTimeCondition(time + 6, [&]() { sm.next(); });
     }
 
     void AlcoholPurge::update(KPStateMachine & sm){
+        if(timeSinceLastTransition() < 5000){
+            return;
+        }
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
