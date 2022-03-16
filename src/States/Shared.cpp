@@ -16,11 +16,12 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
         app.intake.on();
+        // 5 seconds needed to turn ball intake on
         setTimeCondition(5, [&app](){
             app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
             app.shift.write();
         });
-
+        //wait 1 second after valve opens before during on pump
         setTimeCondition(6, [&app](){
             app.pump.on();
         });
@@ -31,9 +32,12 @@ namespace SharedStates {
     }
 
     void Flush::update(KPStateMachine & sm) {
+        //don't update valve status during first 5 seconds
+        //because valve isn't supposed to be on
         if(timeSinceLastTransition() < 5000){
             return;
         }
+        // returns if it has already updated in the last second
         if ((unsigned long) (millis() - updateTime) < updateDelay) {
             return;
         }
