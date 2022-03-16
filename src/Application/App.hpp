@@ -5,6 +5,7 @@
 #include <KPSerialInput.hpp>
 #include <KPServer.hpp>
 #include <Action.hpp>
+#include <string.h>
 
 #include <Application/Config.hpp>
 #include <Application/Constants.hpp>
@@ -99,8 +100,10 @@ public:
         KPSerialInput::sharedInstance().addObserver(this);
         Serial.begin(115200);
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(COMPONENT_TEST)
         while (!Serial) {};
+#endif
+#ifdef DEBUG
         println();
         println(BLUE("=================================================="));
         println(BLUE("                   DEBUG MODE"));
@@ -257,7 +260,7 @@ public:
             interrupts();
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
-#ifdef DEBUG
+#if defined(DEBUG)
         runForever(2000, "memLog", [&]() { printFreeRam(); });
 #endif
     }
@@ -618,6 +621,7 @@ public:
         if (!status.isProgrammingMode() && !status.preventShutdown) {
             shutdown();
         }
+        
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
