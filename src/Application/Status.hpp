@@ -93,7 +93,7 @@ private:
     //
 
     void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) override {
-        waterFlow    = values.lpm;
+        waterFlow    = values.mlpm;
         waterVolume  = values.volume;
         sampleVolume = values.volume;
     }
