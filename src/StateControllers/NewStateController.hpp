@@ -6,13 +6,13 @@
 namespace New {
     STATE(IDLE);
     STATE(FLUSH_1);
-    STATE(OFFSHOOT_CLEAN_1);
+   // STATE(OFFSHOOT_CLEAN_1);
     STATE(FLUSH_2);
     STATE(SAMPLE);
-    STATE(OFFSHOOT_CLEAN_2);
-    STATE(DRY);
+   // STATE(OFFSHOOT_CLEAN_2);
+   //STATE(DRY);
     STATE(PRESERVE);
-    STATE(AIR_FLUSH);
+   // STATE(AIR_FLUSH);
     STATE(STOP);
 
     struct Config {
@@ -41,8 +41,8 @@ namespace New {
             sample.pressure       = config.samplePressure;
             sample.volume         = config.sampleVolume;
 
-            decltype(auto) dry = getState<SharedStates::Dry>(DRY);
-            dry.time           = config.dryTime;
+            //decltype(auto) dry = getState<SharedStates::Dry>(DRY);
+            //dry.time           = config.dryTime;
 
             decltype(auto) preserve = getState<SharedStates::Preserve>(PRESERVE);
             preserve.time           = config.preserveTime;
