@@ -13,7 +13,7 @@ inline double interpolate(double x, double in_min, double in_max, double out_min
 
 struct TurbineFlowSensorData {
     double volume;
-    double lpm;
+    double mlpm;
 };
 
 class TurbineFlowSensor : public Sensor<TurbineFlowSensorData> {
@@ -27,7 +27,7 @@ private:
 
 public:
     double volume = 0;
-    double lpm    = 0;
+    double mlpm    = 0;
 
     void resetVolume() {
         volume = 0;
@@ -45,20 +45,17 @@ public:
         if (flowUpdated) {
             flowUpdated = false;
             //micro is 1e-6, so we divide the micros in a second with the flow interval
-            //to get the frequency
-            auto hz = 1000000.0 / double(flowIntervalMicros);
-            //The spec sheet says that the output frequency is between 36.6 to 917 Hz
-            //So if hz is less than 37/36.6, then the flow is zero. Otherwise, interporlate
-            //between the frequency into the flow rate.
-            //flow that the sensor can record is between 0.1LPM and 2.5LPM
-            lpm     = hz < 37 ? 0 : interpolate(hz, 37, 917, 0.110, 2.476);
-            //LPM * change in minute gives volume in liters
-            volume += lpm * (flowIntervalMicros / 60000000.0);
-            println("Volume: ", volume, ", LPM: ", lpm);
+            //flowInterval (minutes) = x ms * (1s/1e*6ms) * (1m/60s)
+            auto flowInterval = double(flowIntervalMicros)/60000000;
+            //Sensor Pulse Constant: 0.11 ml
+            mlpm    = 0.11/flowInterval;
+            //mlpm * change in minute gives volume in mililiters
+            volume += 0.11;
+            println("Volume: ", volume, ", mmlpm: ", mlpm);
         } else {
             setErrorCode(ErrorCode::notReady);
         }
 
-        return {volume, lpm};
+        return {volume, mlpm};
     }
 };

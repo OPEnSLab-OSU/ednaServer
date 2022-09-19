@@ -215,7 +215,7 @@ public:
 
         addComponent(nowTaskStateController);
         nowTaskStateController.idle();
-        
+
         // ─── Debubbler CONTROLLER ──────────────────────────────────────
         //
 
@@ -409,6 +409,7 @@ public:
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
             NowTask & task = ntm.task;
+
             KPStringBuilder<544> data{
                 utc,
                 ",",
@@ -517,6 +518,8 @@ public:
             log.flush();
             log.close();
         }
+
+   
     }
 
     template <typename T, typename... Args>
@@ -571,7 +574,7 @@ public:
         println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
         return ScheduleReturnCode::scheduled;
     }
-    
+ 
     void beginDebubble() {
         debubbleStateController.begin();
     }

@@ -15,7 +15,6 @@ namespace API {
         return response;
     }
 
-
     auto StartNowTask::operator()(App & app) -> R {
         decltype(auto) nowTaskName = app.nowTaskStateController.getCurrentState()->getName();
 
@@ -29,7 +28,7 @@ namespace API {
         
         return response;
     }
-    
+
     auto StartDebubble::operator()(App & app) -> R {
         decltype(auto) debubbleName = app.debubbleStateController.getCurrentState()->getName();
 
