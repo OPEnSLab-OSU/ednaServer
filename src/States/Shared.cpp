@@ -265,7 +265,7 @@ namespace SharedStates {
         // Intake valve is opened and the motor is runnning ...
         // Turnoff only the flush valve
         auto & app = *static_cast<App *>(sm.controller);
-        app.shift.setPin(TPICDevices::FLUSH_VALVE, LOW);
+        app.shift.setAllRegistersLow();
         app.shift.write();
         app.intake.on();
         setTimeCondition(5, [&app](){

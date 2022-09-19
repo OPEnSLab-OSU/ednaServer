@@ -93,7 +93,6 @@ public:
         sampleTime     = source[SAMPLE_TIME];
         samplePressure = source[SAMPLE_PRESSURE];
         sampleVolume   = source[SAMPLE_VOLUME];
-        dryTime        = source[DRY_TIME];
         preserveTime   = source[PRESERVE_TIME];
         valve         = source[CURR_VALVE];
     }
@@ -119,7 +118,6 @@ public:
 			&& dst[SAMPLE_TIME].set(sampleTime)
 			&& dst[SAMPLE_PRESSURE].set(samplePressure) 
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
-			&& dst[DRY_TIME].set(dryTime) 
 			&& dst[PRESERVE_TIME].set(preserveTime)
 			&& dst[CURR_VALVE].set(valve);
 	}  // clang-format on
@@ -137,7 +135,6 @@ public:
         config.sampleTime     = sampleTime;
         config.samplePressure = samplePressure;
         config.sampleVolume   = sampleVolume;
-        config.dryTime        = dryTime;
         config.preserveTime   = preserveTime;
     }
 
@@ -146,7 +143,6 @@ public:
         config.sampleTime     = sampleTime;
         config.samplePressure = samplePressure;
         config.sampleVolume   = sampleVolume;
-        config.dryTime        = dryTime;
         config.preserveTime   = preserveTime;
     }
 };

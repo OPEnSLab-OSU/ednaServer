@@ -10,7 +10,7 @@ namespace NowT {
     STATE(FLUSH_2);
     STATE(SAMPLE);
     STATE(OFFSHOOT_CLEAN_2);
-    STATE(DRY);
+    STATE(PRESERVE_FLUSH);
     STATE(PRESERVE);
     STATE(AIR_FLUSH);
     STATE(STOP);
@@ -20,7 +20,6 @@ namespace NowT {
         decltype(SharedStates::Sample::time) sampleTime;
         decltype(SharedStates::Sample::pressure) samplePressure;
         decltype(SharedStates::Sample::volume) sampleVolume;
-        decltype(SharedStates::Dry::time) dryTime;
         decltype(SharedStates::Preserve::time) preserveTime;
     };
 
@@ -40,9 +39,6 @@ namespace NowT {
             sample.time           = config.sampleTime;
             sample.pressure       = config.samplePressure;
             sample.volume         = config.sampleVolume;
-
-            decltype(auto) dry = getState<SharedStates::Dry>(DRY);
-            dry.time           = config.dryTime;
 
             decltype(auto) preserve = getState<SharedStates::Preserve>(PRESERVE);
             preserve.time           = config.preserveTime;

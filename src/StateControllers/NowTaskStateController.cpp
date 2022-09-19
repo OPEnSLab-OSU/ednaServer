@@ -21,16 +21,16 @@ void NowTaskStateController::setup() {
 
         switch (code) {
         case 0:
-            return transitionTo(OFFSHOOT_CLEAN_2);
+            return transitionTo(PRESERVE_FLUSH);
         default:
             halt(TRACE, "Unhandled state transition: ", code);
         }
     });
-    registerState(SharedStates::OffshootClean(10), OFFSHOOT_CLEAN_2, DRY);
-    registerState(SharedStates::Dry(), DRY, PRESERVE);
-    registerState(SharedStates::Preserve(), PRESERVE, AIR_FLUSH);
+    registerState(SharedStates::AlcoholPurge(), PRESERVE_FLUSH, PRESERVE);
+    registerState(SharedStates::Preserve(), PRESERVE, OFFSHOOT_CLEAN_2);
+    registerState(SharedStates::OffshootClean(10), OFFSHOOT_CLEAN_2, AIR_FLUSH);
     registerState(SharedStates::AirFlush(), AIR_FLUSH, STOP);
-
+    
     // Reusing STOP and IDLE states from MainStateController
     registerState(Main::Stop(), STOP, IDLE);
     registerState(Main::Idle(), IDLE);
