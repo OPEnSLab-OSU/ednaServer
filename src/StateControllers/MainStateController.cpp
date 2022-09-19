@@ -11,15 +11,23 @@ void Main::Stop::enter(KPStateMachine & sm) {
     app.pump.off();
     app.shift.writeAllRegistersLow();
     app.intake.off();
+    app.sensors.flow.stopMeasurement();
 
     app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
     app.vm.writeToDirectory();
 
     auto currentTaskId = app.currentTaskId;
-    app.tm.advanceTask(currentTaskId);
-    app.tm.writeToDirectory();
-
+    if(currentTaskId){
+        app.tm.advanceTask(currentTaskId);
+        app.tm.writeToDirectory();
+    }
+    if(app.sampleNowActive){
+        app.ntm.advanceTask();
+        app.ntm.writeToDirectory();
+    }
     app.currentTaskId       = 0;
+    app.sampleNowActive = false;
+    app.nowSampleButton.setSampleButton();
     app.status.currentValve = -1;
     sm.next();
 }

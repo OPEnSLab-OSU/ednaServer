@@ -1,6 +1,6 @@
 #include <StateControllers/HyperFlushStateController.hpp>
 #include <Application/App.hpp>
-void NewStateController::setup() {
+void NowTaskStateController::setup() {
     // registerState(SharedStates::Flush(), FLUSH1, [this](int code) {
     // 	switch (code) {
     // 	case 0:

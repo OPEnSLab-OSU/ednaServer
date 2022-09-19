@@ -12,7 +12,7 @@ namespace SharedStates {
         app.pump.off();
         app.shift.writeAllRegistersLow();
         app.intake.off();
-
+        app.sensors.flow.stopMeasurement();
         app.vm.setValveStatus(app.status.currentValve, ValveStatus::sampled);
         app.vm.writeToDirectory();
 
@@ -34,6 +34,7 @@ namespace SharedStates {
             app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
             app.shift.write();
         });
+
         //wait 1 second after valve opens before during on pump
         setTimeCondition(6, [&app](){
             app.pump.on();
@@ -349,7 +350,7 @@ namespace SharedStates {
         app.shift.setPin(app.currentValveIdToPin(), HIGH);
         app.shift.write();
     }
-  
+
     void AlcoholPurge::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();
