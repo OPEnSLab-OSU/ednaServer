@@ -126,6 +126,7 @@ namespace SharedStates {
         updateTime = millis();
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
     }
