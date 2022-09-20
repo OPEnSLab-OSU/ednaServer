@@ -356,6 +356,7 @@ namespace SharedStates {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();
         app.intake.off();
+        app.pump.off();
         setTimeCondition(5, [&app](){
             app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
             app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
