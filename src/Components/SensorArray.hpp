@@ -74,16 +74,16 @@ class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
     using KPComponent::KPComponent;
 
-    //TurbineFlowSensor flow;
-    AnalogFlowSensor flow{HardwarePins::ANALOG_SENSOR_1};
+    TurbineFlowSensor flow;
+    //AnalogFlowSensor flow{HardwarePins::ANALOG_SENSOR_1};
     PressureSensor pressure{PSAddr};
     BaroSensor baro1{BSAddr};
     BaroSensor baro2{DSAddr};
 
     void setup() override {
         flow.enabled    = true;
-        flow.onReceived = [this](AnalogFlowSensor::SensorData & data) {
-            updateObservers(&SensorArrayObserver::analogFlowSensorDidUpdate, data);
+        flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
+            updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
         };
 
         pressure.enabled    = checkForI2CConnection(PSAddr);
