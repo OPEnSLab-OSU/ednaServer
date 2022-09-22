@@ -59,7 +59,7 @@
 #include <Components/Sensors/AnalogFlowSensor.hpp>
 #include <Application/Constants.hpp>
 
-#define PSAddr 0x08
+#define PSAddr 0x28
 #define FSAddr 0x07
 #define BSAddr 0x77
 #define DSAddr 0x76
