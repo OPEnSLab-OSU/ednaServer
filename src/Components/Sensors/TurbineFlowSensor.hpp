@@ -1,5 +1,6 @@
 #pragma once
 #include <Components/Sensor.hpp>
+#include <Application/Constants.hpp>
 
 extern volatile unsigned long lastFlowTick;
 extern volatile unsigned long flowIntervalMicros;
@@ -20,7 +21,7 @@ class TurbineFlowSensor : public Sensor<TurbineFlowSensorData> {
 private:
     void begin() override {
         lastFlowTick = micros();
-        pinMode(A3, INPUT);
+        pinMode(HardwarePins::ANALOG_SENSOR_1, INPUT);
         //sensor is updated once a second
         setUpdateFreq(1000);
     }
@@ -34,11 +35,11 @@ public:
     }
 
     void startMeasurement() {
-        attachInterrupt(digitalPinToInterrupt(A3), flowTick, FALLING);
+        attachInterrupt(digitalPinToInterrupt(HardwarePins::ANALOG_SENSOR_1), flowTick, FALLING);
     }
 
     void stopMeasurement() {
-        detachInterrupt(digitalPinToInterrupt(A3));
+        detachInterrupt(digitalPinToInterrupt(HardwarePins::ANALOG_SENSOR_1));
     }
 
     SensorData read() override {
