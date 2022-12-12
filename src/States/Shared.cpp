@@ -262,6 +262,20 @@ namespace SharedStates {
         app.shift.write();
     }
 
+    void OffshootPreload::update(KPStateMachine & sm){
+        if(timeSinceLastTransition() < 5000){
+            return;
+        }
+
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        updateTime = millis();
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.write();
+    }
+
     void OffshootPreload::enter(KPStateMachine & sm) {
         // Intake valve is opened and the motor is runnning ...
         // Turnoff only the flush valve
@@ -291,13 +305,11 @@ namespace SharedStates {
                     // Turn off the previous valve
                     app.shift.setPin(prevValvePin, LOW);
                     app.pump.off();
-                    app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
                     app.shift.write();
                     println("done");
                 }
 
                 app.shift.setPin(valvePin, HIGH);
-                app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
                 app.shift.write();
                 
                 print("Flushing offshoot ", valvePin - app.shift.capacityPerRegister, "...");
