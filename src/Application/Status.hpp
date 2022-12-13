@@ -34,6 +34,8 @@ public:
     unsigned long buttonStart = 0;
 
     float maxPressure = 0;
+    float maxSystemPressure = 0;
+    float cutoffPressure = 0;
 
     bool isFull          = false;
     bool preventShutdown = false;
@@ -53,6 +55,8 @@ public:
     void init(Config & config) {
         valves.resize(config.numberOfValves);
         memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
+        maxSystemPressure = (unsigned char)config.maxPressure;
+        cutoffPressure = (unsigned char)config.cutoffPressure;
     }
 
 private:
@@ -104,7 +108,9 @@ private:
     }
 
     void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {
-        pressure    = std::get<0>(values);
+        //Pressure now factors in its previous value, which reduces the impacts of spikes while
+        // still prioritizing the new value. TODO: consider changing this algorithm.
+        pressure    = (0.85 * std::get<0>(values)) + (0.15 * pressure);
         temperature = std::get<1>(values);
         maxPressure = max(pressure, maxPressure);
     }

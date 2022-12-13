@@ -223,4 +223,19 @@ namespace API {
 
         return response;
     }
+
+    auto PressureUpdate::operator()(Arg<0> & app, Arg<1> & input) -> R {
+        R response;
+        const float NewPressureCutOff = input["pressure"];
+
+        // Prevent bogus value
+        if (NewPressureCutOff >= 0.0) {
+            response["success"] = "RTC updated";
+            app.status.cutoffPressure = NewPressureCutOff;
+        } else {
+            response["error"] = "That doesn't seem right.";
+        }
+
+        return response;
+    }
 }  // namespace API

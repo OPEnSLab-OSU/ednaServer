@@ -20,8 +20,12 @@ void NewStateController::setup() {
         app.logAfterSample();
 
         switch (code) {
+        //Normal Exit
         case 0:
             return transitionTo(PRESERVE_FLUSH);
+        //Panic Exit
+        case -1:
+            return transitionTo(IDLE);
         default:
             halt(TRACE, "Unhandled state transition: ", code);
         }

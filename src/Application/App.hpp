@@ -43,7 +43,6 @@ private:
     void setupAPI();
     void setupSerialRouting();
     void setupServerRouting();
-//    void testValve(int v);
     void commandReceived(const char * line, size_t size) override;
 
 public:
@@ -93,25 +92,6 @@ private:
 
     const char * TaskObserverName() const override {
         return "Application-Task Observer";
-    }
-
-
-    void testValve(int v, const char * name) {
-            println("=========");
-            print("Testing valve: ");
-            print(name);
-            println();
-            shift.setAllRegistersLow();
-            shift.writePin(v + shift.capacityPerRegister, HIGH);
-            shift.write();
-            println("press any key to continue: ");
-              while (!Serial.available()) {
-                yield();
-            }
-            while(Serial.available() > 0){
-                Serial.read();
-            }
-            delay(20);
     }
 
 public:
@@ -313,7 +293,7 @@ public:
                 ",",
                 task.sampleTime,
                 ",",
-                task.samplePressure,
+                status.cutoffPressure,
                 ",",
                 task.sampleVolume,
                 ",",
@@ -351,7 +331,7 @@ public:
                 ",",
                 task.sampleTime,
                 ",",
-                task.samplePressure,
+                status.cutoffPressure,
                 ",",
                 task.sampleVolume,
                 ",",
@@ -394,7 +374,7 @@ public:
                 ",",
                 task.sampleTime,
                 ",",
-                task.samplePressure,
+                status.cutoffPressure,
                 ",",
                 task.sampleVolume,
                 ",",
@@ -431,7 +411,7 @@ public:
                 ",",
                 task.sampleTime,
                 ",",
-                task.samplePressure,
+                status.cutoffPressure,
                 ",",
                 task.sampleVolume,
                 ",",

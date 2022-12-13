@@ -157,8 +157,8 @@ namespace SharedStates {
             if (app.sensors.flow.volume >= volume) {
                 this->condition = "volume";
             }
-
-            if (app.status.pressure >= pressure) {
+            //If the pressure is above the max pressure, we want the other condition to hit instead
+            if (app.status.pressure >= app.status.cutoffPressure && app.status.pressure < app.status.maxSystemPressure) {
                 this->condition = "pressure";
             }
 
@@ -169,7 +169,17 @@ namespace SharedStates {
             return this->condition != nullptr;
         };
 
-        setCondition(condition, [&]() { sm.next(); });
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
+        setCondition(condition, [&]() { sm.next(0); });
     }
 
     void Sample::update(KPStateMachine & sm){
