@@ -77,6 +77,8 @@ namespace ConfigKeys {
     __k_auto FILE_STATUS       = "statusFile";
     __k_auto FOLDER_TASK       = "taskFolder";
     __k_auto FOLDER_VALVE      = "valveFolder";
+    __k_auto PRESSURE_CUTOFF   = "cutoffPressure";
+    __k_auto PRESSURE_MAX      = "maxPressure";
 }  // namespace ConfigKeys
 
 namespace TaskKeys {
@@ -93,7 +95,6 @@ namespace TaskKeys {
     __k_auto FLUSH_TIME      = "flushTime";
     __k_auto FLUSH_VOLUME    = "flushVolume";
     __k_auto SAMPLE_TIME     = "sampleTime";
-    __k_auto SAMPLE_PRESSURE = "samplePressure";
     __k_auto SAMPLE_VOLUME   = "sampleVolume";
     __k_auto DRY_TIME        = "dryTime";
     __k_auto PRESERVE_TIME   = "preserveTime";
@@ -124,6 +125,7 @@ namespace StatusKeys {
     __k_auto CURRENT_STATE   = "currentState";
     __k_auto LOW_BATTERY     = "lowBattery";
     __k_auto SAMPLE_VOLUME   = "sampleVolume";
+    __k_auto PRESSURE_CUTOFF   = "cutoffPressure";
 };  // namespace StatusKeys
 
 #undef __k_auto
