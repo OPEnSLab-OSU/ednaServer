@@ -230,7 +230,7 @@ namespace API {
 
         // Prevent bogus value
         if (NewPressureCutOff >= 0.0) {
-            response["success"] = "RTC updated";
+            response["success"] = "Pressure Cutoff updated";
             app.status.cutoffPressure = NewPressureCutOff;
         } else {
             response["error"] = "That doesn't seem right.";

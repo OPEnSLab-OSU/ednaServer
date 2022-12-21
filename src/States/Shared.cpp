@@ -40,9 +40,18 @@ namespace SharedStates {
             app.pump.on();
         });
 
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
 
         // To next state after 10 secs
-        setTimeCondition(time + 6, [&]() { sm.next(); });
+        setTimeCondition(time + 6, [&]() { sm.next(0); });
     }
 
     void Flush::update(KPStateMachine & sm) {
@@ -85,7 +94,18 @@ namespace SharedStates {
 
         auto condition = [&]() { return app.status.waterVolume >= 500; };
         setCondition(condition, [&]() { sm.next(1); });
-        setTimeCondition(time + 6, [&]() { sm.next(); });
+
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
+        setTimeCondition(time + 6, [&]() { sm.next(0); });
     }
 
     void FlushVolume::update(KPStateMachine & sm) {
@@ -115,7 +135,17 @@ namespace SharedStates {
             app.pump.on();
         });
 
-        setTimeCondition(time + 1, [&]() { sm.next(); });
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
+        setTimeCondition(time + 1, [&]() { sm.next(0); });
     }
 
     void AirFlush::update(KPStateMachine & sm) {
@@ -213,7 +243,17 @@ namespace SharedStates {
             app.pump.on();
         });
 
-        setTimeCondition(time + 6, [&]() { sm.next(); });
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
+        setTimeCondition(time + 6, [&]() { sm.next(0); });
     }
 
     void Dry::update(KPStateMachine & sm) {
@@ -253,7 +293,17 @@ namespace SharedStates {
             app.pump.off();
         });
 
-        setTimeCondition(time + 7, [&]() { sm.next(); });
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
+        setTimeCondition(time + 7, [&]() { sm.next(0); });
     };
 
     void OffshootClean::update(KPStateMachine & sm){
@@ -321,6 +371,16 @@ namespace SharedStates {
             counter++;
         }
 
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
         // Transition to the next state after the last valve
         setTimeCondition(counter * preloadTime + 6, [&]() {
             println("done");
@@ -342,7 +402,18 @@ namespace SharedStates {
         setTimeCondition(6, [&app](){
             app.pump.on();
         });
-        setTimeCondition(time + 6, [&]() { sm.next(); });
+
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
+        setTimeCondition(time + 6, [&]() { sm.next(0); });
     }
 
 
@@ -375,7 +446,18 @@ namespace SharedStates {
         setTimeCondition(6, [&app](){
             app.pump.on();
         });
-        setTimeCondition(time + 6, [&]() { sm.next(); });
+
+        auto const max_system_condition = [&]() {
+            //This conditional is for above system pressure
+            if(app.status.pressure >= app.status.maxSystemPressure) {
+                return true;
+            }
+            return false;
+        };
+
+        setCondition(max_system_condition, [&]() { sm.next(-1); });
+
+        setTimeCondition(time + 6, [&]() { sm.next(0); });
     }
 
     void AlcoholPurge::update(KPStateMachine & sm){

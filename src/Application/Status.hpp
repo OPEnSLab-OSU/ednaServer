@@ -189,7 +189,8 @@ public:
 			&& dest[CURRENT_TASK].set(currentTaskName)
 			&& dest[CURRENT_STATE].set(currentStateName) 
             && dest[LOW_BATTERY].set(isBatteryLow())
-            && dest[SAMPLE_VOLUME].set(sampleVolume);
+            && dest[SAMPLE_VOLUME].set(sampleVolume)
+            && dest[PRESSURE_CUTOFF].set(cutoffPressure);
         // clang-format on
     }
 
