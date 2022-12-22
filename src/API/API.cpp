@@ -16,10 +16,10 @@ namespace API {
     }
 
     auto StartNowTask::operator()(App & app) -> R {
-        decltype(auto) nowTaskName = app.nowTaskStateController.getCurrentState()->getName();
+        decltype(auto) nowTaskName = app.newStateController.getCurrentState()->getName();
 
         R response;
-        if (strcmp(NowT::IDLE, nowTaskName) == 0) {
+        if (strcmp(New::IDLE, nowTaskName) == 0) {
             app.beginNowTask();
             response["success"] = "Beginning Now Task";
         } else {
@@ -120,13 +120,13 @@ namespace API {
     auto NowTaskSave::operator()(Arg<0> & app, Arg<1> & input) -> R {
         R response;
         // Prarse incomming payload
-        NowTask incomingTask;
+        Task incomingTask;
         incomingTask.decodeJSON(input.as<JsonVariant>());
 
 
         // Save
-        app.ntm.task = incomingTask;
-        app.ntm.writeToDirectory();
+        app.tm.SampleNowTask = incomingTask;
+        app.tm.writeToDirectory();
 
         response["success"] = "Task successfully saved";
         return response;

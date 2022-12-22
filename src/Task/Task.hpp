@@ -35,8 +35,7 @@ public:
     int samplePressure = 0;
     int dryTime        = 0;
     int preserveTime   = 0;
-
-    bool deleteOnCompletion = false;
+    bool isSampleNowTask = false;
 
     std::vector<uint8_t> valves;
 
@@ -116,6 +115,7 @@ public:
         sampleVolume   = source[SAMPLE_VOLUME];
         preserveTime   = source[PRESERVE_TIME];
         timeBetween    = source[TIME_BETWEEN];
+        isSampleNowTask = source[SAMPLE_NOW_TASK];
     }
 #pragma endregion
 #pragma region JSONENCODABLE
@@ -145,7 +145,7 @@ public:
 			&& dst[PRESERVE_TIME].set(preserveTime)
 			&& dst[TIME_BETWEEN].set(timeBetween) 
 			&& dst[VALVES_OFFSET].set(getValveOffsetStart())
-			&& dst[DELETE].set(deleteOnCompletion)
+            && dst[SAMPLE_NOW_TASK].set(isSampleNowTask)
 			&& copyArray(valves.data(), valves.size(), dst.createNestedArray(VALVES));
 	}  // clang-format on
 

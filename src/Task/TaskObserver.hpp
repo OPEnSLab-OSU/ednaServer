@@ -16,4 +16,6 @@ public:
     virtual void taskDidUpdate(const Task & task) = 0;
     virtual void taskDidDelete(int id)            = 0;
     virtual void taskDidComplete()                = 0;
+    virtual void nowTaskDidUpdate(const Task & task)     = 0;
+    virtual void nowTaskDidComplete(const Task & task)   = 0;
 };
