@@ -188,6 +188,31 @@ namespace SharedStates {
         app.shift.write();
     }
 
+    void Depressure::enter(KPStateMachine & sm){
+        //Goal is to reduce pressure before going into next state.
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.write();
+        app.intake.on();
+
+        setTimeCondition(5, [&app](){
+            app.pump.on(Direction::reverse);
+        });
+
+        setTimeCondition(time + 5, [&]() { sm.next(); });
+    }
+
+    void Depressure::update(KPStateMachine & sm){
+        //Goal is to reduce pressure before going into next state.
+        if ((unsigned long) (millis() - updateTime) < updateDelay) {
+            return;
+        }
+
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.write();
+    }
+
     void Dry::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
@@ -367,8 +392,8 @@ namespace SharedStates {
     void AlcoholPurge::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.writeAllRegistersLow();
-        app.intake.off();
         app.pump.off();
+        app.intake.off();
         setTimeCondition(5, [&app](){
             app.shift.setPin(TPICDevices::ALCHOHOL_VALVE, HIGH);
             app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);

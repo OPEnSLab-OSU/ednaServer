@@ -21,11 +21,12 @@ void NowTaskStateController::setup() {
 
         switch (code) {
         case 0:
-            return transitionTo(PRESERVE_FLUSH);
+            return transitionTo(DEPRESSURE);
         default:
             halt(TRACE, "Unhandled state transition: ", code);
         }
     });
+    registerState(SharedStates::Depressure(10), DEPRESSURE, PRESERVE_FLUSH);
     registerState(SharedStates::AlcoholPurge(), PRESERVE_FLUSH, PRESERVE);
     registerState(SharedStates::Preserve(), PRESERVE, OFFSHOOT_CLEAN_2);
     registerState(SharedStates::OffshootClean(10), OFFSHOOT_CLEAN_2, AIR_FLUSH);
