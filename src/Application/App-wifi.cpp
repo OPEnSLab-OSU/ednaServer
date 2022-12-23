@@ -72,7 +72,7 @@ void App::setupServerRouting() {
     server.get("/api/nowtask", [this](Request &, Response & res) {
         println(BLUE("REQUESTING NOW TASK"));
         StaticJsonDocument<TaskManager::encodingSize()> response;
-        encodeJSON(ntm, response.to<JsonArray>());
+        encodeJSON(tm.SampleNowTask, response.to<JsonArray>());
 
         KPStringBuilder<10> length(measureJson(response));
         res.setHeader("Content-Length", length);
@@ -193,7 +193,7 @@ void App::setupServerRouting() {
             vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
         }
         vm.writeToDirectory();
-        ntm.task.valve = 0;
+        tm.SampleNowTask.valves[0] = 0;
         res.end();
     });
 }

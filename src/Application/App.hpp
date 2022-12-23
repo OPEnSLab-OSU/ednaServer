@@ -19,7 +19,6 @@
 #include <Components/Intake.hpp>
 
 #include <StateControllers/NewStateController.hpp>
-#include <StateControllers/NowTaskStateController.hpp>
 #include <StateControllers/HyperFlushStateController.hpp>
 #include <StateControllers/DebubbleStateController.hpp>
 
@@ -29,21 +28,17 @@
 #include <Task/Task.hpp>
 #include <Task/TaskManager.hpp>
 
-#include <Task/NowTask.hpp>
-#include <Task/NowTaskManager.hpp>
-
 #include <Utilities/JsonEncodableDecodable.hpp>
 
 #include <API/API.hpp>
 
 #include <configuration.hpp>
 
-class App : public KPController, public KPSerialInputObserver, public TaskObserver, public NowTaskObserver {
+class App : public KPController, public KPSerialInputObserver, public TaskObserver{
 private:
     void setupAPI();
     void setupSerialRouting();
     void setupServerRouting();
-//    void testValve(int v);
     void commandReceived(const char * line, size_t size) override;
 
 public:
@@ -74,12 +69,10 @@ public:
     // MainStateController sm;
     NewStateController newStateController;
     HyperFlushStateController hyperFlushStateController;
-    NowTaskStateController nowTaskStateController;
     DebubbleStateController debubbleStateController;
 
     ValveManager vm;
     TaskManager tm;
-    NowTaskManager ntm;
 
     SensorArray sensors{"sensor-array"};
 
@@ -93,25 +86,6 @@ private:
 
     const char * TaskObserverName() const override {
         return "Application-Task Observer";
-    }
-
-
-    void testValve(int v, const char * name) {
-            println("=========");
-            print("Testing valve: ");
-            print(name);
-            println();
-            shift.setAllRegistersLow();
-            shift.writePin(v + shift.capacityPerRegister, HIGH);
-            shift.write();
-            println("press any key to continue: ");
-              while (!Serial.available()) {
-                yield();
-            }
-            while(Serial.available() > 0){
-                Serial.read();
-            }
-            delay(20);
     }
 
 public:
@@ -187,14 +161,6 @@ public:
         tm.addObserver(this);
         tm.loadTasksFromDirectory(config.taskFolder);
 
-
-        //
-        // ___ ADDING NOW TASK MANAGER _____________________________________
-        //
-
-        ntm.init(config);
-        ntm.addObserver(this);
-        ntm.loadTasksFromDirectory(config.taskFolder);
         //pinMode(LED_BUILTIN, OUTPUT);
         //
         // ─── HYPER FLUSH CONTROLLER ──────────────────────────────────────
@@ -209,13 +175,6 @@ public:
         hyperFlushStateController.idle();  // Wait in IDLE
 
         //
-
-        //  ___ NOW TASK CONTROLLER ____________
-        //
-
-        addComponent(nowTaskStateController);
-        nowTaskStateController.idle();
-
         // ─── Debubbler CONTROLLER ──────────────────────────────────────
         //
 
@@ -336,7 +295,7 @@ public:
             sprintf(
                 formattedTime, "%u/%u/%u %02u:%02u:%02u GMT+0", year(utc), month(utc), day(utc),
                 hour(utc), minute(utc), second(utc));
-            NowTask & task = ntm.task;
+            Task & task = tm.SampleNowTask;
 
             KPStringBuilder<544> data{
                 utc,
@@ -411,7 +370,7 @@ public:
         } else if (sampleNowActive){
             SD.begin(HardwarePins::SD_CARD);
             File log    = SD.open(config.logFile, FILE_WRITE);
-            NowTask & task = ntm.task;
+            Task & task = tm.SampleNowTask;
             char formattedTime[64];
             auto utc = now();
             sprintf(
@@ -467,19 +426,19 @@ public:
     ScheduleReturnCode beginNowTask(){
         if(currentTaskId)
             return ScheduleReturnCode::unavailable;
-        NowTask task = ntm.task;
+        Task & task = tm.SampleNowTask;
         status.preventShutdown = false;
-        if(task.valve < 0 || task.valve > config.numberOfValves || vm.valves[task.valve].status != ValveStatus::free){
-            task.valve = -1;
+        if(task.valves[0] < 0 || task.valves[0] > config.numberOfValves || vm.valves[task.valves[0]].status != ValveStatus::free){
+            task.valves[0] = -1;
              println(GREEN("Current sample now valve not free"));
             for(unsigned int i = 0; i < vm.valves.size(); i++){
                 if(vm.valves[i].status == ValveStatus::free){
-                    task.valve = i;
+                    task.valves[0] = i;
                     println("Current valve is ", i);
                     break;
                 }
             }
-            if(task.valve == -1){
+            if(task.valves[0] == -1){
                 print(RED("No free valves to sample!"));
                 nowSampleButton.setSampleButton();
                 return ScheduleReturnCode::unavailable;
@@ -490,14 +449,14 @@ public:
         const auto timeUntil = 10;
         NowTaskExecution.interval = secsToMillis(timeUntil);
         NowTaskExecution.name     = "NowTaskExecution";
-        NowTaskExecution.callback = [this]() { nowTaskStateController.begin(); };
+        NowTaskExecution.callback = [this]() { newStateController.begin(); };
         run(NowTaskExecution);  // async, will be execute later
 
-        nowTaskStateController.configure(task);
+        newStateController.configure(task);
 
         sampleNowActive = true;
         status.preventShutdown = true;
-        vm.setValveStatus(task.valve, ValveStatus::operating);
+        vm.setValveStatus(task.valves[0], ValveStatus::operating);
 
         println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
         return ScheduleReturnCode::scheduled;
@@ -677,7 +636,7 @@ public:
 
 private:
     void taskDidUpdate(const Task & task) override {}
-    void nowTaskDidUpdate(const NowTask & task) override {}
+    void nowTaskDidUpdate(const Task & task) override {}
     void taskDidDelete(int id) override {
         if (currentTaskId == id) {
             currentTaskId = 0;
@@ -689,7 +648,7 @@ private:
         nowSampleButton.setSampleButton();
     }
 
-    void nowTaskDidComplete(const NowTask & task) override {
+    void nowTaskDidComplete(const Task & task) override {
         println(BLUE("Setting now sample button to be pressed again"));
         nowSampleButton.setSampleButton();
     }

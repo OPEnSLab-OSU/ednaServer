@@ -22,8 +22,8 @@ void Main::Stop::enter(KPStateMachine & sm) {
         app.tm.writeToDirectory();
     }
     if(app.sampleNowActive){
-        app.ntm.advanceTask();
-        app.ntm.writeToDirectory();
+        app.tm.advanceSampleNowTask();
+        app.tm.writeToDirectory();
     }
     app.currentTaskId       = 0;
     app.sampleNowActive = false;
