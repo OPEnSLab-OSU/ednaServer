@@ -1,3 +1,4 @@
+#ifdef COMPONENT_TEST
 #include <Application/App.hpp>
 #include <Components/Sensors/FlowSensor.hpp>
 
@@ -29,6 +30,10 @@ void App::setupSerialRouting() {
     mapNameToCallback["debubble"] = [this](SerialRequest req) {
         const auto response = dispatchAPI<API::StartDebubble>();
         serializeJson(response, Serial);
+    };
+
+    mapNameToCallback["rtc"] = [this](SerialRequest req) {
+        power.scheduleNextAlarm(now() + 500);
     };
 
     mapNameToCallback["query"] = [this](SerialRequest req) {
@@ -115,23 +120,6 @@ void App::commandReceived(const char * msg, size_t size) {
         println(status);
     }
 
-    // if (line == "print config") {
-    // 	println(config);
-    // }
-
-    // if (line == "schedule now") {
-    // 	println("Schduling temp task");
-    // 	Task task				= tm.createTask();
-    // 	task.schedule			= now() + 5;
-    // 	task.flushTime			= 5;
-    // 	task.sampleTime			= 5;
-    // 	task.deleteOnCompletion = true;
-    // 	task.status				= TaskStatus::active;
-    // 	task.valves.push_back(0);
-    // 	tm.insertTask(task);
-    // 	println(scheduleNextActiveTask().description());
-    // }
-
     if (strcmp(msg, "reset valves") == 0) {
         for (int i = 0; i < config.numberOfValves; i++) {
             vm.setValveStatus(i, ValveStatus::Code(config.valves[i]));
@@ -149,3 +137,4 @@ void App::commandReceived(const char * msg, size_t size) {
     // 	beginHyperFlush();
     // };
 }
+#endif
