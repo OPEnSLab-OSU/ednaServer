@@ -89,7 +89,6 @@ namespace TaskKeys {
     __k_auto SCHEDULE        = "schedule";
     __k_auto TIME_BETWEEN    = "timeBetween";
     __k_auto NOTES           = "notes";
-    __k_auto DELETE          = "deleteOnCompletion";
     __k_auto FLUSH_TIME      = "flushTime";
     __k_auto FLUSH_VOLUME    = "flushVolume";
     __k_auto SAMPLE_TIME     = "sampleTime";
@@ -98,6 +97,7 @@ namespace TaskKeys {
     __k_auto DRY_TIME        = "dryTime";
     __k_auto PRESERVE_TIME   = "preserveTime";
     __k_auto CURR_VALVE   = "currentValve";
+    __k_auto SAMPLE_NOW_TASK = "isSampleNowTask";
 }  // namespace TaskKeys
 
 namespace ValveKeys {

@@ -21,6 +21,7 @@ public:
 
 public:
     const char * taskFolder = nullptr;
+    Task SampleNowTask;
 
     TaskManager() : KPComponent("TaskManager") {}
 
@@ -60,6 +61,11 @@ public:
         return true;
     }
 
+    bool advanceSampleNowTask() {
+        SampleNowTask.valves[0]++;
+        return markSampleNowTaskAsCompleted();
+    }
+
     bool setTaskStatus(int id, TaskStatus status) {
         if (tasks.find(id) == tasks.end()) {
             return false;
@@ -84,13 +90,16 @@ public:
         updateObservers(&TaskObserver::taskDidComplete);
         auto & task = tasks[id];
         task.valves.clear();
-        if (task.deleteOnCompletion) {
-            println("DELETED: ", id);
-            deleteTask(id);
-        } else {
-            task.status = TaskStatus::completed;
-            updateObservers(&TaskObserver::taskDidUpdate, task);
-        }
+        task.status = TaskStatus::completed;
+        updateObservers(&TaskObserver::taskDidUpdate, task);
+
+        return true;
+    }
+
+    bool markSampleNowTaskAsCompleted(){
+        
+        SampleNowTask.status = TaskStatus::completed;
+        updateObservers(&TaskObserver::nowTaskDidComplete, SampleNowTask);
 
         return true;
     }
@@ -134,6 +143,9 @@ public:
         JsonFileLoader loader;
         loader.createDirectoryIfNeeded(dir);
 
+        KPStringBuilder<32> filepath(dir, "/nowtask.js");
+        loader.load(filepath, SampleNowTask);
+
         // Load task index file and get the number of tasks
         KPStringBuilder<32> indexFilepath(dir, "/index.js");
         StaticJsonDocument<100> indexFile;
@@ -154,7 +166,8 @@ public:
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
-     *  @brief Get the Active Task Ids sorted by their schedules (<)
+     *  @brief Get the Active Task Ids sorted by their schedules (<), ignores sample
+     *         now tasks since they do not depend on scheduling
      *
      *  @return std::vector<int> list of ids
      *  ──────────────────────────────────────────────────────────────────────────── */
@@ -163,7 +176,7 @@ public:
         result.reserve(tasks.size());
 
         for (const auto & kv : tasks) {
-            if (kv.second.status == TaskStatus::active) {
+            if (kv.second.status == TaskStatus::active && !kv.second.isSampleNowTask) {
                 result.push_back(kv.first);
             }
         }
@@ -232,6 +245,9 @@ public:
         }
 
         updateIndexFile(dir);
+
+        KPStringBuilder<32> filepath(dir, "/nowtask.js");
+        loader.save(filepath, SampleNowTask);
     }
 
 #pragma region JSONENCODABLE
