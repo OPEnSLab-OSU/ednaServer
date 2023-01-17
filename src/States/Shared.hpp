@@ -81,6 +81,16 @@ namespace SharedStates {
         void update(KPStateMachine & sm) override;
     };
 
+    class Depressure : public KPState {
+    public:
+        unsigned long time = 5;
+        Depressure(unsigned long time) : time(time) {}
+        void enter(KPStateMachine & sm) override;
+        unsigned long updateTime = millis();
+        unsigned long updateDelay = 1000;
+        void update(KPStateMachine & sm) override;
+    };
+
     /** ────────────────────────────────────────────────────────────────────────────
      *
      *
