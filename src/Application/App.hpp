@@ -123,10 +123,10 @@ public:
         //
         // ─── ADDING COMPONENTS ───────────────────────────────────────────
         //
-
+#ifdef COMPONENT_TEST
         addComponent(KPSerialInput::sharedInstance());
         setupSerialRouting();
-
+#endif
         addComponent(ActionScheduler::sharedInstance());
         addComponent(fileLoader);
         addComponent(shift);
@@ -223,6 +223,9 @@ public:
             file.close();
         }
 
+
+
+#ifndef COMPONENT_TEST
         // RTC Interrupt callback
         power.onInterrupt([this]() {
             println(GREEN("RTC Interrupted!"));
@@ -230,22 +233,32 @@ public:
             interrupts();
         });
 
-
-         nowSampleButton.onInterrupt([this](){
+        nowSampleButton.onInterrupt([this](){
              if(!power.rtc.alarm(1) && !power.rtc.alarm(2)){
                 println(GREEN("Sample Now Button Interrupted!"));
                 println(beginNowTask().description());
              }
             interrupts();
         });
+#else
+        // RTC Interrupt callback
+        power.onInterrupt([this]() {
+            println(GREEN("RTC Interrupted!"));
+            interrupts();
+        });
+        
+        nowSampleButton.onInterrupt([this](){
+             if(!power.rtc.alarm(1) && !power.rtc.alarm(2)){
+                println(GREEN("Sample Now Button Interrupted!"));
+             }
+            interrupts();
+        });
+#endif
+        nowSampleButton.setSampleButton();
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
-#if defined(DEBUG) || defined(COMPONENT_TEST)
+#if defined(DEBUG)
         runForever(2000, "memLog", [&]() { printFreeRam(); });
-#endif
-
-#ifndef COMPONENT_TEST
-       nowSampleButton.setSampleButton();
-#endif
+#endif       
     }
 
     void logDetail(const char * filename) {
