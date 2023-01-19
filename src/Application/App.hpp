@@ -5,6 +5,7 @@
 #include <KPSerialInput.hpp>
 #include <KPServer.hpp>
 #include <Action.hpp>
+#include <SPI.h>
 
 #include <Application/Config.hpp>
 #include <Application/Constants.hpp>
@@ -55,9 +56,7 @@ public:
     ShiftRegister shift{
         "shift-register",
         numberOfRegisters,
-        HardwarePins::SHFT_REG_DATA,
-        HardwarePins::SHFT_REG_CLOCK,
-        HardwarePins::SHFT_REG_LATCH,
+        HardwarePins::SHFT_CS
     };
 
     Power power{"power"};
@@ -115,7 +114,7 @@ public:
         //
         // ─── ADD WIFI SERVER ─────────────────────────────────────────────
         //
-
+        //SPI.usingInterrupt(digitalPinToInterrupt(8)); //might not be necessary, but would disable interrupt in SPI transactions
         addComponent(server);
         server.begin();
         setupServerRouting();

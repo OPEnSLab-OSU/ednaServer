@@ -27,22 +27,19 @@ class ShiftRegister : public KPComponent {
 public:
     const int capacityPerRegister = 8;
     const int registersCount;
-    const int dataPin;
-    const int clockPin;
-    const int latchPin;
+    const int chipSelectPin;
 
     int8_t * registers;
     BitOrder bitOrder = MSBFIRST;
 
 public:
-    ShiftRegister(const char * name, int registerCount, int data, int clock, int latch)
+    ShiftRegister(const char * name, int registerCount, int cs)
         : KPComponent(name),
           registersCount(registerCount),
-          dataPin(data),
-          clockPin(clock),
-          latchPin(latch) {
+          chipSelectPin(cs)
+          {
         registers = new int8_t[registersCount]();
-        setRegisterPins(data, clock, latch);
+        setRegisterPins(cs);
     }
 
     void setup() override {
@@ -53,14 +50,10 @@ public:
      *  @brief Set all given pins to output mode. The registers should be hooked up
      *  in daisy chain mode.
      *
-     *  @param data Data pin
-     *  @param clock Clock pin
-     *  @param latch Latch pin
+     *  @param cs Chip Select pin for SPI
      *  ──────────────────────────────────────────────────────────────────────────── */
-    void setRegisterPins(int data, int clock, int latch) {
-        pinMode(dataPin, OUTPUT);
-        pinMode(clockPin, OUTPUT);
-        pinMode(latchPin, OUTPUT);
+    void setRegisterPins(int cs) {
+        pinMode(cs, OUTPUT);
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -138,11 +131,14 @@ public:
      *
      *  ──────────────────────────────────────────────────────────────────────────── */
     void write() {
-        digitalWrite(latchPin, LOW);
+        SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+        digitalWrite(HardwarePins::WIFI_CS, HIGH); // this is likely not needed as the wifi101 library should handle their CS pin correctly
+        digitalWrite(chipSelectPin, LOW);
         for (int i = registersCount - 1; i >= 0; i--) {
-            shiftOut(dataPin, clockPin, bitOrder, registers[i]);
+            SPI.transfer(registers[i]);
         }
-        digitalWrite(latchPin, HIGH);
+        digitalWrite(chipSelectPin, HIGH);
+        SPI.endTransaction();
     }
 
     void writePin(int index, bool signal) {
