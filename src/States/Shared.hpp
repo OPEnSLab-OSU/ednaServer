@@ -20,6 +20,18 @@ namespace SharedStates {
         void enter(KPStateMachine & sm) override;
     };
 
+    class PrefilterClear : public KPState {
+    public:
+        unsigned long time = 10;
+        void enter(KPStateMachine & sm) override;
+    };
+
+    class IntakeDry : public KPState {
+    public:
+        unsigned long time = 10;
+        void enter(KPStateMachine & sm) override;
+    };
+
     /** ────────────────────────────────────────────────────────────────────────────
      *  @brief Flush the main pipe with new water from the source
      *  [Connections: 1]

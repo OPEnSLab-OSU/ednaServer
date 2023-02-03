@@ -25,6 +25,21 @@ namespace SharedStates {
         sm.next();
     }
 
+    void PrefilterClear::enter(KPStateMachine & sm) {
+        auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+        app.intake.on();
+        // 5 seconds needed to turn ball intake on
+        setTimeCondition(5, [&app](){
+            app.pump.on(Direction::reverse);
+        });
+
+        // To next state after a set time
+        setTimeCondition(time + 5, [&]() { sm.next(); });
+    }
+
     void Flush::enter(KPStateMachine & sm) {
         auto & app = *static_cast<App *>(sm.controller);
         app.shift.setAllRegistersLow();
@@ -129,6 +144,21 @@ namespace SharedStates {
         app.shift.setPin(TPICDevices::AIR_VALVE, HIGH);
         app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
         app.shift.write();
+    }
+
+    void IntakeDry::enter(KPStateMachine & sm) {
+            auto & app = *static_cast<App *>(sm.controller);
+        app.shift.setAllRegistersLow();
+        app.shift.setPin(TPICDevices::FLUSH_VALVE, HIGH);
+        app.shift.write();
+        app.intake.on();
+        // 5 seconds needed to turn ball intake on
+        setTimeCondition(5, [&app](){
+            app.pump.on(Direction::reverse);
+        });
+
+        // To next state after a set time
+        setTimeCondition(time + 5, [&]() { sm.next(); });
     }
 
     void Sample::enter(KPStateMachine & sm) {

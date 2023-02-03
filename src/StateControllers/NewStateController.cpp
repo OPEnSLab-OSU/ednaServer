@@ -10,7 +10,7 @@ void NewStateController::setup() {
     // 	}
     // });
     // ..or alternatively if state only has one input and one output
-
+    registerState(SharedStates::PrefilterClear(), PREFILTER_CLEAR, FLUSH_1);
     registerState(SharedStates::Flush(), FLUSH_1, OFFSHOOT_CLEAN_1);
     registerState(SharedStates::OffshootClean(5), OFFSHOOT_CLEAN_1, FLUSH_2);
     registerState(SharedStates::Flush(), FLUSH_2, SAMPLE);
@@ -30,8 +30,8 @@ void NewStateController::setup() {
     registerState(SharedStates::AlcoholPurge(), PRESERVE_FLUSH, PRESERVE);
     registerState(SharedStates::Preserve(), PRESERVE, OFFSHOOT_CLEAN_2);
     registerState(SharedStates::OffshootClean(10), OFFSHOOT_CLEAN_2, AIR_FLUSH);
-    registerState(SharedStates::AirFlush(), AIR_FLUSH, STOP);
-    
+    registerState(SharedStates::AirFlush(), AIR_FLUSH, INTAKE_DRY);
+    registerState(SharedStates::IntakeDry(), INTAKE_DRY, STOP);
     // Reusing STOP and IDLE states from MainStateController
     registerState(Main::Stop(), STOP, IDLE);
     registerState(Main::Idle(), IDLE);

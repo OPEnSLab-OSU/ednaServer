@@ -28,13 +28,15 @@ public:
     int status      = TaskStatus::inactive;
     int timeBetween = 0;
 
-    int flushTime      = 0;
-    float flushVolume  = 0;
-    int sampleTime     = 0;
-    float sampleVolume = 0;
-    int samplePressure = 0;
-    int dryTime        = 0;
-    int preserveTime   = 0;
+    int prefilterClearTime  = 0;
+    int flushTime           = 0;
+    float flushVolume       = 0;
+    int sampleTime          = 0;
+    float sampleVolume      = 0;
+    int samplePressure      = 0;
+    int dryTime             = 0;
+    int preserveTime        = 0;
+    int intakeDryTime       = 0;
 
     bool deleteOnCompletion = false;
 
@@ -108,14 +110,16 @@ public:
         if(source.containsKey(SCHEDULE)){
             schedule       = source[SCHEDULE];
         }
-        status         = source[STATUS];
-        flushTime      = source[FLUSH_TIME];
-        flushVolume    = source[FLUSH_VOLUME];
-        sampleTime     = source[SAMPLE_TIME];
-        samplePressure = source[SAMPLE_PRESSURE];
-        sampleVolume   = source[SAMPLE_VOLUME];
-        preserveTime   = source[PRESERVE_TIME];
-        timeBetween    = source[TIME_BETWEEN];
+        status              = source[STATUS];
+        prefilterClearTime  = source[CLEAR_TIME];
+        flushTime           = source[FLUSH_TIME];
+        flushVolume         = source[FLUSH_VOLUME];
+        sampleTime          = source[SAMPLE_TIME];
+        samplePressure      = source[SAMPLE_PRESSURE];
+        sampleVolume        = source[SAMPLE_VOLUME];
+        preserveTime        = source[PRESERVE_TIME];
+        intakeDryTime       = source[INTAKE_DRY_TIME];
+        timeBetween         = source[TIME_BETWEEN];
     }
 #pragma endregion
 #pragma region JSONENCODABLE
@@ -136,13 +140,15 @@ public:
 			&& dst[NOTES].set((char *) notes)
 			&& dst[STATUS].set(status) 
 			&& dst[CREATED_AT].set(createdAt)
-			&& dst[SCHEDULE].set(schedule) 
+			&& dst[SCHEDULE].set(schedule)
+            && dst[CLEAR_TIME].set(prefilterClearTime) 
 			&& dst[FLUSH_TIME].set(flushTime)
 			&& dst[FLUSH_VOLUME].set(flushVolume)
 			&& dst[SAMPLE_TIME].set(sampleTime)
 			&& dst[SAMPLE_PRESSURE].set(samplePressure) 
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[PRESERVE_TIME].set(preserveTime)
+            && dst[INTAKE_DRY_TIME].set(intakeDryTime)
 			&& dst[TIME_BETWEEN].set(timeBetween) 
 			&& dst[VALVES_OFFSET].set(getValveOffsetStart())
 			&& dst[DELETE].set(deleteOnCompletion)
@@ -158,10 +164,12 @@ public:
 #pragma endregion
 
     void operator()(NewStateController::Config & config) const {
-        config.flushTime      = flushTime;
-        config.sampleTime     = sampleTime;
-        config.samplePressure = samplePressure;
-        config.sampleVolume   = sampleVolume;
-        config.preserveTime   = preserveTime;
+        config.prefilterClearTime   = prefilterClearTime;
+        config.flushTime            = flushTime;
+        config.sampleTime           = sampleTime;
+        config.samplePressure       = samplePressure;
+        config.sampleVolume         = sampleVolume;
+        config.preserveTime         = preserveTime;
+        config.intakeDryTime        = intakeDryTime;
     }
 };
