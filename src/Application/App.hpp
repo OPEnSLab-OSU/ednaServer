@@ -33,6 +33,7 @@
 #include <Task/NowTaskManager.hpp>
 
 #include <Utilities/JsonEncodableDecodable.hpp>
+#include <Utilities/Logger.hpp>
 
 #include <API/API.hpp>
 
@@ -48,6 +49,8 @@ private:
 
 public:
     KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
+    //Logger requires fileLoader is initialized before it logs anything
+    Logger logger{ConfigKeys::DEBUG_FILE};
     KPServer server{"web-server", SERVER_NAME, SERVER_PASSWORD};
 
     Pump pump{
@@ -136,6 +139,7 @@ public:
         // Here we add and initialize the power module first.
         // So we can seed the random number generator with actual time from RTC.
         addComponent(power);
+        power.addObserver(logger);
         randomSeed(now());
 
         //
@@ -240,6 +244,7 @@ public:
             println(BLUE("====================== WIFI ======================"));
             server.printWiFiStatus();
             println(BLUE("=================================================="));
+            logger.log("wifi status printed\n");
         }
 
         // Regular log header
@@ -250,6 +255,7 @@ public:
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
                                         "Max Pressure Recorded, Volume Recorded, Flow Rate\n"};
             file.println(header);
+            logger.log("log header created\n");
             file.close();
         }
 
@@ -261,13 +267,17 @@ public:
                                         "Pressure, Config Sample Volume, Temperature Recorded,"
                                         "Pressure Recorded, Volume Recorded, Flow Rate\n"};
             file.println(header);
+            logger.log("detail log header created\n");
             file.close();
         }
 
         // RTC Interrupt callback
         power.onInterrupt([this]() {
             println(GREEN("RTC Interrupted!"));
-            println(scheduleNextActiveTask().description());
+            logger.log("RTC Interrupted!\n");
+            auto msg = scheduleNextActiveTask().description();
+            println(msg);
+            logger.log(msg);
             interrupts();
         });
 
@@ -275,7 +285,9 @@ public:
          nowSampleButton.onInterrupt([this](){
              if(!power.rtc.alarm(1) && !power.rtc.alarm(2)){
                 println(GREEN("Sample Now Button Interrupted!"));
-                println(beginNowTask().description());
+                auto msg = beginNowTask().description();
+                println(msg);
+                logger.log(msg);
              }
             interrupts();
         });
@@ -325,6 +337,10 @@ public:
                 ",",
                 status.waterFlow};
             log.println(data);
+            String msg = "Log at: ";
+            msg.concat((int) utc);
+            msg.concat("\n");
+            logger.log(msg);
             log.flush();
             log.close();
         } else if (sampleNowActive) {
@@ -363,6 +379,10 @@ public:
                 ",",
                 status.waterFlow};
             log.println(data);
+            String msg = "Log at: ";
+            msg.concat((int) utc);
+            msg.concat("\n");
+            logger.log(msg);
             log.flush();
             log.close();
         }
@@ -406,6 +426,10 @@ public:
                 ",",
                 status.waterFlow};
             log.println(data);
+            String msg = "Log at: ";
+            msg.concat((int) utc);
+            msg.concat("\n");
+            logger.log(msg);
             log.flush();
             log.close();
         } else if (sampleNowActive){
@@ -443,6 +467,10 @@ public:
                 ",",
                 status.waterFlow};
             log.println(data);
+            String msg = "Log at: ";
+            msg.concat((int) utc);
+            msg.concat("\n");
+            logger.log(msg);
             log.flush();
             log.close();
         }
@@ -481,6 +509,7 @@ public:
             }
             if(task.valve == -1){
                 print(RED("No free valves to sample!"));
+                logger.log("No free valves for sample now!\n");
                 nowSampleButton.setSampleButton();
                 return ScheduleReturnCode::unavailable;
             }
@@ -498,8 +527,12 @@ public:
         sampleNowActive = true;
         status.preventShutdown = true;
         vm.setValveStatus(task.valve, ValveStatus::operating);
+        String msg = "Executing task in ";
+        msg.concat(timeUntil);
+        msg.concat(" seconds");
 
-        println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
+        println("\033[32;1m", msg, "\033[0m");
+        logger.log(msg);
         return ScheduleReturnCode::scheduled;
     }
  
@@ -574,7 +607,12 @@ public:
                 status.preventShutdown = true;
                 vm.setValveStatus(task.valves[task.valveOffsetStart], ValveStatus::operating);
 
-                println("\033[32;1mExecuting task in ", timeUntil, " seconds\033[0m");
+                String msg = "Executing task in ";
+                msg.concat((long) timeUntil);
+                msg.concat(" seconds");
+                println("\033[32;1m", msg, "\033[0m");
+                logger.log(msg);
+
                 return ScheduleReturnCode::operating;
             } else {
                 // Wake up before not due to alarm, reschedule anyway
@@ -663,6 +701,7 @@ public:
         tm.writeToDirectory();
         vm.writeToDirectory();
         power.shutdown();
+        logger.log("halting because not shutdown. Check power module\n");
         halt(TRACE, "Shutdown. This message should not be displayed. Check power module");
     }
 
@@ -686,11 +725,12 @@ private:
 
     void taskDidComplete() override {
         println(BLUE("Setting now sample button to be pressed again"));
+        logger.log("Setting now sample button to be pressed again\n");
         nowSampleButton.setSampleButton();
     }
 
     void nowTaskDidComplete(const NowTask & task) override {
-        println(BLUE("Setting now sample button to be pressed again"));
+        println(BLUE("Setting now sample button to be pressed again\n"));
         nowSampleButton.setSampleButton();
     }
 };

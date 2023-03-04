@@ -28,6 +28,7 @@
 #include <functional>
 
 #include <Application/Constants.hpp>
+#include <Utilities/LogObserver.hpp>
 
 #define RTC_ADDR 0x68
 
@@ -44,7 +45,7 @@ extern volatile unsigned long rtcInterruptStart;
 extern volatile bool alarmTriggered;
 extern void rtc_isr();
 
-class Power : public KPComponent {
+class Power : public KPComponent, public KPSubject<LogObserver> {
 public:
     DS3232RTC rtc;
     std::function<void()> interruptCallback;
@@ -224,6 +225,11 @@ public:
         }
 
         println("Alarm triggering in: ", utc - timestamp, " seconds");
+        //app.logSerial("Alarm triggering in: ", utc - timestamp, " seconds");
+        String Message = "Alarm triggering in: ";
+        Message.concat(utc - timestamp);
+        Message.concat(" seconds");
+        updateObservers(&LogObserver::log, Message);
         setTimeout(utc - timestamp, true);
     }
 

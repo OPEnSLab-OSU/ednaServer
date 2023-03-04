@@ -77,7 +77,7 @@ namespace ConfigKeys {
     __k_auto FILE_STATUS       = "statusFile";
     __k_auto FOLDER_TASK       = "taskFolder";
     __k_auto FOLDER_VALVE      = "valveFolder";
-    __k_auto PRINT_FILE        = "printFile";
+    __k_auto DEBUG_FILE        = "debugFile";
 }  // namespace ConfigKeys
 
 namespace TaskKeys {

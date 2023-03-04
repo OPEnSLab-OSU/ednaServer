@@ -10,6 +10,7 @@
 
 #include <Task/TaskStatus.hpp>
 #include <StateControllers/NowTaskStateController.hpp>
+#include <StateControllers/NewStateController.hpp>
 
 struct NowTask : public JsonEncodable,
               public JsonDecodable,

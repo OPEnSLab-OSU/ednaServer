@@ -70,7 +70,7 @@ public:
         strncpy(statusFile, source[FILE_STATUS], SD_FILE_NAME_LENGTH);
         strncpy(taskFolder, source[FOLDER_TASK], SD_FILE_NAME_LENGTH);
         strncpy(valveFolder, source[FOLDER_VALVE], SD_FILE_NAME_LENGTH);
-        strncpy(printFile, source[PRINT_FILE], SD_FILE_NAME_LENGTH);
+        strncpy(printFile, source[DEBUG_FILE], SD_FILE_NAME_LENGTH);
     }
 
 #pragma region JSONENCODABLE
@@ -90,7 +90,7 @@ public:
 
         return dest[VALVE_UPPER_BOUND].set(valveUpperBound) && dest[FILE_LOG].set(logFile)
                && dest[FILE_STATUS].set(statusFile) && dest[FOLDER_TASK].set(taskFolder)
-               && dest[FOLDER_VALVE].set(valveFolder) && dest[PRINT_FILE].set(printFile);
+               && dest[FOLDER_VALVE].set(valveFolder) && dest[DEBUG_FILE].set(printFile);
     }
 #pragma endregion
 #pragma region PRINTABLE
