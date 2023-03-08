@@ -663,7 +663,6 @@ public:
         tm.writeToDirectory();
         vm.writeToDirectory();
         power.shutdown();
-        halt(TRACE, "Shutdown. This message should not be displayed. Check power module");
     }
 
     void invalidateTaskAndFreeUpValves(Task & task) {

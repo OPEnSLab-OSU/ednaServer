@@ -22,7 +22,7 @@
 #pragma once
 #include <KPFoundation.hpp>
 #include <functional>
-
+#include "ArduinoLowPower.h"
 #include <Application/Constants.hpp>
 
 
@@ -94,7 +94,7 @@ public:
     void setSampleButton() {
         println("interrupt attached");
         buttonInterruptStart = millis();
-        attachInterrupt(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, FALLING);
+        LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::BUTTON_PIN), button_isr, FALLING);
     }
 
 

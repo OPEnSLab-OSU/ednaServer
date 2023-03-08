@@ -22,7 +22,7 @@
 #pragma once
 #include <KPFoundation.hpp>
 #include <DS3232RTC.h>
-#include <LowPower.h>
+#include <ArduinoLowPower.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <functional>
@@ -129,9 +129,8 @@ public:
      *
      *  ──────────────────────────────────────────────────────────────────────────── */
     void shutdown() {
-        digitalWrite(HardwarePins::POWER_MODULE, HIGH);
-        delay(20);
-        digitalWrite(HardwarePins::POWER_MODULE, LOW);
+        LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::RTC_INTERRUPT), rtc_isr, FALLING);
+        LowPower.sleep();
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -169,7 +168,7 @@ public:
             delay(333);
         }
 
-        LowPower.standby();
+        LowPower.sleep();
         println();
         println("Just woke up due to interrupt!");
         printCurrentTime();
@@ -197,7 +196,7 @@ public:
         disarmAlarms();
         rtc.setAlarm(ALM1_MATCH_MINUTES, future.Second, future.Minute, future.Hour, 0);
         if (usingInterrupt) {
-            attachInterrupt(digitalPinToInterrupt(HardwarePins::RTC_INTERRUPT), rtc_isr, FALLING);
+            LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::RTC_INTERRUPT), rtc_isr, FALLING);
             rtc.alarmInterrupt(1, true);
         }
     }
