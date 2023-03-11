@@ -3,19 +3,24 @@
 
 class Logger: public LogObserver {
     public:
-        const char * logFilePath;
+        const char * logFilePath = nullptr;
 
     public:
-            Logger(const char * logFilePath)
-        : logFilePath(logFilePath) {}
+        Logger() {}
 
-    void log(const String msg) override {
-        char *cstr = new char[msg.length() + 1];
-        strcpy(cstr, msg.c_str());
+        void init(Config & config) {
+            logFilePath = config.printFile;
+            if (!SD.exists(logFilePath)) {
+                File file = SD.open(logFilePath, FILE_WRITE);
+                file.close();
+                Serial.println("debug file created!");
+            }
+        }
 
-        File file = SD.open(logFilePath, FILE_WRITE);
-		file.write(cstr, msg.length() + 1);
-		file.close();
-        delete [] cstr;
-    }
+        void log(const String msg) override {
+            Serial.println(logFilePath);
+            File file = SD.open(logFilePath, FILE_WRITE);
+            file.println(msg);
+            file.close();
+        }
 };

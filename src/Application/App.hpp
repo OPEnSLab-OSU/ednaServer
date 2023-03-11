@@ -50,7 +50,7 @@ private:
 public:
     KPFileLoader fileLoader{"file-loader", HardwarePins::SD_CARD};
     //Logger requires fileLoader is initialized before it logs anything
-    Logger logger{ConfigKeys::DEBUG_FILE};
+    Logger logger;
     KPServer server{"web-server", SERVER_NAME, SERVER_PASSWORD};
 
     Pump pump{
@@ -176,6 +176,11 @@ public:
         status.init(config);
 
         //
+        // ─── LOADING DEBUG FILE ─────────────────────────────────────────
+        //
+        logger.init(config);
+
+        //
         // ─── ADDING VALVE MANAGER ────────────────────────────────────────
         //
 
@@ -293,7 +298,10 @@ public:
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
 #if defined(DEBUG) || defined(COMPONENT_TEST)
-        runForever(2000, "memLog", [&]() { printFreeRam(); });
+        runForever(2000, "memLog", [&]() { 
+            printFreeRam(); 
+            logger.log("printed ram");
+            });
 #endif
 
 #ifndef COMPONENT_TEST
