@@ -26,6 +26,7 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <functional>
+#include <SD.h>
 
 #include <Application/Constants.hpp>
 
@@ -82,6 +83,8 @@ public:
         // so we need this internal one. INPUT_PULLUP is required.
         pinMode(HardwarePins::RTC_INTERRUPT, INPUT_PULLUP);
         pinMode(HardwarePins::POWER_MODULE, OUTPUT);
+        digitalWrite(HardwarePins::POWER_MODULE, HIGH);
+
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -130,7 +133,13 @@ public:
      *  ──────────────────────────────────────────────────────────────────────────── */
     void shutdown() {
         LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::RTC_INTERRUPT), rtc_isr, FALLING);
+        LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::SHUTDOWN_OVERRIDE), nullptr, RISING);
+        digitalWrite(HardwarePins::POWER_MODULE, LOW);
+        pinMode(HardwarePins::SD_CARD, INPUT);
         LowPower.sleep();
+        digitalWrite(HardwarePins::POWER_MODULE, HIGH);
+        SD.begin(HardwarePins::SD_CARD);
+
     }
 
     /** ────────────────────────────────────────────────────────────────────────────
@@ -197,6 +206,7 @@ public:
         rtc.setAlarm(ALM1_MATCH_MINUTES, future.Second, future.Minute, future.Hour, 0);
         if (usingInterrupt) {
             LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::RTC_INTERRUPT), rtc_isr, FALLING);
+            LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::SHUTDOWN_OVERRIDE), nullptr, RISING);
             rtc.alarmInterrupt(1, true);
         }
     }
