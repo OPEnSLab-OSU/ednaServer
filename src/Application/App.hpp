@@ -272,6 +272,10 @@ public:
             interrupts();
         });
 
+        power.onWakeUp([this]() {
+            server.begin();
+        });
+
 
          nowSampleButton.onInterrupt([this](){
              if(!power.rtc.alarm(1) && !power.rtc.alarm(2)){

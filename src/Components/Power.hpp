@@ -24,6 +24,7 @@
 #include <DS3232RTC.h>
 #include <ArduinoLowPower.h>
 #include <Wire.h>
+#include <WiFi101.h>
 #include <SPI.h>
 #include <functional>
 #include <SD.h>
@@ -49,11 +50,16 @@ class Power : public KPComponent {
 public:
     DS3232RTC rtc;
     std::function<void()> interruptCallback;
+    std::function<void()> wakeupCallback;
 
     Power(const char * name) : KPComponent(name), rtc(false) {}
 
     void onInterrupt(std::function<void()> callbcak) {
         interruptCallback = callbcak;
+    }
+
+    void onWakeUp(std::function<void()> callback) {
+        wakeupCallback = callback;
     }
 
     void setupRTC() {
@@ -139,9 +145,11 @@ public:
         LowPower.attachInterruptWakeup(digitalPinToInterrupt(HardwarePins::SHUTDOWN_OVERRIDE), nullptr, RISING);
         digitalWrite(HardwarePins::POWER_MODULE, LOW);
         pinMode(HardwarePins::SD_CARD, INPUT);
+        WiFi.end();
         LowPower.sleep();
         pinMode(HardwarePins::POWER_MODULE, OUTPUT);
         digitalWrite(HardwarePins::POWER_MODULE, HIGH);
+        wakeupCallback();
         SD.begin(HardwarePins::SD_CARD);
 
     }
