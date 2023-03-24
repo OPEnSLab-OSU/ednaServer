@@ -76,6 +76,7 @@ public:
     }
 
     void setup() override {
+        println("Setting up RTC");
         setupRTC();
 
         // Register interrupt pin as active low
@@ -113,8 +114,10 @@ public:
      *  active low, this means that the RTC is not connected
      *  ──────────────────────────────────────────────────────────────────────────── */
     void waitForConnection() {
+        println("Wire begin is now called");
         Wire.begin();
         for (;; delay(5000)) {
+            println("Requesting from RTC ADDR");
             Wire.requestFrom(RTC_ADDR, 1, false);  // false: don't release I2C line
             if (Wire.read() == -1) {
                 println(RED("RTC not connected"));

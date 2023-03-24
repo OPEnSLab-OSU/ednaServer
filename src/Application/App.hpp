@@ -136,6 +136,7 @@ public:
         // Here we add and initialize the power module first.
         // So we can seed the random number generator with actual time from RTC.
         addComponent(power);
+        println("Power module added");
         randomSeed(now());
 
         //
