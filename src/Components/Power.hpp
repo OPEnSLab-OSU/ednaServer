@@ -140,6 +140,7 @@ public:
         digitalWrite(HardwarePins::POWER_MODULE, LOW);
         pinMode(HardwarePins::SD_CARD, INPUT);
         LowPower.sleep();
+        pinMode(HardwarePins::POWER_MODULE, OUTPUT);
         digitalWrite(HardwarePins::POWER_MODULE, HIGH);
         SD.begin(HardwarePins::SD_CARD);
 
