@@ -71,6 +71,9 @@ void App::setupSerialRouting() {
                 Serial.print(address,HEX);
                 Serial.println("  !");
                 }
+                else if(error != 2){
+      Serial.printf("Error %d at address 0x%02X\n", error, address);
+    }
             }
             return;
         }
