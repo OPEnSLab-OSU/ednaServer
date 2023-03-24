@@ -77,14 +77,14 @@ public:
 
     void setup() override {
         println("Setting up RTC");
+        pinMode(HardwarePins::POWER_MODULE, OUTPUT);
+        digitalWrite(HardwarePins::POWER_MODULE, HIGH);
         setupRTC();
 
         // Register interrupt pin as active low
         // When in programming mode, the RTC will be disconnected from the external pullup resistor,
         // so we need this internal one. INPUT_PULLUP is required.
         pinMode(HardwarePins::RTC_INTERRUPT, INPUT_PULLUP);
-        pinMode(HardwarePins::POWER_MODULE, OUTPUT);
-        digitalWrite(HardwarePins::POWER_MODULE, HIGH);
 
     }
 
