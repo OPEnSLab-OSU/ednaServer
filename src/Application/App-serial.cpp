@@ -1,4 +1,5 @@
 #include <Application/App.hpp>
+#include <Wire.h>
 #include <Components/Sensors/FlowSensor.hpp>
 
 namespace {
@@ -50,6 +51,27 @@ void App::setupSerialRouting() {
         if (strcmp(endpoint, "ram") == 0) {
             printFreeRam();
             endTransmission();
+            return;
+        }
+
+        if(strcmp(endpoint, "i2c") == 0) {
+            for(int address = 1; address < 127; address++ ) 
+            {
+                // The i2c_scanner uses the return value of
+                // the Write.endTransmisstion to see if
+                // a device did acknowledge to the address.
+                Wire.beginTransmission(address);
+                int error = Wire.endTransmission();
+
+                if (error == 0)
+                {
+                Serial.print("I2C device found at address 0x");
+                if (address<16) 
+                    Serial.print("0");
+                Serial.print(address,HEX);
+                Serial.println("  !");
+                }
+            }
             return;
         }
     };

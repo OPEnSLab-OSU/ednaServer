@@ -285,7 +285,7 @@ public:
             interrupts();
         });
         runForever(1000, "detailLog", [&]() { logDetail("detail.csv"); });
-#if defined(DEBUG) || defined(COMPONENT_TEST)
+#if defined(DEBUG)
         runForever(2000, "memLog", [&]() { printFreeRam(); });
 #endif
 

@@ -146,6 +146,7 @@ public:
         digitalWrite(HardwarePins::POWER_MODULE, LOW);
         pinMode(HardwarePins::SD_CARD, INPUT);
         WiFi.end();
+        delay(20);
         LowPower.sleep();
         pinMode(HardwarePins::POWER_MODULE, OUTPUT);
         digitalWrite(HardwarePins::POWER_MODULE, HIGH);
