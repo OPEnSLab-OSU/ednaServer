@@ -28,13 +28,14 @@ public:
     int status      = TaskStatus::inactive;
     int timeBetween = 0;
 
-    int flushTime      = 0;
-    float flushVolume  = 0;
-    int sampleTime     = 0;
-    float sampleVolume = 0;
-    int samplePressure = 0;
-    int dryTime        = 0;
-    int preserveTime   = 0;
+    int flushTime        = 0;
+    float flushVolume    = 0;
+    int sampleTime       = 0;
+    float sampleVolume   = 0;
+    int samplePressure   = 0;
+    int dryTime          = 0;
+    int preserveTime     = 0;
+    float preserveVolume = 0;
 
     bool deleteOnCompletion = false;
 
@@ -115,6 +116,7 @@ public:
         samplePressure = source[SAMPLE_PRESSURE];
         sampleVolume   = source[SAMPLE_VOLUME];
         preserveTime   = source[PRESERVE_TIME];
+        preserveVolume = source[PRESERVE_VOLUME];
         timeBetween    = source[TIME_BETWEEN];
     }
 #pragma endregion
@@ -143,6 +145,7 @@ public:
 			&& dst[SAMPLE_PRESSURE].set(samplePressure) 
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[PRESERVE_TIME].set(preserveTime)
+			&& dst[PRESERVE_VOLUME].set(preserveVolume)
 			&& dst[TIME_BETWEEN].set(timeBetween) 
 			&& dst[VALVES_OFFSET].set(getValveOffsetStart())
 			&& dst[DELETE].set(deleteOnCompletion)
@@ -163,5 +166,6 @@ public:
         config.samplePressure = samplePressure;
         config.sampleVolume   = sampleVolume;
         config.preserveTime   = preserveTime;
+        config.preserveVolume = preserveVolume;
     }
 };

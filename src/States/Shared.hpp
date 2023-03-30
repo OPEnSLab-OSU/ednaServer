@@ -133,12 +133,13 @@ namespace SharedStates {
     };
 
     /** ────────────────────────────────────────────────────────────────────────────
-     *
-     *
+     *  A State used to pump the alcohol preservative into the system 
+     *  and saturate the filter housing with ethanol
      *  ──────────────────────────────────────────────────────────────────────────── */
     class Preserve : public KPState {
     public:
         unsigned long time = 0;
+        float volume       = 1000;
         void enter(KPStateMachine & sm) override;
         unsigned long updateTime = millis();
         unsigned long updateDelay = 1000;

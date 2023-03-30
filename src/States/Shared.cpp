@@ -369,7 +369,26 @@ namespace SharedStates {
         setTimeCondition(6, [&app](){
             app.pump.on();
         });
-        setTimeCondition(time + 6, [&]() { sm.next(); });
+        app.sensors.flow.resetVolume();
+        app.sensors.flow.startMeasurement();
+        this->condition        = nullptr;
+
+        // This condition will be evaluated repeatedly until true then the callback will be executed
+        // once
+        auto const condition = [&]() {
+            if (app.sensors.flow.volume >= volume) {
+                this->condition = "volume";
+            }
+
+            if (timeSinceLastTransition() - 6 >= secsToMillis(time)) { //minus 6 to account for delay
+                this->condition = "time";
+            }
+
+            return this->condition != nullptr;
+        };
+
+        setCondition(condition, [&]() { sm.next(); });
+        //setTimeCondition(time + 6, [&]() { sm.next(); });
     }
 
 

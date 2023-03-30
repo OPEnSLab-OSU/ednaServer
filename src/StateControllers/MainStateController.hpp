@@ -35,6 +35,7 @@ namespace Main {
         decltype(SharedStates::Sample::pressure) samplePressure;
         decltype(SharedStates::Sample::volume) sampleVolume;
         decltype(SharedStates::Dry::time) dryTime;
+        decltype(SharedStates::Preserve::volume) preserveVolume;
         decltype(SharedStates::Preserve::time) preserveTime;
     };
 

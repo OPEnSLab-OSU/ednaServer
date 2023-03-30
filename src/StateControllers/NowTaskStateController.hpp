@@ -21,6 +21,7 @@ namespace NowT {
         decltype(SharedStates::Sample::time) sampleTime;
         decltype(SharedStates::Sample::pressure) samplePressure;
         decltype(SharedStates::Sample::volume) sampleVolume;
+        decltype(SharedStates::Preserve::volume) preserveVolume;
         decltype(SharedStates::Preserve::time) preserveTime;
     };
 
@@ -43,6 +44,7 @@ namespace NowT {
 
             decltype(auto) preserve = getState<SharedStates::Preserve>(PRESERVE);
             preserve.time           = config.preserveTime;
+            preserve.volume         = config.preserveVolume;
         }
 
         void begin() override {

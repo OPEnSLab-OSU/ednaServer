@@ -97,7 +97,8 @@ namespace TaskKeys {
     __k_auto SAMPLE_VOLUME   = "sampleVolume";
     __k_auto DRY_TIME        = "dryTime";
     __k_auto PRESERVE_TIME   = "preserveTime";
-    __k_auto CURR_VALVE   = "currentValve";
+    __k_auto PRESERVE_VOLUME = "preserveVolume";
+    __k_auto CURR_VALVE      = "currentValve";
 }  // namespace TaskKeys
 
 namespace ValveKeys {
