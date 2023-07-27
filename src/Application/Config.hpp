@@ -19,6 +19,9 @@ public:
     const char * configFilepath = nullptr;
     signed char valveUpperBound = 0;
     signed char numberOfValves  = 0;
+    signed char maxPressure = 0;
+    signed char cutoffPressure = 0;
+
 
     signed char valves[ProgramSettings::MAX_VALVES]        = {0};
     char logFile[ProgramSettings::SD_FILE_NAME_LENGTH]     = {0};
@@ -46,6 +49,8 @@ public:
         using namespace ConfigKeys;
 
         valveUpperBound = source[VALVE_UPPER_BOUND];
+        maxPressure = source[PRESSURE_MAX];
+        cutoffPressure = source[PRESSURE_CUTOFF];
         numberOfValves  = valveUpperBound + 1;
 
         std::fill_n(valves, ProgramSettings::MAX_VALVES, -1);
@@ -88,7 +93,8 @@ public:
 
         return dest[VALVE_UPPER_BOUND].set(valveUpperBound) && dest[FILE_LOG].set(logFile)
                && dest[FILE_STATUS].set(statusFile) && dest[FOLDER_TASK].set(taskFolder)
-               && dest[FOLDER_VALVE].set(valveFolder);
+               && dest[FOLDER_VALVE].set(valveFolder) && dest[PRESSURE_MAX].set(maxPressure)
+               && dest[PRESSURE_CUTOFF].set(cutoffPressure);
     }
 #pragma endregion
 #pragma region PRINTABLE

@@ -29,5 +29,7 @@
     "statusFile": "status.js",
     "taskFolder": "tasks",
     "valveFolder": "valves",
-    "valveUpperBound": 23
+    "valveUpperBound": 23,
+	"maxPressure": 40,
+	"cutoffPressure": 30
 }

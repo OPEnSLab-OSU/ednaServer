@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <queue>
 
 #include <KPFoundation.hpp>
 #include <KPState.hpp>
@@ -21,6 +22,9 @@ public:
     std::vector<int> valves;
     int currentValve   = -1;
     float pressure     = 0;
+    //Queue for moving median of pressure
+    std::vector<float> pressureVals;
+    int pressureSize       = 5; //this number should be modified as we test.
     float temperature  = 0;
     float barometric   = 0;
     float waterVolume  = 0;
@@ -34,6 +38,8 @@ public:
     unsigned long buttonStart = 0;
 
     float maxPressure = 0;
+    float maxSystemPressure = 10;
+    float cutoffPressure = 10;
 
     bool isFull          = false;
     bool preventShutdown = false;
@@ -53,6 +59,8 @@ public:
     void init(Config & config) {
         valves.resize(config.numberOfValves);
         memcpy(valves.data(), config.valves, sizeof(int) * config.numberOfValves);
+        maxSystemPressure = config.maxPressure;
+        cutoffPressure = config.cutoffPressure;
     }
 
 private:
@@ -104,7 +112,15 @@ private:
     }
 
     void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {
-        pressure    = std::get<0>(values);
+        //Pressure now factors in its previous value, which reduces the impacts of spikes while
+        // still prioritizing the new value. TODO: consider changing this algorithm.
+        pressureVals.push_back(std::get<0>(values));
+        if(pressureVals.size() >= pressureSize){
+            std::sort(pressureVals.begin(), pressureVals.end());
+            pressure = pressureVals[pressureSize/2]; //get the median
+            pressureVals.erase(pressureVals.begin());
+            pressureVals.erase(pressureVals.end() - 1); //remove the last element, vector.end() doesn't work
+        }
         temperature = std::get<1>(values);
         maxPressure = max(pressure, maxPressure);
     }
@@ -183,7 +199,8 @@ public:
 			&& dest[CURRENT_TASK].set(currentTaskName)
 			&& dest[CURRENT_STATE].set(currentStateName) 
             && dest[LOW_BATTERY].set(isBatteryLow())
-            && dest[SAMPLE_VOLUME].set(sampleVolume);
+            && dest[SAMPLE_VOLUME].set(sampleVolume)
+            && dest[PRESSURE_CUTOFF].set(cutoffPressure);
         // clang-format on
     }
 

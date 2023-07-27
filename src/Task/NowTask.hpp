@@ -91,7 +91,6 @@ public:
         flushTime      = source[FLUSH_TIME];
         flushVolume    = source[FLUSH_VOLUME];
         sampleTime     = source[SAMPLE_TIME];
-        samplePressure = source[SAMPLE_PRESSURE];
         sampleVolume   = source[SAMPLE_VOLUME];
         preserveTime   = source[PRESERVE_TIME];
         valve         = source[CURR_VALVE];
@@ -116,7 +115,6 @@ public:
 			&& dst[FLUSH_TIME].set(flushTime)
 			&& dst[FLUSH_VOLUME].set(flushVolume)
 			&& dst[SAMPLE_TIME].set(sampleTime)
-			&& dst[SAMPLE_PRESSURE].set(samplePressure) 
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[PRESERVE_TIME].set(preserveTime)
 			&& dst[CURR_VALVE].set(valve);
@@ -133,7 +131,6 @@ public:
     void operator()(NowTaskStateController::Config & config) const {
         config.flushTime      = flushTime;
         config.sampleTime     = sampleTime;
-        config.samplePressure = samplePressure;
         config.sampleVolume   = sampleVolume;
         config.preserveTime   = preserveTime;
     }
@@ -141,7 +138,6 @@ public:
     void operator()(NewStateController::Config & config) const {
         config.flushTime      = flushTime;
         config.sampleTime     = sampleTime;
-        config.samplePressure = samplePressure;
         config.sampleVolume   = sampleVolume;
         config.preserveTime   = preserveTime;
     }

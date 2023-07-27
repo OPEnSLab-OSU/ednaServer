@@ -184,6 +184,18 @@ void App::setupServerRouting() {
     });
 
     // ────────────────────────────────────────────────────────────────────────────────
+    // Pressure Cutoff update
+    // ────────────────────────────────────────────────────────────────────────────────
+    server.post("/api/pressure/update", [this](Request & req, Response & res) {
+        StaticJsonDocument<100> body;
+        deserializeJson(body, req.body);
+
+        const auto & response = dispatchAPI<API::PressureUpdate>(body);
+        res.json(response);
+        res.end();
+    });
+
+    // ────────────────────────────────────────────────────────────────────────────────
     // Emergency stop
     // ────────────────────────────────────────────────────────────────────────────────
     server.get("/stop", [this](Request & req, Response & res) { newStateController.stop(); });
