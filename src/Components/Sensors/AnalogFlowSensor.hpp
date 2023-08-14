@@ -58,6 +58,7 @@ class AnalogFlowSensor : public Sensor<AnalogFlowSensorData> {
         SensorData read() override {
             if(!canMeasure){
                 setErrorCode(ErrorCode::notReady);
+                lpm = 0;
                 return {volume, lpm};
             }
             
