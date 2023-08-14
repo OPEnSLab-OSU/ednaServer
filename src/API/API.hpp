@@ -74,4 +74,8 @@ namespace API {
     struct RTCUpdate : APISpec<JsonResponse<100>(App &, JsonDocument &)> {
         auto operator()(Arg<0>, Arg<1>) -> R;
     };
+
+    struct PressureUpdate : APISpec<JsonResponse<100>(App &, JsonDocument &)> {
+        auto operator()(Arg<0>, Arg<1>) -> R;
+    };
 };  // namespace API
