@@ -25,11 +25,11 @@
 		22,
 		23
     ],
-    "logFile": "log.csv",
+    "logFile": "log.txt",
     "statusFile": "status.js",
     "taskFolder": "tasks",
     "valveFolder": "valves",
     "valveUpperBound": 23,
-	"maxPressure": 40,
-	"cutoffPressure": 30
+	"maxPressure": 100,
+	"cutoffPressure": 80
 }

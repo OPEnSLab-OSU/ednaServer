@@ -59,18 +59,12 @@ public:
         //Sensor Pulse Constant: 0.11 ml
         mlpm    = 0.11/flowInterval;
         //mlpm * change in minute gives volume in mililiters
-        volume += 0.11;
+        volume += 0.1235;
         println("Volume: ", volume, ", mmlpm: ", mlpm);
     
         // Update the time of the last interrupt
         lastInterruptMicros = currentMicros;
-     /**  
-        prevMlpm = mlpm;
-        if(prevMlpm <19)
-        {
-            mlpm = 0;
-        }
-        */
+  
     }
     else {
         // If more than 1 second (1000000 microseconds) has passed since the last interrupt, set flow rate to 0
