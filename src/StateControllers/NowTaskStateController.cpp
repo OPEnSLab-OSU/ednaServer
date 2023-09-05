@@ -28,7 +28,8 @@ void NowTaskStateController::setup() {
     });
     registerState(SharedStates::Depressure(10), DEPRESSURE, PRESERVE_FLUSH);
     registerState(SharedStates::AlcoholPurge(), PRESERVE_FLUSH, PRESERVE);
-    registerState(SharedStates::Preserve(), PRESERVE, OFFSHOOT_CLEAN_2);
+    registerState(SharedStates::Preserve(), PRESERVE, FLUSH_3);
+    registerState(SharedStates::Flush(), FLUSH_3,OFFSHOOT_CLEAN_2);
     registerState(SharedStates::OffshootClean(10), OFFSHOOT_CLEAN_2, AIR_FLUSH);
     registerState(SharedStates::AirFlush(), AIR_FLUSH, STOP);
     
