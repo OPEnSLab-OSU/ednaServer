@@ -61,15 +61,16 @@ void NewStateController::setup() {
         //Pressure above system max, panic exit
         if (code == -1)
             return transitionTo(STOP);
-        return transitionTo(IDLE);
+        return transitionTo(FLUSH_3);
     });
+    /*
      registerState(SharedStates::Idle(), IDLE, [this](int code) {
         //Pressure above system max, panic exit
         if (code == -1)
             return transitionTo(STOP);
         return transitionTo(FLUSH_3);
     });
-    
+    */
      registerState(SharedStates::Flush(), FLUSH_3, [this](int code) {
         //Pressure above system max, panic exit
         if (code == -1)

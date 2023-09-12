@@ -435,11 +435,6 @@ namespace SharedStates {
             app.shift.setPin(app.currentValveIdToPin(), HIGH);
             app.shift.write();
         });
-
-        setTimeCondition(6, [&app](){
-            app.pump.on();
-        });
-
         auto const max_system_condition = [&]() {
             //This conditional is for above system pressure
             if(app.status.pressure >= app.status.maxSystemPressure) {
@@ -447,12 +442,21 @@ namespace SharedStates {
             }
             return false;
         };
-
-        setCondition(max_system_condition, [&]() { sm.next(-1); });
-
+        setTimeCondition(6, [&app](){
+            app.pump.on();
+        });
+     
         setTimeCondition(time + 6, [&]() { sm.next(0); });
     }
 
+    
+    void Preserve::leave(KPStateMachine & sm) {
+
+        auto & app = *static_cast<App *>(sm.controller);
+        println("inside preserve leave, going to turn pump off");
+        app.pump.off();
+        delay(1000);
+    }
 
     void Preserve::update(KPStateMachine & sm){
         if(timeSinceLastTransition() < 5000){

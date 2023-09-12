@@ -36,7 +36,9 @@ namespace New {
 
             decltype(auto) flush2 = getState<SharedStates::Flush>(FLUSH_2);
             flush2.time           = config.flushTime;
-
+            
+            decltype(auto) flush3 = getState<SharedStates::Flush>(FLUSH_3);
+            flush3.time           = config.flushTime;
             decltype(auto) sample = getState<SharedStates::Sample>(SAMPLE);
             sample.time           = config.sampleTime;
             sample.pressure       = config.samplePressure;
