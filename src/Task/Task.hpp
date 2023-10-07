@@ -34,6 +34,7 @@ public:
     float sampleVolume = 0;
     int dryTime        = 0;
     int preserveTime   = 0;
+    int waterTemperature = 4;
 
     bool deleteOnCompletion = false;
 
@@ -114,6 +115,7 @@ public:
         sampleVolume   = source[SAMPLE_VOLUME];
         preserveTime   = source[PRESERVE_TIME];
         timeBetween    = source[TIME_BETWEEN];
+        waterTemperature = source[WATER_TEMP];
     }
 #pragma endregion
 #pragma region JSONENCODABLE
@@ -141,6 +143,7 @@ public:
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[PRESERVE_TIME].set(preserveTime)
 			&& dst[TIME_BETWEEN].set(timeBetween) 
+            && dst[WATER_TEMP].set(waterTemperature)
 			&& dst[VALVES_OFFSET].set(getValveOffsetStart())
 			&& dst[DELETE].set(deleteOnCompletion)
 			&& copyArray(valves.data(), valves.size(), dst.createNestedArray(VALVES));

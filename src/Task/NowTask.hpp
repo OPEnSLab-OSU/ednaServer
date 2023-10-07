@@ -35,7 +35,7 @@ public:
     int samplePressure = 0;
     int dryTime        = 0;
     int preserveTime   = 0;
-
+    int waterTemperature    = 4;
     bool deleteOnCompletion = false;
     int valve = 0;
 //    std::vector<uint8_t> valves;
@@ -94,6 +94,7 @@ public:
         sampleVolume   = source[SAMPLE_VOLUME];
         preserveTime   = source[PRESERVE_TIME];
         valve         = source[CURR_VALVE];
+        waterTemperature = source[WATER_TEMP];
     }
 #pragma endregion
 #pragma region JSONENCODABLE
@@ -117,7 +118,8 @@ public:
 			&& dst[SAMPLE_TIME].set(sampleTime)
 			&& dst[SAMPLE_VOLUME].set(sampleVolume)
 			&& dst[PRESERVE_TIME].set(preserveTime)
-			&& dst[CURR_VALVE].set(valve);
+            && dst[CURR_VALVE].set(valve)
+			&& dst[WATER_TEMP].set(waterTemperature);
 	}  // clang-format on
 
     size_t printTo(Print & printer) const override {

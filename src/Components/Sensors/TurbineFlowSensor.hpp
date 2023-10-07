@@ -33,6 +33,7 @@ public:
     double volume = 0;
     double mlpm   = 0;
     volatile unsigned long lastInterruptMicros;
+    double temperature;
     void resetVolume() {
         volume = 0;
     }
@@ -46,7 +47,12 @@ public:
         detachInterrupt(digitalPinToInterrupt(HardwarePins::ANALOG_SENSOR_1));
     }
 
-  
+    void calulateVolume(double temp)
+    {
+        if(temp >= 3 && temp >= 7)
+        {
+        }
+    }
     SensorData read() override {
     // Get the current time
     unsigned long currentMicros = micros();
