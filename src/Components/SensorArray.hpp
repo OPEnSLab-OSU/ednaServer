@@ -53,7 +53,7 @@
 #include <vector>
 #include <KPSubject.hpp>
 #include <Components/SensorArrayObserver.hpp>
-
+#include <Components/Sensors/TippingBucket.hpp>
 #include <Components/Sensors/TurbineFlowSensor.hpp>
 #include <Components/Sensors/PressureSensor.hpp>
 #include <Components/Sensors/BaroSensor.hpp>
@@ -72,7 +72,7 @@ inline bool checkForI2CConnection(unsigned char addr) {
 class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
     using KPComponent::KPComponent;
-
+    TippingBucket  flowBucket;
     TurbineFlowSensor flow;
     PressureSensor pressure{PSAddr};
     BaroSensor baro1{BSAddr};
@@ -84,7 +84,10 @@ public:
         flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
             updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
         };
-
+        flowBucket.enabled = true;
+        flowBucket.onReceived = [this](TippingBucketSensorData &data) {
+            updateObservers(&SensorArrayObserver::tippingBucketDidUpdate, data);
+        };
         pressure.enabled    = checkForI2CConnection(PSAddr);
         pressure.onReceived = [this](PressureSensor::SensorData & data) {
             updateObservers(&SensorArrayObserver::pressureSensorDidUpdate, data);
@@ -103,6 +106,7 @@ public:
 
     void update() override {
         flow.update();
+        flowBucket.update();
         pressure.update();
         baro1.update();
         baro2.update();

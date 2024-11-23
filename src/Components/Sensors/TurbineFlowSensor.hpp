@@ -27,7 +27,7 @@ private:
 
 public:
     double volume = 0;
-    double lpm    = 0;
+    double rate    = 0;
 
     void resetVolume() {
         volume = 0;

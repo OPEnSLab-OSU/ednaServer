@@ -96,13 +96,17 @@ private:
     //   :::::: S E N S O R S : :  :   :    :     :        :          :
     // ────────────────────────────────────────────────────────────────
     //
-
+/*/
     void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) override {
         waterFlow    = values.lpm;
         waterVolume  = values.volume;
         sampleVolume = values.volume;
     }
-
+*/
+    void tippingBucketDidUpdate(TippingBucketSensorData & values) override {
+    waterVolume  = values.volume; 
+    sampleVolume = values.volume; 
+}
     void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {
         pressure    = std::get<0>(values);
         temperature = std::get<1>(values);
