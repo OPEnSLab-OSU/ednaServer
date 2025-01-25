@@ -1,3 +1,4 @@
+/**
 #pragma once
 #include <Components/Sensor.hpp>
 #include <Application/Constants.hpp>
@@ -8,10 +9,11 @@ extern volatile bool flowUpdated;
 
 
 void flowTick();
-
 inline double interpolate(double x, double in_min, double in_max, double out_min, double out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
+
 
 struct TurbineFlowSensorData {
     double volume;
@@ -79,3 +81,4 @@ public:
 }
 
 };
+*/

@@ -104,13 +104,17 @@ private:
     //   :::::: S E N S O R S : :  :   :    :     :        :          :
     // ────────────────────────────────────────────────────────────────
     //
-
+    void tippingBucketDidUpdate(TippingBucket::SensorData & values) override {
+    waterVolume  = values.volume; 
+    sampleVolume = values.volume; 
+    }
+    /**
     void flowSensorDidUpdate(TurbineFlowSensor::SensorData & values) override {
         waterFlow    = values.mlpm;
         waterVolume  = values.volume;
         sampleVolume = values.volume;
     }
-
+    */
     void pressureSensorDidUpdate(PressureSensor::SensorData & values) override {
         //Pressure now factors in its previous value, which reduces the impacts of spikes while
         // still prioritizing the new value. TODO: consider changing this algorithm.

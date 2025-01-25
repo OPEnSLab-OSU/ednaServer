@@ -53,7 +53,8 @@
 #include <KPSubject.hpp>
 #include <Components/SensorArrayObserver.hpp>
 
-#include <Components/Sensors/TurbineFlowSensor.hpp>
+//#include <Components/Sensors/TurbineFlowSensor.hpp>
+#include <Components/Sensors/TippingBucket.hpp>
 #include <Components/Sensors/PressureSensor.hpp>
 #include <Components/Sensors/BaroSensor.hpp>
 #include <Components/Sensors/AnalogFlowSensor.hpp>
@@ -74,16 +75,17 @@ class SensorArray : public KPComponent, public KPSubject<SensorArrayObserver> {
 public:
     using KPComponent::KPComponent;
 
-    TurbineFlowSensor flow;
+    //TurbineFlowSensor flow;
     //AnalogFlowSensor flow{HardwarePins::ANALOG_SENSOR_1};
+    TippingBucket  flow;
     PressureSensor pressure{PSAddr};
     BaroSensor baro1{BSAddr};
     BaroSensor baro2{DSAddr};
 
     void setup() override {
         flow.enabled    = true;
-        flow.onReceived = [this](TurbineFlowSensor::SensorData & data) {
-            updateObservers(&SensorArrayObserver::flowSensorDidUpdate, data);
+        flow.onReceived = [this](TippingBucket::SensorData & data) {
+            updateObservers(&SensorArrayObserver::tippingBucketDidUpdate, data);
         };
 
         pressure.enabled    = checkForI2CConnection(PSAddr);

@@ -75,9 +75,9 @@ class AnalogFlowSensor : public Sensor<AnalogFlowSensorData> {
                 setErrorCode(ErrorCode::invalidChecksum);
             }*/
             
-            lpm = countToFlow(interpolate(analogRead(ADDR), 0, 1023, 0, 3.3));
-            volume += lpm / 60.0;
-            return {volume, lpm};
+           // lpm = countToFlow(interpolate(analogRead(ADDR), 0, 1023, 0, 3.3));
+          //  volume += lpm / 60.0;
+          //  return {volume, lpm};
         }
 
 
